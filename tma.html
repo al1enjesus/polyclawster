@@ -2287,10 +2287,20 @@ async function createWalletFromPortfolio() {
       method: 'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ tgId: String(tgId) })
     });
-    const { data } = await r.json();
+    const resp = await r.json();
+    const data = resp.data || resp;
     if (data && data.address) {
-      renderUserPortfolio(data, (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) || {});
-      showTab('wallet');
+      window._userWallet = data.address;
+      window._userValue  = parseFloat(data.demoBalance || data.demo_balance || 1);
+      showToast('Кошелёк создан! 🎉');
+      // Показываем красивый экран с CTA
+      document.getElementById('portfolio-content').innerHTML = `<div class="content" style="text-align:center;padding:40px 20px">
+        <div style="font-size:52px;margin-bottom:14px">🎉</div>
+        <div style="font-size:20px;font-weight:800;margin-bottom:8px">Кошелёк создан!</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">У тебя $1 demo-баланса — поставь первую ставку</div>
+        <button onclick="showTab('signals')" class="btn btn-primary" style="font-size:15px;height:52px;margin-bottom:10px;width:100%;max-width:300px">⚡ Поставить первую ставку →</button>
+        <br><button onclick="showTab('wallet')" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;margin-top:8px">Посмотреть кошелёк</button>
+      </div>`;
     }
   } catch(e) { showToast('Error: ' + e.message); }
 }
@@ -2567,8 +2577,8 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + '📤 Поделиться'
     + '</button>'
     + (isDemo
-        ? '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'wallet\')">💰 Пополнить</button>'
-        : '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\')">📊 Портфель</button>'
+        ? '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
+        : '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
     )
     + '</div>'
     + '</div>'
@@ -3629,7 +3639,7 @@ async function createWalletFlow(tgId) {
       body: JSON.stringify({ tgId: String(tgId) })
     });
     const res = await r.json();
-    if (res.ok && res.data && data.address) {
+    if (res.ok && res.data && res.data.address) {
       const addr = res.data.address;
       el.innerHTML = `<div style="text-align:center;padding:40px 20px">
         <div style="font-size:44px;margin-bottom:14px">✅</div>
@@ -3638,9 +3648,26 @@ async function createWalletFlow(tgId) {
         <div style="color:var(--muted);font-size:12px;margin-bottom:20px">Polygon · USDC.e</div>
         <button onclick="copyAddr('${addr}')" style="background:#6d28d9;border:none;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;cursor:pointer">📋 Copy Address</button>
       </div>`;
-      setTimeout(() => loadWallet(), 1500);
+      // ── Update global wallet state immediately ──
+      window._userWallet = addr;
+      window._userValue  = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
+      window._hasDeposited = false;
+      // Show success with CTA to place first bet
+      el.innerHTML = `<div style="text-align:center;padding:32px 20px">
+        <div style="font-size:52px;margin-bottom:14px">🎉</div>
+        <div style="font-size:20px;font-weight:800;margin-bottom:8px">Кошелёк создан!</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:20px">Бесплатный AI-кошелёк на Polygon</div>
+        <div style="background:#1a1535;border-radius:12px;padding:12px 14px;margin-bottom:16px;word-break:break-all;font-family:monospace;font-size:11px;color:#a78bfa;">${addr}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px">
+          <div style="background:rgba(25,251,155,.1);border:1px solid rgba(25,251,155,.25);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:#19fb9b">🎁 $1 demo-баланс</div>
+        </div>
+        <button onclick="showTab('signals')" class="btn btn-primary" style="font-size:15px;height:52px;margin-bottom:10px;width:100%">⚡ Поставить первую ставку →</button>
+        <button onclick="copyAddr('${addr}')" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer">📋 Скопировать адрес</button>
+      </div>`;
+      showToast('Кошелёк создан! 🎉');
+      setTimeout(() => loadWallet(), 2000);
     } else {
-      el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#f87171">❌ ' + (res.error || 'Error') + '</div>';
+      el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#f87171">❌ ' + (res.error || 'Error creating wallet') + '</div>';
     }
   } catch(e) {
     el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#f87171">❌ ' + e.message + '</div>';
@@ -4537,9 +4564,12 @@ function openBetSheet(sigOrStr, side) {
   _bsSetSide(_bs.side, true);
 
   // Determine state
-  var hasWallet = !!(window._userWallet || (window._userState && window._userState.address));
-  var balance   = parseFloat(window._userValue || 0);
-  var noFunds   = !hasWallet || balance < 1;
+  var hasWallet   = !!(window._userWallet || (window._userState && window._userState.address));
+  var realBalance = parseFloat(window._userValue || 0);
+  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  var balance     = realBalance > 0 ? realBalance : demoBalance;
+  var isDemo      = realBalance < 1 && demoBalance >= 1;
+  var noFunds     = !hasWallet || balance < 1;
 
   var confirmBtn = document.getElementById('bs-confirm');
   var inpWrap    = document.getElementById('bs-inp-wrap');
@@ -4550,12 +4580,12 @@ function openBetSheet(sigOrStr, side) {
     inpWrap.style.display    = 'none';
     ctaBox.style.display     = '';
     document.getElementById('bs-nf-title').textContent = !hasWallet
-      ? 'Нет кошелька' : 'Нет баланса';
+      ? 'Создай кошелёк' : 'Пополни баланс';
     document.getElementById('bs-nf-text').textContent = !hasWallet
-      ? 'Создай бесплатный AI-кошелёк — займёт 10 секунд'
-      : 'Пополни кошелёк на USDC (Polygon) · минимум $1';
+      ? 'Бесплатный AI-кошелёк — займёт 10 секунд. Получишь $1 demo'
+      : 'Пополни USDC на Polygon · минимум $1';
     document.getElementById('bs-nf-btn').textContent = !hasWallet
-      ? 'Создать кошелёк →' : 'Пополнить →';
+      ? '✨ Создать кошелёк →' : '💰 Пополнить →';
     _bs.action = !hasWallet ? 'create' : 'deposit';
   } else {
     confirmBtn.style.display = '';
@@ -4566,6 +4596,9 @@ function openBetSheet(sigOrStr, side) {
     var def = Math.min(25, Math.max(1, Math.floor(balance * 0.1)));
     var inp = document.getElementById('bs-amount');
     if (inp) { inp.value = def; }
+    // Show balance hint
+    var bsBalEl = document.getElementById('bs-balance-hint');
+    if (bsBalEl) bsBalEl.textContent = 'Баланс: $' + balance.toFixed(2) + (isDemo ? ' (demo)' : '');
     _bsPayoutUpdate();
     confirmBtn.disabled    = false;
     confirmBtn.textContent = 'Подтвердить';
@@ -4637,12 +4670,37 @@ async function confirmBetSheet() {
   var inp = document.getElementById('bs-amount');
   var amt = parseFloat(inp && inp.value) || 0;
   if (amt < 1) { showToast('Минимум $1'); return; }
-  var balance = parseFloat(window._userValue || 0);
-  if (amt > balance) { showToast('Недостаточно средств'); return; }
+  var realBalance = parseFloat(window._userValue || 0);
+  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  var useDemo = realBalance < amt && demoBalance >= amt;
+  var balance = useDemo ? demoBalance : realBalance;
+  if (amt > balance) { showToast('Недостаточно средств · пополни кошелёк'); return; }
 
   var btn = document.getElementById('bs-confirm');
   btn.disabled = true; btn.textContent = '⏳';
   haptic.light && haptic.light();
+
+  // ── DEMO BET ────────────────────────────────────────────────
+  if (useDemo) {
+    var newBal = Math.max(0, demoBalance - amt);
+    localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+    // Save demo bet to server (best-effort)
+    var sig2 = _bs.sig;
+    fetch('/api/trade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tgId: window._tgId || '', market: sig2.market || sig2.title || '',
+        conditionId: sig2.conditionId || '', slug: sig2.slug || '',
+        side: _bs.side, amount: amt, signalScore: sig2.score || 0, isDemo: true
+      })
+    }).catch(function(){});
+    closeBetSheet();
+    setTimeout(function() { showBetConfirm(sig2, _bs.side, amt, true); }, 340);
+    // Reload portfolio to show demo bet in active bets
+    setTimeout(function() { loadPortfolio && loadPortfolio(); }, 2500);
+    return;
+  }
 
   try {
     var r = await fetch('/api/trade', {
@@ -4666,8 +4724,9 @@ async function confirmBetSheet() {
       // Обновляем hero-balance сразу
       var heroEl = document.getElementById('hero-balance-amount');
       if (heroEl) heroEl.textContent = '$' + window._userValue.toFixed(2);
-      // Перезагружаем portfolio через 2с чтобы ставка появилась
+      // Refresh portfolio: 2s (ставка появится) + 6s (блокчейн)
       setTimeout(function() { loadPortfolio && loadPortfolio(); }, 2000);
+      setTimeout(function() { loadPortfolio && loadPortfolio(); }, 6000);
       setTimeout(function() { showBetConfirm(sig, _bs.side, amt, false); }, 340);
     } else {
       showToast(d.error || 'Ошибка ставки');
@@ -4778,6 +4837,7 @@ async function confirmBetSheet() {
     <button class="bs-preset" onclick="setBetAmt(50)">$50</button>
   </div>
   <div id="bs-payout" class="bs-payout"></div>
+  <div id="bs-balance-hint" style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:8px;margin-top:-4px"></div>
   <button id="bs-confirm" class="bs-confirm" onclick="confirmBetSheet()">Подтвердить</button>
   <div id="bs-cta" class="bs-cta" style="display:none">
     <div class="bs-cta-box">
