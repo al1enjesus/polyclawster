@@ -1111,7 +1111,9 @@ function renderWallet(w) {
 function renderWalletDetail(s) {
   if (!s) return;
   var tgId = getTgId();
+  var addr = s.addr || '';
   var polyLink = 'https://polymarket.com/event/' + slug(s.market || s.title || '');
+  var walletLink = addr ? 'https://polymarket.com/profile/' + addr : '';
   var sc = +(s.score || 0);
   var barColor = sc >= 8 ? '#FF3366' : sc >= 5 ? '#F7B731' : '#45AAF2';
 
@@ -1132,30 +1134,81 @@ function renderWalletDetail(s) {
       + '</div>';
   }
 
+  // Скелетон для stats — заполнится через fetchWalletStats()
+  var statsHTML = addr
+    ? '<div id="wallet-stats-grid" class="detail-stats">'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-winrate"><div class="spinner" style="width:18px;height:18px;margin:0 auto"></div></div><div class="detail-stat-k">WIN RATE</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-pnl"><div class="spinner" style="width:18px;height:18px;margin:0 auto"></div></div><div class="detail-stat-k">TOTAL P&L</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-positions">—</div><div class="detail-stat-k">POSITIONS</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-value">—</div><div class="detail-stat-k">PORT VALUE</div></div>'
+      + '</div>'
+    : '<div style="color:var(--muted);font-size:12px">No wallet address</div>';
+
   document.getElementById('wallet-detail-content').innerHTML =
     '<div class="detail-hero">'
     + '<div class="detail-icon">🧠</div>'
-    + '<div><div class="detail-title">' + (s.market || s.title || 'Smart Wallet Signal') + '</div>'
-    +   '<div class="detail-sub">Score: ' + sc.toFixed(1) + '/10</div></div>'
+    + '<div style="flex:1;min-width:0">'
+    +   '<div class="detail-title">Smart Money Signal</div>'
+    +   (addr ? '<div class="detail-sub" style="font-family:monospace;font-size:10px;word-break:break-all">' + addr + '</div>' : '')
+    + '</div>'
     + '</div>'
     + '<div class="detail-section">'
-    +   '<div class="detail-section-title">Signal Data</div>'
+    +   '<div class="detail-section-title">Wallet Stats</div>'
+    +   statsHTML
+    + '</div>'
+    + '<div class="detail-section">'
+    +   '<div class="detail-section-title">Current Signal</div>'
+    +   '<div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:10px">' + (s.market || s.title || '') + '</div>'
     +   (s.side ? '<div class="detail-row"><span class="detail-row-k">Side</span><span class="outcome-badge outcome-' + ((s.side||'').toLowerCase() === 'yes' ? 'yes' : (s.side||'').toLowerCase() === 'no' ? 'no' : 'other') + '">' + s.side + '</span></div>' : '')
     +   (s.price !== undefined ? '<div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">' + Math.round((s.price||0)*100) + '¢</span></div>' : '')
-    +   (s.volume !== undefined ? '<div class="detail-row"><span class="detail-row-k">Volume</span><span class="detail-row-v">$' + Math.round(s.volume||0).toLocaleString() + '</span></div>' : '')
-    + '</div>'
-    + '<div class="detail-section">'
-    +   '<div class="detail-section-title">Confidence</div>'
-    +   '<div style="display:flex;align-items:center;gap:12px"><div class="score-bar" style="flex:1;height:6px;border-radius:4px"><div class="score-fill" style="width:' + Math.round(sc/10*100) + '%;background:' + barColor + ';border-radius:4px"></div></div><span style="font-size:18px;font-weight:800;color:' + barColor + ';letter-spacing:-0.5px">' + sc.toFixed(1) + '/10</span></div>'
+    +   '<div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v" style="color:' + barColor + ';font-weight:700">' + sc.toFixed(1) + '/10</span></div>'
     + '</div>'
     + quickTrade
     + '<div class="btn-row">'
     +   '<button class="btn btn-secondary" onclick="openExternal(\'' + polyLink + '\')">'
     +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
-    +   'View on Polymarket</button>'
+    +   'View Market</button>'
+    + (walletLink ? '<button class="btn btn-secondary" onclick="openExternal(\'' + walletLink + '\')">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+    +   'View Wallet</button>' : '')
     + '</div>';
 
   openOverlay('wallet-detail');
+
+  // Асинхронно загрузить реальную статистику
+  if (addr) fetchWalletStats(addr);
+}
+
+async function fetchWalletStats(addr) {
+  try {
+    var r = await fetch('/api/wallet-stats?addr=' + encodeURIComponent(addr));
+    var data = await r.json();
+    if (!data.ok || !data.stats) return;
+    var st = data.stats;
+
+    var wrEl = document.getElementById('ws-winrate');
+    var pnlEl = document.getElementById('ws-pnl');
+    var posEl = document.getElementById('ws-positions');
+    var valEl = document.getElementById('ws-value');
+
+    if (wrEl) {
+      var wr = st.winRatePct !== null ? st.winRatePct + '%' : '—%';
+      wrEl.textContent = wr;
+      wrEl.style.color = st.winRatePct !== null && st.winRatePct >= 50 ? 'var(--green)' : 'var(--red)';
+    }
+    if (pnlEl) {
+      var pnl = st.totalPnl;
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (posEl) posEl.textContent = st.totalPositions || '0';
+    if (valEl) valEl.textContent = '$' + (st.totalValue || 0).toFixed(0);
+  } catch(e) {
+    var wrEl = document.getElementById('ws-winrate');
+    if (wrEl) wrEl.textContent = '—%';
+    var pnlEl = document.getElementById('ws-pnl');
+    if (pnlEl) pnlEl.textContent = '—';
+  }
 }
 
 function copyAddr(addr) {
