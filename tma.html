@@ -2209,7 +2209,9 @@ async function renderPortfolio(d) {
     }
   } catch(e) {}
 
-  el.innerHTML = `<div class="content">${heroHTML}${betsHTML}${ctaBlock}${sigsHTML}
+  // If user has active bets — don't show "Fund wallet" CTA (confusing)
+  var finalCta = betsHTML ? '' : ctaBlock;
+  el.innerHTML = `<div class="content">${heroHTML}${betsHTML}${finalCta}${sigsHTML}
     <div class="virix" style="opacity:.25">Virix Labs</div>
   </div>`;
 }
@@ -4703,7 +4705,7 @@ async function confirmBetSheet() {
     closeBetSheet();
     setTimeout(function() { showBetConfirm(sig2, _bs.side, amt, true); }, 340);
     // Reload portfolio to show demo bet in active bets
-    setTimeout(function() { loadPortfolio && loadPortfolio(); }, 2500);
+    setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2500);
     return;
   }
 
@@ -4730,8 +4732,8 @@ async function confirmBetSheet() {
       var heroEl = document.getElementById('hero-balance-amount');
       if (heroEl) heroEl.textContent = '$' + window._userValue.toFixed(2);
       // Refresh portfolio: 2s (ставка появится) + 6s (блокчейн)
-      setTimeout(function() { loadPortfolio && loadPortfolio(); }, 2000);
-      setTimeout(function() { loadPortfolio && loadPortfolio(); }, 6000);
+      setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2000);
+      setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 5000);
       setTimeout(function() { showBetConfirm(sig, _bs.side, amt, false); }, 340);
     } else {
       showToast(d.error || 'Ошибка ставки');
