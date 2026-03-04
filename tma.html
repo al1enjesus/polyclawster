@@ -2478,7 +2478,15 @@ async function placeBet(signal, side) {
       var r = await fetch('/api/trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tgId: tgId, signal: signal, side: side, amount: amt })
+        body: JSON.stringify({
+          tgId: String(tgId),
+          market: signal.market || signal.title || '',
+          conditionId: signal.marketId || signal.conditionId || signal.market_id || '',
+          slug: signal.slug || '',
+          side: side,
+          amount: amt,
+          signalScore: signal.score || 0
+        })
       });
       var d = await r.json();
       if (d.ok) {
@@ -2505,10 +2513,28 @@ async function placeBet(signal, side) {
   }
 
   if (demoBalance >= amt) {
-    // DEMO BET
+    // DEMO BET — save to DB + update localStorage
     haptic.success ? haptic.success() : haptic.light();
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+    window._demoBal = newBal;
+    // Persist to server
+    try {
+      fetch('/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tgId: String(tgId),
+          market: signal.market || signal.title || '',
+          conditionId: signal.marketId || signal.conditionId || signal.market_id || '',
+          slug: signal.slug || '',
+          side: side,
+          amount: amt,
+          signalScore: signal.score || 0,
+          isDemo: true
+        })
+      });
+    } catch(e) {}
     showBetConfirm(signal, side, amt, true);
     return;
   }
@@ -2531,9 +2557,28 @@ function _noBetDepositClick() {
 function _noBetDemoClick() {
   var ctx = window._noBetCtx;
   if (!ctx) return;
+  var tgId = window._tgId || '';
   var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
   var newBal = Math.max(0, demoBalance - ctx.amt);
   localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+  window._demoBal = newBal;
+  // Persist to server
+  try {
+    fetch('/api/trade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tgId: String(tgId),
+        market: ctx.signal.market || ctx.signal.title || '',
+        conditionId: ctx.signal.marketId || ctx.signal.conditionId || ctx.signal.market_id || '',
+        slug: ctx.signal.slug || '',
+        side: ctx.side,
+        amount: ctx.amt,
+        signalScore: ctx.signal.score || 0,
+        isDemo: true
+      })
+    });
+  } catch(e) {}
   var el = document.getElementById('no-bet-sheet-overlay');
   if (el) el.remove();
   showBetConfirm(ctx.signal, ctx.side, ctx.amt, true);
