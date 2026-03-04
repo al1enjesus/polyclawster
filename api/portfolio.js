@@ -125,6 +125,13 @@ module.exports = async (req, res) => {
       } catch {}
     }
 
+    // Load bets from Supabase
+    let userBets = [];
+    try {
+      userBets = await db.getUserBets(tgId, 50);
+      if (!Array.isArray(userBets)) userBets = [];
+    } catch {}
+
     portfolio = {
       totalValue: liveValue > 0 ? liveValue : totalValue,
       totalDeposited,
@@ -135,6 +142,8 @@ module.exports = async (req, res) => {
       address: user.address || null,
       demoBalance,
       demoBonusGranted: !!user.demoBonusGranted,
+      bets: userBets,
+      activeBets: userBets.filter(b => b.status === 'open' || b.status === 'queued'),
     };
   } else {
     // Unknown user: empty state (demo bonus will be granted via /api/demo-bonus)
