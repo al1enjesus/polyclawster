@@ -2478,12 +2478,20 @@ async function placeBet(signal, side) {
       var r = await fetch('/api/trade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tgId: tgId, signal: signal, side: side, amount: amt })
+        body: JSON.stringify({
+          tgId: String(tgId),
+          market: signal.market || signal.title || '',
+          conditionId: signal.marketId || signal.conditionId || signal.market_id || '',
+          slug: signal.slug || '',
+          side: side,
+          amount: amt,
+          signalScore: signal.score || 0
+        })
       });
       var d = await r.json();
       if (d.ok) {
         window._userValue = Math.max(0, realBalance - amt); // optimistic update
-        showBetConfirm(signal, side, amt, false);
+        showBetConfirm(signal, side, amt, false, d.executed !== false, d.status);
       } else {
         showToast(d.error || 'Ошибка ставки');
         if (btnYes) { btnYes.disabled = false; btnYes.textContent = 'YES'; }
@@ -2505,10 +2513,28 @@ async function placeBet(signal, side) {
   }
 
   if (demoBalance >= amt) {
-    // DEMO BET
+    // DEMO BET — save to DB + update localStorage
     haptic.success ? haptic.success() : haptic.light();
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+    window._demoBal = newBal;
+    // Persist to server
+    try {
+      fetch('/api/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tgId: String(tgId),
+          market: signal.market || signal.title || '',
+          conditionId: signal.marketId || signal.conditionId || signal.market_id || '',
+          slug: signal.slug || '',
+          side: side,
+          amount: amt,
+          signalScore: signal.score || 0,
+          isDemo: true
+        })
+      });
+    } catch(e) {}
     showBetConfirm(signal, side, amt, true);
     return;
   }
@@ -2531,12 +2557,40 @@ function _noBetDepositClick() {
 function _noBetDemoClick() {
   var ctx = window._noBetCtx;
   if (!ctx) return;
+  var tgId = window._tgId || '';
   var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
   var newBal = Math.max(0, demoBalance - ctx.amt);
   localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+  window._demoBal = newBal;
+  // Persist to server
+  try {
+    fetch('/api/trade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tgId: String(tgId),
+        market: ctx.signal.market || ctx.signal.title || '',
+        conditionId: ctx.signal.marketId || ctx.signal.conditionId || ctx.signal.market_id || '',
+        slug: ctx.signal.slug || '',
+        side: ctx.side,
+        amount: ctx.amt,
+        signalScore: ctx.signal.score || 0,
+        isDemo: true
+      })
+    });
+  } catch(e) {}
   var el = document.getElementById('no-bet-sheet-overlay');
   if (el) el.remove();
   showBetConfirm(ctx.signal, ctx.side, ctx.amt, true);
+}
+
+function _noBetPolyClick() {
+  var ctx = window._noBetCtx;
+  if (!ctx) return;
+  var el = document.getElementById('no-bet-sheet-overlay');
+  if (el) el.remove();
+  var polyLink = 'https://polymarket.com/event/' + (ctx.signal.slug || slug(ctx.signal.market || ctx.signal.title || ''));
+  openExternal(polyLink);
 }
 
 function showNoBetSheet(amt, signal, side) {
@@ -2564,7 +2618,12 @@ function showNoBetSheet(amt, signal, side) {
     + '<div style="font-size:28px">\uD83D\uDCB0</div>'
     + '<div><div style="font-size:14px;font-weight:700">\u041f\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u044c USDC</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">\u041c\u0438\u043d\u0438\u043c\u0443\u043c $1 \u00b7 Polygon</div></div>'
     + '</div>'
-    // Option 3: Cancel
+    // Option 3: Trade on Polymarket directly
+    + '<div onclick="_noBetPolyClick()" style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">'
+    + '<div style="font-size:28px">🔗</div>'
+    + '<div><div style="font-size:14px;font-weight:700">Открыть на Polymarket</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Ставить напрямую в браузере</div></div>'
+    + '</div>'
+    // Option 4: Cancel
     + '<button onclick="_noBetCancel()" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:4px">\u041e\u0442\u043c\u0435\u043d\u0430</button>'
     + '</div>'
   );
@@ -2572,22 +2631,44 @@ function showNoBetSheet(amt, signal, side) {
   document.body.appendChild(overlay);
 }
 
-function showBetConfirm(signal, side, amt, isDemo) {
-  var tgw = window.Telegram && window.Telegram.WebApp;
-  if (tgw && tgw.HapticFeedback) tgw.HapticFeedback.notificationOccurred('success');
+function showBetConfirm(signal, side, amt, isDemo, executed, status) {
+  // executed: true = CLOB filled immediately, false = queued for agent
+  // status: 'demo' | 'open' | 'queued'
+  var tgw      = window.Telegram && window.Telegram.WebApp;
+  var isQueued = !isDemo && executed === false;
 
-  var market = (signal.market || signal.title || '').slice(0, 50);
+  if (tgw && tgw.HapticFeedback) {
+    tgw.HapticFeedback.notificationOccurred(isQueued ? 'warning' : 'success');
+  }
+
+  var market    = (signal.market || signal.title || '').slice(0, 50);
   var sideColor = side === 'YES' ? '#19fb9b' : '#FF4F4F';
 
+  var icon, title, subtitle;
+  if (isDemo) {
+    icon     = '🎁';
+    title    = 'Demo-ставка принята!';
+    subtitle = '';
+  } else if (isQueued) {
+    icon     = '⏳';
+    title    = 'Ставка принята!';
+    subtitle = '<div style="display:inline-block;background:rgba(247,183,49,.1);border:1px solid rgba(247,183,49,.25);border-radius:8px;padding:4px 10px;font-size:11px;color:#F7B731;margin-top:6px">Исполнится через ~1 мин</div>';
+  } else {
+    icon     = '✅';
+    title    = 'Ставка исполнена!';
+    subtitle = '';
+  }
+
   var overlay = document.createElement('div');
-  overlay.id = 'bet-confirm-overlay';
+  overlay.id  = 'bet-confirm-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = (
     '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;padding:28px 24px 40px">'
     + '<div style="text-align:center;margin-bottom:20px">'
-    + '<div style="font-size:52px">' + (isDemo ? '🎁' : '✅') + '</div>'
-    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:6px">Ставка ' + (isDemo ? 'demo-' : '') + 'принята!</div>'
-    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:260px;margin:0 auto">' + market + '</div>'
+    + '<div style="font-size:52px">' + icon + '</div>'
+    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:4px">' + title + '</div>'
+    + (subtitle ? subtitle : '')
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:260px;margin:8px auto 0">' + market + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'
     + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:' + sideColor + '">' + side + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Ставка</div></div>'
@@ -2596,17 +2677,15 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + '</div>'
     + (isDemo ? '<div style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:12px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.5">🎁 Demo-ставка. Пополни кошелёк для реальных денег.</div>' : '')
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet(\'' + market.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + amt + ',\'' + side + '\')">'
+    + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet('' + market.replace(/\/g, '\\').replace(/'/g, "\'") + '',' + amt + ','' + side + '')">'
     + '📤 Поделиться'
     + '</button>'
-    + (isDemo
-        ? '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
-        : '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
-    )
+    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById('bet-confirm-overlay').remove();showTab('portfolio');loadPortfolio&&loadPortfolio()">📊 Портфель</button>'
     + '</div>'
+    + '<button onclick="openExternal('https://polymarket.com/event/' + encodeURIComponent(slug(signal.market||signal.title||'')))" style="width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;margin-top:8px">🔗 Открыть на Polymarket</button>'
     + '</div>'
   );
-  overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
 
@@ -3323,48 +3402,89 @@ function renderSignalDetail(s) {
 }
 
 function renderWalletDetail(s) {
-  const wr = s.winRate?Math.round(s.winRate*100):null;
+  const addr = s.addr || '';
   const polyLink = 'https://polymarket.com/event/'+slug(s.market||s.title||'');
-  const walletLink = 'https://polymarket.com/@'+s.addr;
+  const walletLink = addr ? 'https://polymarket.com/profile/'+addr : '';
+  const sc = +(s.score||0);
+  const barColor = sc>=8?'#FF3366':sc>=5?'#F7B731':'#45AAF2';
 
   document.getElementById('wallet-detail-content').innerHTML=`
     <div class="detail-hero">
       <div class="detail-icon" style="background:var(--green-dim);border-color:rgba(25,251,155,.2);font-size:22px">🧠</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="detail-title">Smart Money Signal</div>
-        <div class="detail-sub" style="font-family:monospace;font-size:11px">${s.addr.slice(0,18)}...</div>
+        ${addr ? `<div class="detail-sub" style="font-family:monospace;font-size:10px;word-break:break-all">${addr}</div>` : ''}
       </div>
     </div>
     <div class="detail-section">
       <div class="detail-section-title">Wallet Stats</div>
-      <div class="detail-stats">
+      <div class="detail-stats" id="wallet-stats-grid">
         <div class="detail-stat">
-          <div class="detail-stat-v up">${wr||'—'}%</div>
+          <div class="detail-stat-v" id="ws-winrate"><div class="spinner" style="width:16px;height:16px;margin:0 auto"></div></div>
           <div class="detail-stat-k">Win Rate</div>
         </div>
         <div class="detail-stat">
-          <div class="detail-stat-v ${(s.totalPnl||0)>=0?'up':'down'}">${s.totalPnl?fmt(s.totalPnl):'—'}</div>
-          <div class="detail-stat-k">Total P&amp;L</div>
+          <div class="detail-stat-v" id="ws-pnl"><div class="spinner" style="width:16px;height:16px;margin:0 auto"></div></div>
+          <div class="detail-stat-k">Total P&L</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v" id="ws-positions">—</div>
+          <div class="detail-stat-k">Positions</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v" id="ws-value">—</div>
+          <div class="detail-stat-k">Port Value</div>
         </div>
       </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-title">Current Bet</div>
+      <div class="detail-section-title">Current Signal</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px">${s.market||s.title||''}</div>
-      <div class="detail-row"><span class="detail-row-k">Outcome</span><span class="outcome-badge outcome-${(s.outcome||'').toLowerCase()==='yes'?'yes':'other'}">${s.outcome||'—'}</span></div>
+      ${s.side ? `<div class="detail-row"><span class="detail-row-k">Side</span><span class="outcome-badge outcome-${(s.side||'').toLowerCase()==='yes'?'yes':(s.side||'').toLowerCase()==='no'?'no':'other'}">${s.side}</span></div>` : ''}
       <div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">${Math.round((s.price||0)*100)}¢</span></div>
-      <div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v up">${(s.score||0).toFixed(1)}/10</span></div>
+      <div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v" style="color:${barColor};font-weight:700">${sc.toFixed(1)}/10</span></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         View Market
       </button>
-      <button class="btn btn-secondary" onclick="openExternal('${walletLink}')">
+      ${walletLink ? `<button class="btn btn-secondary" onclick="openExternal('${walletLink}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        View Wallet on Polymarket
-      </button>
+        View Wallet
+      </button>` : ''}
     </div>`;
+
+  if (addr) fetchWalletStats(addr);
+}
+
+async function fetchWalletStats(addr) {
+  try {
+    const r = await fetch('/api/wallet-stats?addr=' + encodeURIComponent(addr));
+    const data = await r.json();
+    if (!data.ok || !data.stats) return;
+    const st = data.stats;
+    const wrEl = document.getElementById('ws-winrate');
+    const pnlEl = document.getElementById('ws-pnl');
+    const posEl = document.getElementById('ws-positions');
+    const valEl = document.getElementById('ws-value');
+    if (wrEl) {
+      wrEl.textContent = st.winRatePct !== null ? st.winRatePct + '%' : '—%';
+      wrEl.style.color = st.winRatePct !== null && st.winRatePct >= 50 ? 'var(--green)' : 'var(--red)';
+    }
+    if (pnlEl) {
+      const pnl = st.totalPnl;
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (posEl) posEl.textContent = st.totalPositions || '0';
+    if (valEl) valEl.textContent = '$' + (st.totalValue || 0).toFixed(0);
+  } catch(e) {
+    const wrEl = document.getElementById('ws-winrate');
+    if (wrEl) wrEl.textContent = '—%';
+    const pnlEl = document.getElementById('ws-pnl');
+    if (pnlEl) pnlEl.textContent = '—';
+  }
 }
 
 // ══ STATS ════════════════════════════════════════════════════════
