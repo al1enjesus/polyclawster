@@ -3323,48 +3323,89 @@ function renderSignalDetail(s) {
 }
 
 function renderWalletDetail(s) {
-  const wr = s.winRate?Math.round(s.winRate*100):null;
+  const addr = s.addr || '';
   const polyLink = 'https://polymarket.com/event/'+slug(s.market||s.title||'');
-  const walletLink = 'https://polymarket.com/@'+s.addr;
+  const walletLink = addr ? 'https://polymarket.com/profile/'+addr : '';
+  const sc = +(s.score||0);
+  const barColor = sc>=8?'#FF3366':sc>=5?'#F7B731':'#45AAF2';
 
   document.getElementById('wallet-detail-content').innerHTML=`
     <div class="detail-hero">
       <div class="detail-icon" style="background:var(--green-dim);border-color:rgba(25,251,155,.2);font-size:22px">🧠</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="detail-title">Smart Money Signal</div>
-        <div class="detail-sub" style="font-family:monospace;font-size:11px">${s.addr.slice(0,18)}...</div>
+        ${addr ? `<div class="detail-sub" style="font-family:monospace;font-size:10px;word-break:break-all">${addr}</div>` : ''}
       </div>
     </div>
     <div class="detail-section">
       <div class="detail-section-title">Wallet Stats</div>
-      <div class="detail-stats">
+      <div class="detail-stats" id="wallet-stats-grid">
         <div class="detail-stat">
-          <div class="detail-stat-v up">${wr||'—'}%</div>
+          <div class="detail-stat-v" id="ws-winrate"><div class="spinner" style="width:16px;height:16px;margin:0 auto"></div></div>
           <div class="detail-stat-k">Win Rate</div>
         </div>
         <div class="detail-stat">
-          <div class="detail-stat-v ${(s.totalPnl||0)>=0?'up':'down'}">${s.totalPnl?fmt(s.totalPnl):'—'}</div>
-          <div class="detail-stat-k">Total P&amp;L</div>
+          <div class="detail-stat-v" id="ws-pnl"><div class="spinner" style="width:16px;height:16px;margin:0 auto"></div></div>
+          <div class="detail-stat-k">Total P&L</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v" id="ws-positions">—</div>
+          <div class="detail-stat-k">Positions</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v" id="ws-value">—</div>
+          <div class="detail-stat-k">Port Value</div>
         </div>
       </div>
     </div>
     <div class="detail-section">
-      <div class="detail-section-title">Current Bet</div>
+      <div class="detail-section-title">Current Signal</div>
       <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px">${s.market||s.title||''}</div>
-      <div class="detail-row"><span class="detail-row-k">Outcome</span><span class="outcome-badge outcome-${(s.outcome||'').toLowerCase()==='yes'?'yes':'other'}">${s.outcome||'—'}</span></div>
+      ${s.side ? `<div class="detail-row"><span class="detail-row-k">Side</span><span class="outcome-badge outcome-${(s.side||'').toLowerCase()==='yes'?'yes':(s.side||'').toLowerCase()==='no'?'no':'other'}">${s.side}</span></div>` : ''}
       <div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">${Math.round((s.price||0)*100)}¢</span></div>
-      <div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v up">${(s.score||0).toFixed(1)}/10</span></div>
+      <div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v" style="color:${barColor};font-weight:700">${sc.toFixed(1)}/10</span></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         View Market
       </button>
-      <button class="btn btn-secondary" onclick="openExternal('${walletLink}')">
+      ${walletLink ? `<button class="btn btn-secondary" onclick="openExternal('${walletLink}')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        View Wallet on Polymarket
-      </button>
+        View Wallet
+      </button>` : ''}
     </div>`;
+
+  if (addr) fetchWalletStats(addr);
+}
+
+async function fetchWalletStats(addr) {
+  try {
+    const r = await fetch('/api/wallet-stats?addr=' + encodeURIComponent(addr));
+    const data = await r.json();
+    if (!data.ok || !data.stats) return;
+    const st = data.stats;
+    const wrEl = document.getElementById('ws-winrate');
+    const pnlEl = document.getElementById('ws-pnl');
+    const posEl = document.getElementById('ws-positions');
+    const valEl = document.getElementById('ws-value');
+    if (wrEl) {
+      wrEl.textContent = st.winRatePct !== null ? st.winRatePct + '%' : '—%';
+      wrEl.style.color = st.winRatePct !== null && st.winRatePct >= 50 ? 'var(--green)' : 'var(--red)';
+    }
+    if (pnlEl) {
+      const pnl = st.totalPnl;
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (posEl) posEl.textContent = st.totalPositions || '0';
+    if (valEl) valEl.textContent = '$' + (st.totalValue || 0).toFixed(0);
+  } catch(e) {
+    const wrEl = document.getElementById('ws-winrate');
+    if (wrEl) wrEl.textContent = '—%';
+    const pnlEl = document.getElementById('ws-pnl');
+    if (pnlEl) pnlEl.textContent = '—';
+  }
 }
 
 // ══ STATS ════════════════════════════════════════════════════════
