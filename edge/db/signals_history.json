@@ -1,30 +1,64 @@
 [
   {
+    "type": "ob_imbalance",
+    "side": "NO",
+    "market": "Will there be at least 10000 measles cases in the U.S. in 2026?",
+    "price": "99.9",
+    "bidDepth": "1297",
+    "askDepth": "46074",
+    "ratio": "35.5",
+    "score": 10,
+    "strength": "HIGH",
+    "_key": "ob_imbalance:Will there be at least 10000 measles cases in the :NO",
+    "_updatedAt": 1772650474890
+  },
+  {
     "type": "whale_order",
     "side": "YES",
     "market": "Will Iran close the Strait of Hormuz by March 31?",
     "price": "1.0",
-    "amount": "35278",
+    "amount": "43825",
     "score": 10,
     "strength": "MEDIUM",
     "_key": "whale_order:Will Iran close the Strait of Hormuz by March 31?:YES",
-    "_updatedAt": 1772644900764
+    "_updatedAt": 1772650474890
   },
   {
-    "type": "smartwallet",
-    "addr": "0x9c2617462567859fcf5764e03b9a687ebca274bc",
+    "type": "ob_imbalance",
+    "side": "NO",
+    "market": "Will US or Israel strike Iran first?",
+    "price": "99.9",
+    "bidDepth": "160548",
+    "askDepth": "1197658",
+    "ratio": "7.5",
     "score": 10,
-    "winRate": 0,
-    "totalPnl": 0,
-    "concentration": 1,
-    "outcome": "Yes",
-    "title": "Will Trump nominate Kevin Warsh as the next Fed chair?",
-    "size": "95149",
-    "price": 0.999,
     "strength": "HIGH",
-    "isNew": true,
-    "_key": "smartwallet:Will Trump nominate Kevin Warsh as the next Fed ch:",
-    "_updatedAt": 1772644900764
+    "_key": "ob_imbalance:Will US or Israel strike Iran first?:NO",
+    "_updatedAt": 1772650474890
+  },
+  {
+    "type": "vol_spike",
+    "market": "Will Trump nominate Kevin Warsh as the next Fed chair?",
+    "marketId": "0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc",
+    "volume": "59263",
+    "side": "Yes",
+    "score": 10,
+    "strength": "HIGH",
+    "_key": "vol_spike:Will Trump nominate Kevin Warsh as the next Fed ch:Yes",
+    "_updatedAt": 1772648166688
+  },
+  {
+    "type": "ob_imbalance",
+    "side": "NO",
+    "market": "Will the Iranian regime fall by March 31?",
+    "price": "99.9",
+    "bidDepth": "136948",
+    "askDepth": "1212593",
+    "ratio": "8.9",
+    "score": 10,
+    "strength": "HIGH",
+    "_key": "ob_imbalance:Will the Iranian regime fall by March 31?:NO",
+    "_updatedAt": 1772648166688
   },
   {
     "type": "smartwallet",
@@ -120,19 +154,6 @@
     "_updatedAt": 1772597964479
   },
   {
-    "type": "ob_imbalance",
-    "side": "NO",
-    "market": "Will US or Israel strike Iran first?",
-    "price": "99.9",
-    "bidDepth": "19184",
-    "askDepth": "1162091",
-    "ratio": "60.6",
-    "score": 10,
-    "strength": "HIGH",
-    "_key": "ob_imbalance:Will US or Israel strike Iran first?:NO",
-    "_updatedAt": 1772597964479
-  },
-  {
     "type": "vol_spike",
     "market": "Will Manchester City FC win on 2026-03-04?",
     "marketId": "0x55aaedf58a379e677f1a72150605119fcbed1c4cb90d163d1bff2445053f4a18",
@@ -177,19 +198,6 @@
     "strength": "HIGH",
     "_key": "ob_imbalance:Will JD Vance win the 2028 US Presidential Electio:NO",
     "_updatedAt": 1772587164813
-  },
-  {
-    "type": "ob_imbalance",
-    "side": "NO",
-    "market": "Will the Iranian regime fall by March 31?",
-    "price": "99.9",
-    "bidDepth": "109869",
-    "askDepth": "1008552",
-    "ratio": "9.2",
-    "score": 10,
-    "strength": "HIGH",
-    "_key": "ob_imbalance:Will the Iranian regime fall by March 31?:NO",
-    "_updatedAt": 1772583564620
   },
   {
     "type": "vol_spike",
@@ -261,6 +269,17 @@
   },
   {
     "type": "vol_spike",
+    "market": "Will Aston Villa FC win on 2026-03-04?",
+    "marketId": "0x6ad12a0c5dde6a3825b8f028d46b1a25502cc5ee4b5bf69b74559e688116daa8",
+    "volume": "18058",
+    "side": "Yes",
+    "score": 7.223001599999999,
+    "strength": "MEDIUM",
+    "_key": "vol_spike:Will Aston Villa FC win on 2026-03-04?:Yes",
+    "_updatedAt": 1772648673880
+  },
+  {
+    "type": "vol_spike",
     "market": "Will Iran strike Qatar in March?",
     "marketId": "0x63cb25a764741e18ffcefd97fbd5d0d050b88df124f720b24356a2a6cd387eb6",
     "volume": "17674",
@@ -327,6 +346,17 @@
     "_updatedAt": 1772564363663
   },
   {
+    "type": "vol_spike",
+    "market": "Will Chelsea FC win on 2026-03-04?",
+    "marketId": "0xd6f536062390ae6db686244b78635459d18d8a938029bceefb04baebc4ee6ab2",
+    "volume": "13818",
+    "side": "No",
+    "score": 5.527247679999999,
+    "strength": "MEDIUM",
+    "_key": "vol_spike:Will Chelsea FC win on 2026-03-04?:No",
+    "_updatedAt": 1772648673880
+  },
+  {
     "type": "smartwallet",
     "addr": "0xb1062cc2869fc190888978206672a9402ce4deae",
     "score": 5.2057915005,
@@ -390,35 +420,51 @@
   },
   {
     "type": "smartwallet",
-    "addr": "0xcedbd06fb5f9e02860b877329bc434ba42606d2e",
-    "score": 4.81342875,
+    "addr": "0x79d4baa7ae8542bb617bc673f0ac2101db986d24",
+    "score": 4.85139849825,
     "winRate": 0,
     "totalPnl": 0,
     "concentration": 1,
-    "outcome": "No",
-    "title": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
-    "size": "5181",
-    "price": 0.994,
+    "outcome": "Yes",
+    "title": "Will Trump nominate Kevin Warsh as the next Fed chair?",
+    "size": "5290",
+    "price": 0.999,
     "strength": "MEDIUM",
     "isNew": true,
-    "_key": "smartwallet:Will the Fed increase interest rates by 25+ bps af:",
-    "_updatedAt": 1772594365073
+    "_key": "smartwallet:Will Trump nominate Kevin Warsh as the next Fed ch:",
+    "_updatedAt": 1772648640545
   },
   {
     "type": "smartwallet",
     "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-    "score": 4.7465,
+    "score": 4.7482500000000005,
     "winRate": 0,
     "totalPnl": 0,
     "concentration": 1,
     "outcome": "No",
     "title": "Will Trump nominate Judy Shelton as the next Fed chair?",
-    "size": "4990",
-    "price": 0.998,
+    "size": "4995",
+    "price": 0.999,
     "strength": "MEDIUM",
     "isNew": true,
     "_key": "smartwallet:Will Trump nominate Judy Shelton as the next Fed c:",
-    "_updatedAt": 1772644900764
+    "_updatedAt": 1772650474890
+  },
+  {
+    "type": "smartwallet",
+    "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
+    "score": 4.74475,
+    "winRate": 0,
+    "totalPnl": 0,
+    "concentration": 1,
+    "outcome": "No",
+    "title": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
+    "size": "4985",
+    "price": 0.997,
+    "strength": "MEDIUM",
+    "isNew": true,
+    "_key": "smartwallet:Will the Fed decrease interest rates by 50+ bps af:",
+    "_updatedAt": 1772650474890
   },
   {
     "type": "ob_imbalance",
@@ -473,6 +519,22 @@
   },
   {
     "type": "smartwallet",
+    "addr": "0xc8ab97a9089a9ff7e6ef0688e6e591a066946418",
+    "score": 3.962156083,
+    "winRate": 0,
+    "totalPnl": 0,
+    "concentration": 1,
+    "outcome": "No",
+    "title": "Will Jesus Christ return before 2027?",
+    "size": "2749",
+    "price": 0.961,
+    "strength": "MEDIUM",
+    "isNew": true,
+    "_key": "smartwallet:Will Jesus Christ return before 2027?:",
+    "_updatedAt": 1772648166688
+  },
+  {
+    "type": "smartwallet",
     "addr": "0x9225b656b51b6da5b1b175344e84d4eb623600ee",
     "score": 3.46026995,
     "winRate": 0,
@@ -489,34 +551,18 @@
   },
   {
     "type": "smartwallet",
-    "addr": "0x7b02b2bac2a30ed5e40b7094e734f4c3dc2a4991",
-    "score": 3.413251356,
+    "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
+    "score": 3.1887515,
     "winRate": 0,
     "totalPnl": 0,
     "concentration": 1,
     "outcome": "No",
-    "title": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
-    "size": "1181",
-    "price": 0.996,
+    "title": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+    "size": "539",
+    "price": 0.995,
     "strength": "MEDIUM",
     "isNew": true,
-    "_key": "smartwallet:Will the Fed decrease interest rates by 50+ bps af:",
-    "_updatedAt": 1772644900764
-  },
-  {
-    "type": "smartwallet",
-    "addr": "0xd181fd2521e03259f46d19dea24150c993268c88",
-    "score": 3.3026933,
-    "winRate": 0,
-    "totalPnl": 0,
-    "concentration": 1,
-    "outcome": "No",
-    "title": "Will Jesus Christ return before 2027?",
-    "size": "865",
-    "price": 0.962,
-    "strength": "MEDIUM",
-    "isNew": true,
-    "_key": "smartwallet:Will Jesus Christ return before 2027?:",
-    "_updatedAt": 1772596764482
+    "_key": "smartwallet:Will the Fed increase interest rates by 25+ bps af:",
+    "_updatedAt": 1772650474890
   }
 ]
