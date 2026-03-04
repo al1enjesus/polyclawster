@@ -43,6 +43,30 @@ module.exports = async (req, res) => {
       return res.json({ ok: false, error: 'Wallet not found. Create one first.' });
     }
 
+    // ── 1b. Handle demo bets ──────────────────────────────────
+    var isDemo = body.isDemo === true || body.isDemo === 'true';
+    if (isDemo) {
+      // Demo bets don't need real balance — just record and return ok
+      var demoBetRecord = {
+        tg_id:        parseInt(tgId),
+        market:       market.slice(0, 200),
+        market_id:    conditionId || null,
+        side:         side,
+        amount:       amount,
+        price:        0,
+        status:       'open',
+        is_demo:      true,
+        signal_type:  null,
+        signal_score: signalScore || null,
+      };
+      try { await db.insertBet(demoBetRecord); } catch(e) { console.error('[trade] demo insertBet fail:', e.message); }
+      return res.json({
+        ok: true,
+        isDemo: true,
+        message: 'Demo bet: ' + side + ' $' + amount + ' on "' + market.slice(0, 40) + '"',
+      });
+    }
+
     // ── 2. Check available balance ──────────────────────────────
     var deposited = parseFloat(user.total_deposited || 0);
     var pnl       = parseFloat(user.total_pnl       || 0);
