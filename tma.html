@@ -3581,12 +3581,32 @@ async function loadWallet() {
       el.innerHTML = walletDataHTML(resp.data);
       // Реальный баланс с блокчейна — показываем отдельно, не затираем portfolio balance
       if (resp.data.address) {
-        fetch('/api/balance?address=' + resp.data.address)
+        // Also fetch full balance breakdown
+      fetch('/api/wallet?tgId=' + tgId + '&debug=1')
           .then(function(r2){ return r2.json(); })
           .then(function(b){
-            if (b.ok) {
-              var onChain = document.getElementById('wallet-onchain-balance');
-              if (onChain) onChain.textContent = '$' + (b.balance||0).toFixed(2);
+            if (b.ok && b.data) {
+              var d = b.data;
+              var polEl = document.getElementById('wallet-pol-balance');
+              if (polEl) polEl.textContent = d.polBalance ? d.polBalance.toFixed(3) + ' POL' : '0 POL';
+              var freeEl = document.getElementById('wallet-free-usdc');
+              if (freeEl) freeEl.textContent = '$' + (d.freeUsdc||0).toFixed(2);
+              var posEl = document.getElementById('wallet-pos-value');
+              if (posEl) posEl.textContent = '$' + (d.positionsValue||0).toFixed(2);
+              var polWarn = document.getElementById('wallet-pol-warn');
+              if (polWarn) polWarn.style.display = (d.polBalance||0) < 0.1 ? 'block' : 'none';
+              // Debug panel
+              var dbgEl = document.getElementById('wallet-debug-panel');
+              if (dbgEl && _debugMode) {
+                dbgEl.style.display = 'block';
+                dbgEl.innerHTML = '<b style="color:#ff6680">🐛 DEBUG</b><br>'
+                  + 'freeUsdc: ' + d.freeUsdc + '<br>'
+                  + 'positionsValue: ' + d.positionsValue + '<br>'
+                  + 'polBalance: ' + d.polBalance + '<br>'
+                  + 'usdcOnChain: ' + d.usdcOnChain + '<br>'
+                  + 'totalDeposited: ' + d.totalDeposited + '<br>'
+                  + (d._debug ? 'errors: ' + JSON.stringify(d._debug.clobErrors) : '');
+              }
             }
           }).catch(function(){});
       }
@@ -3693,7 +3713,20 @@ function walletDataHTML(w) {
         <span style="font-size:13px;font-weight:600">Polymarket Account</span>
       </div>
       <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Address</span><span style="font-family:monospace;font-size:11px;color:var(--text2)">${addr.slice(0,12)}...${addr.slice(-6)}</span></div>
-      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Network</span><span class="detail-row-v">Polygon · USDC.e</span></div>
+      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Network</span><span class="detail-row-v">Polygon · USDC.e</span></div>
+      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
+      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
+      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
+    </div>
+    <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
+      ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
+    </div>
+    <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
+      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
+      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
+    </div>
+    <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
+      ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
     </div>
 
     <div class="glass-card" style="margin-bottom:12px">
@@ -3745,8 +3778,19 @@ function walletDataHTML(w) {
     <div style="font-size:11px;color:var(--muted);text-align:center;padding:0 20px 8px;line-height:1.7">
       Auto-trading active · 5% fee on profits only · Non-custodial
     </div>
+    <div id="wallet-debug-panel" style="display:none;background:#0d0d1a;border:1px solid #ff336655;border-radius:10px;padding:10px;font-family:monospace;font-size:11px;color:#aaa;margin:0 0 12px;word-break:break-all;line-height:1.8"></div>
+    <div style="text-align:center;font-size:10px;color:var(--muted);margin-bottom:8px"><a href="#" style="color:var(--muted)" onclick="toggleWalletDebug(event)">🐛 debug</a></div>
     <div class="virix">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div>
   </div>`;
+}
+
+var _debugMode = false;
+function toggleWalletDebug(e) {
+  e.preventDefault();
+  _debugMode = !_debugMode;
+  var el = document.getElementById('wallet-debug-panel');
+  if (el) el.style.display = _debugMode ? 'block' : 'none';
+  if (_debugMode) loadWalletTab(); // reload to get debug data
 }
 
 async function createWalletFlow(tgId) {
