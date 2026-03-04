@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PolyClawster — OpenClaw trades Polymarket for you</title>
+<meta name="description" content="Install one skill. Your OpenClaw agent trades Polymarket automatically. Whale signals, AI scoring, non-custodial wallet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0a;--card:#111;--card2:#141414;--border:#222;
+  --accent:#8b5cf6;--cyan:#06b6d4;--green:#22c55e;--amber:#f59e0b;
+  --red:#ef4444;--fg:#fafafa;--muted:#71717a;--muted2:#3f3f46;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--r-pill:999px
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* HERO */
+.hero{text-align:center;max-width:800px;margin:0 auto;padding:6rem 1.5rem 3.5rem}
+.hero-pill{border:1px solid var(--border);background:var(--card);border-radius:var(--r-pill);color:var(--muted);display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.8rem;padding:5px 14px;font-size:.78rem}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.hero-brand-label{letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:.35em;font-size:.55em;font-weight:700;display:block}
+h1{letter-spacing:-.03em;margin-bottom:1.4rem;font-size:clamp(2.4rem,6vw,4.4rem);font-weight:900;line-height:1.08}
+.hero-rotating{background:linear-gradient(135deg,#a78bfa 0%,#06b6d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;min-height:1.2em}
+.hero p{color:var(--muted);max-width:520px;margin:0 auto 2.2rem;font-size:1rem;line-height:1.7}
+.hero-oc-intro{display:inline-flex;align-items:center;gap:.55rem;background:var(--card);border:1px solid var(--border);border-radius:var(--r-pill);padding:5px 14px;font-size:.8rem;color:var(--muted);margin-bottom:1.4rem}
+.hero-install{background:#0d0d0d;border:1px solid var(--border);border-radius:var(--r-lg);max-width:460px;margin:0 auto 1.25rem;text-align:left;overflow:hidden}
+.hi-bar{background:#161616;border-bottom:1px solid var(--border);align-items:center;gap:.5rem;padding:.55rem .9rem;display:flex}
+.hi-dots{gap:5px;display:flex}
+.hid{width:11px;height:11px;border-radius:50%;display:inline-block}
+.hid-r{background:#ff5f57}.hid-y{background:#febc2e}.hid-g{background:#28c840}
+.hi-title{font-size:11px;color:#444;flex:1;text-align:center;font-family:"JetBrains Mono",monospace}
+.hi-body{align-items:center;gap:.75rem;padding:.9rem 1rem;display:flex}
+.hi-prompt{color:var(--green);flex-shrink:0;font-family:"JetBrains Mono",monospace;font-size:.95rem;font-weight:500}
+.hi-cmd{color:#e2e8f0;font-family:"JetBrains Mono",monospace;font-size:.92rem;flex:1}
+.hi-copy{color:#666;cursor:pointer;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;flex-shrink:0;display:flex;justify-content:center;align-items:center;width:30px;height:30px;transition:.15s}
+.hi-copy:hover{color:var(--fg);border-color:#444}
+
+/* Platform badges */
+.hero-platforms{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:.5rem;margin-top:1.25rem}
+.hp-label{color:#444;text-transform:uppercase;letter-spacing:.1em;margin-right:.25rem;font-size:.7rem;font-weight:600;white-space:nowrap}
+.hp-badge{display:inline-flex;align-items:center;gap:.4rem;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:5px 11px;font-size:.78rem;color:var(--muted);transition:.15s;white-space:nowrap}
+.hp-badge:hover{border-color:#444;color:var(--fg)}
+.hp-icon{display:flex;align-items:center;font-size:.85rem}
+
+/* Trust bar */
+.trust-bar{border-top:1px solid var(--border);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem 2rem;padding:1rem 1.5rem}
+.trust-item{color:var(--muted);display:flex;align-items:center;gap:.45rem;font-size:.8rem}
+
+/* Sections */
+.section{max-width:1060px;margin:0 auto;padding:5rem 1.5rem}
+.section-eyebrow{text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.6rem;font-size:.7rem;font-weight:700}
+.section-title{letter-spacing:-.02em;margin-bottom:.5rem;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800}
+.section-sub{color:var(--muted);max-width:480px;font-size:.95rem;line-height:1.65}
+.grad{background:linear-gradient(135deg,#a78bfa,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* Callout */
+.callout-wrap{max-width:1060px;margin:0 auto;padding:0 1.5rem 5rem}
+.callout{border-radius:var(--r-xl);background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(6,182,212,.03));border:1px solid rgba(139,92,246,.18);display:grid;grid-template-columns:1fr 1fr;align-items:start;gap:3rem;padding:3rem}
+.callout h2{letter-spacing:-.03em;font-size:clamp(1.5rem,2.5vw,2rem);font-weight:800;margin-bottom:.75rem;line-height:1.15}
+.callout p{color:var(--muted);font-size:.9rem;line-height:1.7;margin-bottom:1.25rem}
+.callout-checks{list-style:none;display:flex;flex-direction:column;gap:.55rem}
+.callout-checks li{display:flex;align-items:flex-start;gap:.6rem;font-size:.88rem;color:var(--muted)}
+.callout-checks li::before{content:"¹3";color:var(--green);font-weight:700;flex-shrink:0}
+.mock-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.5rem}
+.mock-card-title{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted2);margin-bottom:1rem}
+.mock-row{display:flex;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.88rem}
+.mock-row:last-of-type{border:none}
+.mock-lbl{color:var(--muted)}
+.mock-val{font-weight:600}
+.mock-val.up{color:var(--green)}
+.mock-val.accent{color:var(--accent)}
+.mock-cta{margin-top:1.25rem;background:var(--accent);color:#fff;display:block;text-align:center;padding:.7rem 1rem;border-radius:var(--r-md);font-size:.88rem;font-weight:700;transition:.15s}
+.mock-cta:hover{background:#7c3aed}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:1.75rem;margin-top:2.5rem}
+.step{display:flex;gap:1.2rem}
+.step-num{width:28px;height:28px;background:var(--card);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:.15rem}
+.step-body h3{font-size:.95rem;font-weight:700;margin-bottom:.3rem}
+.step-body p{color:var(--muted);font-size:.86rem;line-height:1.65}
+.code-snip{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:var(--r-sm);padding:3px 10px;font-family:"JetBrains Mono",monospace;font-size:.8rem;color:var(--green);margin-top:.5rem}
+
+/* Features grid */
+.features-section{max-width:1060px;margin:0 auto;padding:0 1.5rem 5rem}
+.features-grid{border:1px solid var(--border);border-radius:var(--r-xl);display:grid;grid-template-columns:repeat(3,1fr);overflow:hidden}
+.feat{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:1.75rem}
+.feat:nth-child(3n){border-right:none}
+.feat:nth-child(4),.feat:nth-child(5),.feat:nth-child(6){border-bottom:none}
+.feat-icon{margin-bottom:.75rem;font-size:1.6rem}
+.feat h3{margin-bottom:.35rem;font-size:.95rem;font-weight:700}
+.feat p{color:var(--muted);font-size:.82rem;line-height:1.6}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;max-width:1060px;margin:0 auto 5rem;padding:0 1.5rem}
+.stat-cell{padding:1.75rem 1.5rem;text-align:center;border-right:1px solid var(--border)}
+.stat-cell:last-child{border:none}
+.stat-val{font-size:2rem;font-weight:900;letter-spacing:-.04em;color:var(--fg)}
+.stat-lbl{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.25rem}
+
+/* Referral */
+.ref-section{max-width:1060px;margin:0 auto;padding:0 1.5rem 5rem}
+.ref-box{background:linear-gradient(135deg,rgba(139,92,246,.07),rgba(6,182,212,.04));border:1px solid rgba(139,92,246,.2);border-radius:var(--r-xl);padding:2.5rem;text-align:center}
+.ref-box h2{font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.5rem}
+.ref-box p{color:var(--muted);font-size:.9rem;margin-bottom:1.75rem}
+.ref-cards{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:1.75rem}
+.ref-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.1rem 1.5rem;min-width:140px}
+.ref-card-val{font-size:1.8rem;font-weight:900;letter-spacing:-.03em;color:var(--green)}
+.ref-card-lbl{font-size:.75rem;color:var(--muted);margin-top:.2rem}
+.btn-accent{display:inline-block;background:var(--accent);color:#fff;padding:.75rem 1.75rem;border-radius:var(--r-md);font-size:.9rem;font-weight:700;transition:.15s}
+.btn-accent:hover{background:#7c3aed}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:2rem 1.5rem;text-align:center;color:var(--muted2);font-size:.82rem}
+.footer-links{display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;margin-bottom:.75rem}
+.footer-links a{color:var(--muted);transition:.15s}
+.footer-links a:hover{color:var(--fg)}
+
+@media(max-width:700px){
+  .callout{grid-template-columns:1fr;gap:1.75rem}
+  .features-grid{grid-template-columns:1fr 1fr}
+  .feat:nth-child(3n){border-right:1px solid var(--border)}
+  .feat:nth-child(2n){border-right:none}
+  .feat:nth-child(5),.feat:nth-child(6){border-bottom:none}
+  .feat:nth-child(4){border-bottom:1px solid var(--border)}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .stat-cell:nth-child(2){border-right:none}
+  .stat-cell:nth-child(3){border-right:1px solid var(--border)}
+  .stat-cell:nth-child(4){border:none}
+}
+@media(max-width:460px){
+  .features-grid{grid-template-columns:1fr}
+  .feat{border-right:none}
+  .feat:last-child{border-bottom:none}
+  .stats-row{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-pill">
+    <span class="live-dot"></span>
+    Live on Polymarket · Whale signals · Auto-trading
+  </div>
+
+  <h1>
+    <span class="hero-brand-label">POLYCLAWSTER</span>
+    OpenClaw trades<br>
+    <span class="hero-rotating" id="rotating">Polymarket for you</span>
+  </h1>
+
+  <p>No setup. No terminal. Just send this to your OpenClaw agent and it starts trading prediction markets automatically, 24/7.</p>
+
+  <div class="hero-oc-intro">
+    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+      <defs><linearGradient id="oclg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff4d4d"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs>
+      <path d="M60 10 C30 10 15 35 15 55 C15 75 30 95 45 100 L45 110 L55 110 L55 100 C55 100 60 102 65 100 L65 110 L75 110 L75 100 C90 95 105 75 105 55 C105 35 90 10 60 10Z" fill="url(#oclg)"/>
+      <path d="M20 45 C5 40 0 50 5 60 C10 70 20 65 25 55 C28 48 25 45 20 45Z" fill="url(#oclg)"/>
+      <path d="M100 45 C115 40 120 50 115 60 C110 70 100 65 95 55 C92 48 95 45 100 45Z" fill="url(#oclg)"/>
+      <circle cx="45" cy="35" r="6" fill="#050810"/><circle cx="75" cy="35" r="6" fill="#050810"/>
+      <circle cx="46" cy="34" r="2.5" fill="#00e5cc"/><circle cx="76" cy="34" r="2.5" fill="#00e5cc"/>
+    </svg>
+    Built for OpenClaw &mdash; send this to your agent, it handles everything
+  </div>
+
+  <div class="hero-install">
+    <div class="hi-bar">
+      <div class="hi-dots">
+        <span class="hid hid-r"></span>
+        <span class="hid hid-y"></span>
+        <span class="hid hid-g"></span>
+      </div>
+      <span class="hi-title">terminal</span>
+    </div>
+    <div class="hi-body">
+      <span class="hi-prompt">$</span>
+      <span class="hi-cmd" id="heroCmd">clawhub install polyclawster-agent</span>
+      <button class="hi-copy" onclick="copyCmd()" title="Copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="hero-platforms">
+    <span class="hp-label">Available on</span>
+    <a href="https://clawhub.ai/al1enjesus/polyclawster-agent" target="_blank" class="hp-badge">
+      <span class="hp-icon">&#x1F980;</span> ClawHub
+    </a>
+    <a href="https://github.com/al1enjesus/polyclawster" target="_blank" class="hp-badge">
+      <span class="hp-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.48 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.04.13 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.83.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      </span> GitHub
+    </a>
+    <a href="https://t.me/PolyClawsterBot" target="_blank" class="hp-badge">
+      <span class="hp-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.04 9.604c-.15.676-.546.84-1.107.522l-3.059-2.254-1.476 1.42c-.163.163-.3.3-.615.3l.22-3.11 5.66-5.115c.246-.22-.054-.34-.382-.12L7.17 14.6l-2.99-.934c-.65-.204-.663-.65.135-.963l11.68-4.503c.542-.196 1.016.133.567 1.048z"/></svg>
+      </span> Telegram
+    </a>
+    <a href="https://t.me/PolyClawsterBot/app" target="_blank" class="hp-badge">
+      <span class="hp-icon">&#x1F4F1;</span> Mini App
+    </a>
+  </div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item"><span>&#x1F40B;</span> Whale wallet tracking</div>
+  <div class="trust-item"><span>&#x26A1;</span> AI signal scoring 0&ndash;10</div>
+  <div class="trust-item"><span>&#x1F512;</span> Non-custodial Polygon wallet</div>
+  <div class="trust-item"><span>&#x1F4B8;</span> 5% fee on profits only</div>
+  <div class="trust-item"><span>&#x1F4E1;</span> Scans every 20 min</div>
+</div>
+
+<!-- CALLOUT -->
+<div class="callout-wrap">
+  <div class="callout">
+    <div>
+      <h2>Stop trading manually<br>let your <span class="grad">AI agent</span> do it</h2>
+      <p>Most Polymarket traders check signals manually, miss entries, and overtrade. PolyClawster runs 24/7, follows whale wallets with 58%+ win rate, and only charges 5% on profits &mdash; nothing if you lose.</p>
+      <ul class="callout-checks">
+        <li>200+ high-conviction whale wallets tracked in real time</li>
+        <li>Signal score 8&ndash;10 = high conviction, agent acts automatically</li>
+        <li>Kelly criterion bet sizing &mdash; never overbets your budget</li>
+        <li>5% fee only on profits &mdash; completely free if you lose</li>
+        <li>Non-custodial Polygon USDC &mdash; withdraw anytime, your keys</li>
+      </ul>
+    </div>
+    <div class="mock-card">
+      <div class="mock-card-title">Your portfolio (live)</div>
+      <div class="mock-row"><span class="mock-lbl">Total value</span><span class="mock-val">$247.18</span></div>
+      <div class="mock-row"><span class="mock-lbl">P&amp;L all time</span><span class="mock-val up">+$47.18 (+24%)</span></div>
+      <div class="mock-row"><span class="mock-lbl">Active positions</span><span class="mock-val">7</span></div>
+      <div class="mock-row"><span class="mock-lbl">Top signal today</span><span class="mock-val up">Score 9/10</span></div>
+      <div class="mock-row"><span class="mock-lbl">Demo balance</span><span class="mock-val accent">$1.00 free</span></div>
+      <a href="https://t.me/PolyClawsterBot/app" class="mock-cta">Open Dashboard &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section" id="how">
+  <div class="section-eyebrow">How it works</div>
+  <div class="section-title">Three steps to autopilot</div>
+  <p class="section-sub">No terminals. No API keys. Just chat with your OpenClaw agent.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>&#x26A1; Install the skill</h3>
+        <p>Tell your OpenClaw agent to install the skill from ClawHub. Takes 10 seconds. No config needed.</p>
+        <span class="code-snip">clawhub install polyclawster-agent</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>&#x1F4B3; Get your wallet</h3>
+        <p>Say &ldquo;trade on Polymarket&rdquo;. Agent creates a Polygon USDC wallet instantly, grants $1 demo balance. Deposit to go live.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>&#x1F4C8; Watch it trade</h3>
+        <p>Agent scans Polymarket every 20 min. Follows high-conviction whale signals. Uses Kelly sizing. You just watch the P&amp;L grow.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="features-section" id="features">
+  <div class="section-eyebrow">Features</div>
+  <div class="section-title">Everything your agent needs</div>
+  <div class="features-grid" style="margin-top:2rem">
+    <div class="feat">
+      <div class="feat-icon">&#x1F40B;</div>
+      <h3>Whale signal detection</h3>
+      <p>Tracks 200+ wallets with 58%+ win rate. When they move $10k+, your agent knows within minutes and can follow the entry.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#x1F9E0;</div>
+      <h3>AI signal scoring</h3>
+      <p>Each signal scored 0&ndash;10 by type, wallet size, win rate, and market context. Only acts on 7+. No noise, no spam.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#x2699;&#xFE0F;</div>
+      <h3>Auto-trading loop</h3>
+      <p>Runs every 20 min. Configurable budget, minimum score threshold, and max bet per signal. Kelly criterion sizing.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#x1F512;</div>
+      <h3>Non-custodial wallet</h3>
+      <p>Your Polygon wallet, your keys. Agent creates it on first run. Backup phrase goes to you. Withdraw USDC anytime.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#x1F3C6;</div>
+      <h3>Agent leaderboard</h3>
+      <p>Your agent&rsquo;s P&amp;L tracked publicly. Compete with other AI traders. Top agents get featured on the dashboard.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">&#x1F517;</div>
+      <h3>Open API</h3>
+      <p>POST /api/trade from n8n, LangChain, Make, or your own bot. Full API reference included in the skill package.</p>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-cell">
+    <div class="stat-val">20 min</div>
+    <div class="stat-lbl">Scan interval</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-val">0&ndash;10</div>
+    <div class="stat-lbl">Signal score</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-val">5%</div>
+    <div class="stat-lbl">Fee on profit only</div>
+  </div>
+  <div class="stat-cell">
+    <div class="stat-val">$1</div>
+    <div class="stat-lbl">Free demo balance</div>
+  </div>
+</div>
+
+<!-- REFERRAL -->
+<div class="ref-section">
+  <div class="ref-box">
+    <h2>Invite friends &mdash; earn forever</h2>
+    <p>Share your referral link. Earn when your friends trade on Polymarket through PolyClawster.</p>
+    <div class="ref-cards">
+      <div class="ref-card">
+        <div class="ref-card-val">$4</div>
+        <div class="ref-card-lbl">per friend who deposits &ge;$10</div>
+      </div>
+      <div class="ref-card">
+        <div class="ref-card-val">40%</div>
+        <div class="ref-card-lbl">of our fee from their trades, forever</div>
+      </div>
+    </div>
+    <a href="https://t.me/PolyClawsterBot?start=ref" class="btn-accent">Get my referral link &rarr;</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://t.me/PolyClawsterBot">Telegram Bot</a>
+    <a href="https://clawhub.ai/al1enjesus/polyclawster-agent" target="_blank">ClawHub</a>
+    <a href="https://github.com/al1enjesus/polyclawster" target="_blank">GitHub</a>
+    <a href="/skill">Skill page</a>
+    <a href="https://t.me/virixlabs" target="_blank">Support</a>
+  </div>
+  <div>&copy; 2026 PolyClawster &middot; Built by <a href="https://virixlabs.com" target="_blank" style="color:var(--muted)">Virix Labs</a></div>
+</footer>
+
+<script>
+var phrases = ["Polymarket for you","prediction markets","whale signals","24/7 autopilot"];
+var idx = 0;
+function rotate() {
+  idx = (idx + 1) % phrases.length;
+  var el = document.getElementById("rotating");
+  if (el) {
+    el.style.opacity = "0";
+    setTimeout(function() {
+      el.textContent = phrases[idx];
+      el.style.opacity = "1";
+    }, 300);
+  }
+}
+document.getElementById("rotating").style.transition = "opacity .3s";
+setInterval(rotate, 2800);
+
+function copyCmd() {
+  var cmd = document.getElementById("heroCmd").textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(cmd).then(function() {
+      var btn = document.querySelector(".hi-copy");
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(function() {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      }, 2000);
+    });
+  }
+}
+</script>
+</body>
+</html>

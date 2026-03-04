@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PolyClawster</title>
+<script src="https://telegram.org/js/telegram-web-app.js">
+function joinWaitlist() {
+  const tg = window.Telegram?.WebApp;
+  if (tg?.openTelegramLink) tg.openTelegramLink('https://t.me/PolyClawsterBot?start=waitlist');
+  else window.open('https://t.me/PolyClawsterBot?start=waitlist', '_blank');
+}
+</script>
+<link rel="icon" type="image/png" sizes="32x32" href="/landing/icons/icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/landing/icons/apple-touch-icon.png">
+<link rel="shortcut icon" href="/landing/favicon.png">
+<meta name="theme-color" content="#8b5cf6">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;
+  --safe-top:var(--tg-safe-area-inset-top,env(safe-area-inset-top,0px));
+  --content-top:var(--tg-content-safe-area-inset-top,0px);
+  --safe-bottom:var(--tg-safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+--bg2:#111118;--bg3:#16161f;
+  --border:rgba(255,255,255,0.07);
+  --accent:#8b5cf6;--accent-dim:rgba(139,92,246,0.12);
+  --green:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --muted:#6b7280;--text:#f1f5f9;--text2:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;padding-bottom:68px;padding-top:var(--content-top);;overscroll-behavior:none;touch-action:pan-y;}
+::-webkit-scrollbar{width:0}
+
+/* NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--bg2);border-top:1px solid var(--border);display:flex;padding-bottom:max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px))}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 8px;gap:3px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:10px;font-family:inherit;transition:color .15s;position:relative}
+.nav-btn.active{color:var(--accent)}
+.nav-btn svg{width:21px;height:21px}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 18px);background:#ef4444;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column;height:100dvh;animation:fadeUp .15s ease}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ptrSpin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+@keyframes ptrGlow{0%,100%{filter:drop-shadow(0 0 4px rgba(139,92,246,.4))}50%{filter:drop-shadow(0 0 10px rgba(139,92,246,.8))}}
+@keyframes ptrPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;background:var(--bg)}
+.header-left{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.header-back{background:none;border:none;color:var(--text2);cursor:pointer;padding:2px;display:flex;align-items:center;gap:4px;font-size:13px;font-family:inherit}
+.header-back svg{width:18px;height:18px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.header-badge{font-size:10px;color:var(--accent);border:1px solid rgba(139,92,246,.3);padding:3px 8px;border-radius:20px;background:var(--accent-dim);text-transform:uppercase;font-weight:500;letter-spacing:.5px}
+
+/* CONTENT */
+.content{padding:14px 16px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,rgba(139,92,246,.13) 0%,rgba(109,40,217,.05) 100%);border:1px solid rgba(139,92,246,.22);border-radius:16px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle,rgba(139,92,246,.14),transparent 70%);border-radius:50%}
+.hero-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.hero-pnl{font-size:42px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.hero-pnl.up{color:var(--green)}.hero-pnl.down{color:var(--red)}
+.hero-row{display:flex;gap:16px;margin-top:12px}
+.hero-stat{display:flex;flex-direction:column;gap:2px}
+.hero-stat-v{font-size:15px;font-weight:600}
+.hero-stat-k{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+/* SECTION */
+.sec-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:500;margin:14px 0 8px}
+
+/* POSITION CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:13px;padding:13px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color .15s,background .15s;-webkit-tap-highlight-color:transparent}
+.card:active{border-color:rgba(139,92,246,.35);background:rgba(139,92,246,.04)}
+.card-left{flex:1;min-width:0}
+.card-title{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-meta{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.3px}
+.tag-yes{background:rgba(16,185,129,.12);color:var(--green)}
+.tag-no{background:rgba(239,68,68,.12);color:var(--red)}
+.tag-other{background:var(--accent-dim);color:var(--accent)}
+.tag-strong{background:rgba(239,68,68,.12);color:#ef4444}
+.tag-medium{background:rgba(245,158,11,.12);color:var(--amber)}
+.tag-weak{background:rgba(107,114,128,.1);color:var(--muted)}
+.card-sub{font-size:11px;color:var(--muted)}
+.card-right{text-align:right;padding-left:10px;flex-shrink:0}
+.card-price{font-size:17px;font-weight:700}
+.card-pnl{font-size:12px;font-weight:500;margin-top:2px}
+.up{color:var(--green)}.down{color:var(--red)}.neu{color:var(--muted)}
+.chevron{color:var(--muted);margin-left:6px;flex-shrink:0}
+
+/* SCORE BAR */
+.score-bar{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.score-fill{height:100%;border-radius:2px;transition:width .5s ease}
+
+/* DETAIL PAGE */
+.detail-header{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px}
+.detail-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.detail-title{font-size:15px;font-weight:600;line-height:1.35}
+.detail-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.detail-section{padding:14px 16px;border-bottom:1px solid var(--border)}
+.detail-section-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.detail-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detail-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.detail-stat-v{font-size:20px;font-weight:700}
+.detail-stat-k{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-row-k{font-size:12px;color:var(--muted)}
+.detail-row-v{font-size:13px;font-weight:500;text-align:right;max-width:60%}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:14px;border-radius:13px;font-size:14px;font-weight:600;border:none;cursor:pointer;width:100%;font-family:inherit;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+.btn-row{display:flex;flex-direction:column;gap:8px;padding:14px 16px}
+.btn svg{width:16px;height:16px}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-v{font-size:26px;font-weight:700;letter-spacing:-.5px;color:var(--accent)}
+.stat-k{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+/* CHAT */
+.chat-messages{height:calc(100dvh - 210px);overflow-y:auto;padding:14px 16px}
+.msg{margin-bottom:10px}
+.msg.user{text-align:right}
+.bubble{display:inline-block;max-width:82%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;text-align:left}
+.msg.user .bubble{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+.msg.ai .bubble{background:var(--bg2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.chat-bar{position:fixed;bottom:68px;left:0;right:0;padding:10px 12px;background:var(--bg);border-top:1px solid var(--border);display:flex;gap:8px;align-items:center}
+.chat-in{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:24px;padding:10px 16px;color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.chat-in::placeholder{color:var(--muted)}
+.chat-send{width:38px;height:38px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-send svg{width:16px;height:16px;fill:white}
+
+/* LOADER */
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px;color:var(--muted);font-size:13px}
+.spinner{width:26px;height:26px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:13px;line-height:1.6}
+.empty-icon{font-size:32px;margin-bottom:10px}
+
+/* VIRIX */
+.virix{display:flex;align-items:center;justify-content:center;gap:5px;padding:20px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);margin-top:6px}
+.virix a{color:var(--accent);text-decoration:none;font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- Pull-to-refresh indicator -->
+<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:200;pointer-events:none;overflow:hidden;height:0;background:var(--bg)">
+  <div id="ptr-inner" style="display:flex;justify-content:center;align-items:flex-end;padding-bottom:10px;opacity:0;transform:scale(0.5) translateY(8px);transition:opacity .15s ease,transform .15s ease;height:100%">
+    <svg id="ptr-svg" width="32" height="32" viewBox="0 0 36 36" style="filter:drop-shadow(0 0 6px rgba(139,92,246,.6))">
+      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(139,92,246,.15)" stroke-width="2.5"/>
+      <circle id="ptr-arc" cx="18" cy="18" r="14" fill="none" stroke="#8b5cf6" stroke-width="2.5"
+        stroke-linecap="round" stroke-dasharray="87.96" stroke-dashoffset="87.96"
+        transform="rotate(-90 18 18)"
+        style="transition:stroke-dashoffset .05s linear,stroke .15s ease"/>
+      <circle id="ptr-dot" cx="18" cy="18" r="3" fill="#8b5cf6" style="transition:r .15s ease,fill .15s ease;opacity:.8"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: PORTFOLIO LIST ═══ -->
+<div id="s-portfolio" class="screen active">
+  <div class="header">
+    <div class="header-left"><div class="live-dot"></div>PolyClawster</div>
+    <span class="header-badge">LIVE</span>
+  </div>
+  <div id="portfolio-content" class="loader-wrap">
+    <div class="loader"><div class="spinner"></div>Loading positions...</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: POSITION DETAIL ═══ -->
+<div id="s-pos-detail" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Portfolio
+    </button>
+  </div>
+  <div id="pos-detail-content"></div>
+</div>
+
+<!-- ═══ SCREEN: SIGNALS LIST ═══ -->
+<div id="s-signals" class="screen">
+  <div class="header">
+    <div class="header-left"><div class="live-dot"></div>Signals</div>
+    <span class="header-badge" id="signals-count-badge">—</span>
+  </div>
+  <div id="signals-content">
+    <div class="loader"><div class="spinner"></div>Scanning markets...</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: SIGNAL DETAIL ═══ -->
+<div id="s-sig-detail" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Signals
+    </button>
+  </div>
+  <div id="sig-detail-content"></div>
+</div>
+
+<!-- ═══ SCREEN: WALLET DETAIL ═══ -->
+<div id="s-wallet-detail" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Signals
+    </button>
+  </div>
+  <div id="wallet-detail-content"></div>
+</div>
+
+<!-- ═══ SCREEN: STATS ═══ -->
+<div id="s-stats" class="screen">
+  <div class="header">
+    <div class="header-left"><div class="live-dot"></div>Statistics</div>
+  </div>
+  <div id="stats-content">
+    <div class="loader"><div class="spinner"></div>Loading...</div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: CHAT ═══ -->
+
+
+<!-- ═══ BOTTOM NAV ═══ -->
+
+<!-- WALLET SCREEN -->
+<div id="s-wallet" class="screen">
+  <div class="header">
+    <div class="header-left"><div class="live-dot"></div>Wallet</div>
+    <div id="wallet-chain" style="font-size:11px;color:#6b7280;background:#111118;padding:3px 8px;border-radius:6px;border:1px solid var(--border)">Polygon</div>
+  </div>
+  <div class="scroll-area">
+    <div id="wallet-content">
+      <div style="display:flex;justify-content:center;padding:48px"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- WAITLIST CHAT SCREEN -->
+<div id="s-chat" class="screen">
+  <!-- AI CHAT WAITLIST — fullscreen, no scroll -->
+  <div style="height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden">
+
+    <!-- Декоративный фон — градиент + blur spots -->
+    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden">
+      <div style="position:absolute;top:-80px;left:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,.18) 0%,transparent 70%);border-radius:50%"></div>
+      <div style="position:absolute;bottom:120px;right:-80px;width:260px;height:260px;background:radial-gradient(circle,rgba(109,40,217,.12) 0%,transparent 70%);border-radius:50%"></div>
+    </div>
+
+    <!-- Blurred chat preview — занимает верхние 60% -->
+    <div style="flex:1;position:relative;overflow:hidden;-webkit-mask-image:linear-gradient(to bottom,black 0%,black 50%,transparent 100%);mask-image:linear-gradient(to bottom,black 0%,black 50%,transparent 100%)">
+      <div style="padding:var(--header-top-pad,0) 16px 20px;padding-top:calc(var(--header-top-pad,0px) + 16px)">
+        <div style="filter:blur(4px);pointer-events:none;opacity:.9">
+
+          <!-- AI msg 1 -->
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="width:28px;height:28px;min-width:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:11px">🤖</div>
+            <div style="background:#111118;border-radius:3px 12px 12px 12px;padding:10px 12px;max-width:84%;border:1px solid rgba(255,255,255,.06)">
+              <div style="font-size:12px;line-height:1.5;color:#e2e8f0">🔴 <b>BREAKING:</b> Khamenei hospitalised — Polymarket probability jumped 8%→31% in 1h. Smart money flowing in.</div>
+            </div>
+          </div>
+
+          <!-- AI msg 2 — signal card -->
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="width:28px;height:28px;min-width:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:11px">🤖</div>
+            <div style="background:#111118;border-radius:3px 12px 12px 12px;padding:10px 12px;max-width:84%;border:1px solid rgba(255,255,255,.06)">
+              <div style="font-size:10px;color:#8b5cf6;font-weight:700;margin-bottom:5px;letter-spacing:.5px">SIGNAL · 9.4/10</div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:6px">BUY YES · 28¢</div>
+              <div style="display:flex;gap:16px">
+                <div><div style="font-size:13px;font-weight:700;color:#10b981">3.5×</div><div style="font-size:9px;color:#6b7280">potential</div></div>
+                <div><div style="font-size:13px;font-weight:700;color:#f59e0b">47</div><div style="font-size:9px;color:#6b7280">wallets</div></div>
+                <div><div style="font-size:13px;font-weight:700;color:#60a5fa">73%</div><div style="font-size:9px;color:#6b7280">win rate</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User msg -->
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <div style="background:rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.25);border-radius:12px 3px 12px 12px;padding:9px 12px;max-width:74%">
+              <div style="font-size:12px;color:#e2e8f0">How confident are you?</div>
+            </div>
+          </div>
+
+          <!-- AI msg 3 -->
+          <div style="display:flex;gap:10px">
+            <div style="width:28px;height:28px;min-width:28px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:11px">🤖</div>
+            <div style="background:#111118;border-radius:3px 12px 12px 12px;padding:10px 12px;max-width:84%;border:1px solid rgba(255,255,255,.06)">
+              <div style="font-size:12px;line-height:1.5;color:#94a3b8">47 of 53 tracked wallets entered. Historical win rate on similar setups: <span style="color:#10b981;font-weight:600">73%</span>. Auto-trade executing at $50...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- WAITLIST CARD — прижата к низу, фиксированная -->
+    <div style="flex-shrink:0;padding:0 16px 32px;background:linear-gradient(to bottom,transparent 0%,#0a0a0f 18%)">
+      <div style="border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:20px 20px 20px;background:#0d0d14">
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">AI Chat</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:16px;line-height:1.5">Ask anything about markets. AI answers with live smart money data.</div>
+        <button onclick="joinWaitlist()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.2px">Get Early Access</button>
+        <div style="text-align:center;font-size:11px;color:#374151;margin-top:10px">Free · No spam · Launching soon</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" id="nb-portfolio" onclick="showTab('portfolio')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Port
+  </button>
+  <button class="nav-btn" id="nb-signals" onclick="showTab('signals')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>Signals
+    <span class="nav-badge" id="sig-badge" style="display:none">0</span>
+  </button>
+  <button class="nav-btn" id="nb-stats" onclick="showTab('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Stats
+  </button>
+  <button class="nav-btn" id="nb-wallet" onclick="showTab('wallet')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 11a2 2 0 100 4 2 2 0 000-4z"/><path d="M22 7V5a2 2 0 00-2-2H4a2 2 0 00-2 2v2"/></svg>Wallet
+  </button>
+  <button class="nav-btn" id="nb-chat" onclick="showTab('chat')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI Chat
+  </button>
+</nav>
+
+<script>
+// API routes go to Vercel /api/* (relative URLs)
+
+// ══ ROUTER ══════════════════════════════════════════════════════
+let _history = [];
+let _tab = 'portfolio';
+let _portfolio = null;
+let _signals = null;
+
+function showScreen(id, pushHistory=true) {
+  if (pushHistory && _history[_history.length-1] !== id) _history.push(id);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-'+id)?.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function back() {
+  _history.pop();
+  const prev = _history[_history.length-1] || _tab;
+  showScreen(prev, false);
+}
+
+function showTab(tab) {
+  _tab = tab;
+  _history = [tab];
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('nb-'+tab)?.classList.add('active');
+  showScreen(tab, false);
+  if (tab==='portfolio' && !_portfolio) loadPortfolio();
+  if (tab==='signals' && !_signals) loadSignals();
+  if (tab==='stats') loadStats();
+  if (tab==='wallet') loadWallet();
+  if (tab==='chat') {} // waitlist — no load needed
+  setTimeout(updatePtrPosition, 50);
+}
+
+// ══ HELPERS ══════════════════════════════════════════════════════
+const fmt = (n, prefix=true) => {
+  const sign = n>=0 ? (prefix?'+':'' ) : '-';
+  return sign + '$' + Math.abs(n).toFixed(2);
+};
+const pct2c = (p) => Math.round((p||0)*100) + '¢';
+const slug = (t='') => t.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60);
+const polyUrl = (market) => {
+  if (market?.slug) return 'https://polymarket.com/event/' + market.slug;
+  return 'https://polymarket.com/event/' + slug(market?.title || market?.market || market || '');
+};
+const openExternal = (url) => {
+  const tg = window.Telegram?.WebApp;
+  if (tg?.openLink) tg.openLink(url); else window.open(url,'_blank');
+};
+
+// ══ PORTFOLIO ════════════════════════════════════════════════════
+async function loadPortfolio() {
+  try {
+    const r = await fetch('/data.json');
+    const d = await r.json();
+    if (d.portfolio) {
+      _portfolio = d.portfolio;
+      renderPortfolio(_portfolio);
+    }
+  } catch(e) {
+    document.getElementById('portfolio-content').innerHTML =
+      '<div class="empty"><div class="empty-icon">📡</div>Connection error.<br><small>' + e.message + '</small></div>';
+  }
+}
+
+
+function renderUserPortfolio(wallet, tgUser) {
+  const name = tgUser?.first_name || 'Trader';
+  const addr = wallet.address || '';
+  const pnl  = wallet.totalProfit || 0;
+  const fees = wallet.totalFeesPaid || 0;
+  const trades = wallet.trades || 0;
+  const isUp = pnl >= 0;
+
+  document.getElementById('portfolio-content').innerHTML = `
+    <div class="hero-section">
+      <div class="hero-greeting">👋 Hey, ${name}</div>
+      <div class="hero-pnl ${isUp?'up':'down'}">${isUp?'+':''}$${Math.abs(pnl).toFixed(2)}</div>
+      <div class="hero-sub">Total P&L · ${trades} trades</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-item"><div class="stat-v">$${(pnl-fees).toFixed(2)}</div><div class="stat-k">Net Profit</div></div>
+      <div class="stat-item"><div class="stat-v">${trades}</div><div class="stat-k">Trades</div></div>
+      <div class="stat-item"><div class="stat-v">$${fees.toFixed(2)}</div><div class="stat-k">Fees (5%)</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">YOUR WALLET</div>
+      <div style="font-family:monospace;font-size:13px;font-weight:600">${addr.slice(0,10)}...${addr.slice(-6)}</div>
+      <button onclick="navigator.clipboard.writeText('${addr}').then(()=>showToast('Copied!'))" 
+        style="margin-top:10px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);color:#a78bfa;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">
+        📋 Copy Address
+      </button>
+    </div>
+    <div class="card" style="margin-top:12px;background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.2)">
+      <div style="font-size:13px;font-weight:600;margin-bottom:6px">🤖 AI Agent Status</div>
+      <div style="font-size:13px;color:var(--text-muted)">Scanning every 30 min · Auto-trading on score 8+</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 6px #10b981;animation:blink 2s infinite"></div>
+        <span style="font-size:12px;color:#10b981;font-weight:600">Active</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px">📡 Latest AI Signals</div>
+      <div id="mini-signals">Loading...</div>
+    </div>`;
+  // Load signals preview
+  loadMiniSignals();
+}
+
+function renderOnboarding(tgUser) {
+  const name = tgUser?.first_name || 'Trader';
+  document.getElementById('portfolio-content').innerHTML = `
+    <div style="text-align:center;padding:40px 16px">
+      <div style="font-size:52px;margin-bottom:16px">🎰</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:8px">Hey, ${name}!</div>
+      <div style="color:var(--text-muted);font-size:15px;margin-bottom:32px">
+        Let AI trade Polymarket for you.<br>Pay only 5% on profits.
+      </div>
+      <button onclick="createWalletFromPortfolio()" class="btn-primary" style="width:100%;padding:16px;font-size:16px">
+        ✨ Create My Wallet
+      </button>
+      <div style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+        Takes 2 seconds · No deposit required to start
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">📊 AI Agent Performance</div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-muted);font-size:13px">2-day P&L</span>
+        <span style="font-weight:700;font-size:13px;color:var(--green)">+$145</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-muted);font-size:13px">ROI</span>
+        <span style="font-weight:700;font-size:13px;color:var(--green)">+31%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0">
+        <span style="color:var(--text-muted);font-size:13px">Wallets tracked</span>
+        <span style="font-weight:700;font-size:13px">53 smart wallets</span>
+      </div>
+    </div>`;
+}
+
+async function createWalletFromPortfolio() {
+  const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  if (!tgId) { showToast('Open in Telegram to create wallet'); return; }
+  document.getElementById('portfolio-content').innerHTML = '<div class="loading"><div class="spinner"></div><div style="margin-top:12px;color:var(--text-muted)">Creating wallet...</div></div>';
+  try {
+    const r = await fetch('/api/wallet/create', {
+      method: 'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tgId: String(tgId) })
+    });
+    const { data } = await r.json();
+    if (data?.address) {
+      renderUserPortfolio(data, window.Telegram.WebApp.initDataUnsafe.user);
+      switchTab('wallet');
+    }
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function loadMiniSignals() {
+  try {
+    const r = await fetch('/data.json');
+    const d2 = await r.json();
+    const top = (d2?.signals || []).sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,3);
+    const el = document.getElementById('mini-signals');
+    if (!el) return;
+    el.innerHTML = top.map(s => {
+      const score = (s.score||0).toFixed(1);
+      const icon = s.score>=8?'🔴':'🟡';
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        ${icon} ${(s.market||s.title||'').slice(0,50)} · <b>${score}/10</b>
+      </div>`;
+    }).join('') || '<div style="color:var(--text-muted);font-size:13px">No signals yet</div>';
+  } catch {}
+}
+
+function renderPortfolio(d) {
+  const pnl = d.totalPnl, isUp = pnl>=0, pct = d.pnlPct.toFixed(1);
+  const sorted = [...d.positions].sort((a,b)=>Math.abs(b.cashPnl||0)-Math.abs(a.cashPnl||0));
+
+  const cards = sorted.map((p,i) => {
+    const ppnl = p.cashPnl||0, pr = Math.round((p.curPrice||0)*100);
+    const oc = (p.outcome||'').toLowerCase();
+    const tagCls = oc==='yes'?'yes':oc==='no'?'no':'other';
+    const pCls = ppnl>0?'up':ppnl<0?'down':'neu';
+    return `<div class="card" onclick="openPosition(${i})">
+      <div class="card-left">
+        <div class="card-title">${(p.title||'').slice(0,54)}</div>
+        <div class="card-meta">
+          <span class="tag tag-${tagCls}">${p.outcome}</span>
+          <span class="card-sub">$${p.currentValue?.toFixed(0)}</span>
+        </div>
+      </div>
+      <div class="card-right">
+        <div class="card-price">${pr}¢</div>
+        <div class="card-pnl ${pCls}">${fmt(ppnl)}</div>
+      </div>
+      <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </div>`;
+  }).join('');
+
+  document.getElementById('portfolio-content').innerHTML = `
+    <div class="content">
+      <div class="hero">
+        <div class="hero-label">Total P&amp;L</div>
+        <div class="hero-pnl ${isUp?'up':'down'}">${fmt(pnl)}</div>
+        <div class="hero-row">
+          <div class="hero-stat"><span class="hero-stat-v ${isUp?'up':'down'}">${isUp?'+':''}${pct}%</span><span class="hero-stat-k">ROI</span></div>
+          <div class="hero-stat"><span class="hero-stat-v">$${d.totalValue?.toFixed(0)}</span><span class="hero-stat-k">Value</span></div>
+          <div class="hero-stat"><span class="hero-stat-v">${d.positions.length}</span><span class="hero-stat-k">Open</span></div>
+        </div>
+      </div>
+      <div class="sec-title">Active Positions</div>
+      ${cards}
+      <div class="virix">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div>
+    </div>`;
+}
+
+// ══ POSITION DETAIL ═══════════════════════════════════════════════
+function openPosition(idx) {
+  const p = _portfolio?.positions?.[idx];
+  if (!p) return;
+  // re-sort same way
+  const sorted = [..._portfolio.positions].sort((a,b)=>Math.abs(b.cashPnl||0)-Math.abs(a.cashPnl||0));
+  renderPositionDetail(sorted[idx]);
+  showScreen('pos-detail');
+}
+
+function renderPositionDetail(p) {
+  const ppnl = p.cashPnl||0, pr = (p.curPrice||0)*100;
+  const pCls = ppnl>0?'up':ppnl<0?'down':'neu';
+  const oc = (p.outcome||'').toLowerCase();
+  const tagCls = oc==='yes'?'yes':oc==='no'?'no':'other';
+  const cost = p.initialValue||0;
+  const pnlPct = cost>0?((ppnl/cost)*100).toFixed(1):'—';
+  const polyLink = 'https://polymarket.com/event/' + (p.slug || slug(p.title||''));
+  const icon = pr>=90?'🟢':pr>=50?'🟡':'🔴';
+  const resolved = (p.curPrice||0) >= 0.99;
+
+  document.getElementById('pos-detail-content').innerHTML = `
+    <div class="detail-header">
+      <div class="detail-icon" style="background:var(--accent-dim)">${icon}</div>
+      <div>
+        <div class="detail-title">${p.title||''}</div>
+        <div class="detail-sub">${p.outcome} · ${resolved?'Resolving soon':'Active'}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Position Overview</div>
+      <div class="detail-stats">
+        <div class="detail-stat">
+          <div class="detail-stat-v">${Math.round(pr)}¢</div>
+          <div class="detail-stat-k">Current Price</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v ${pCls}">${fmt(ppnl)}</div>
+          <div class="detail-stat-k">P&amp;L</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v">$${p.currentValue?.toFixed(2)}</div>
+          <div class="detail-stat-k">Market Value</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-v ${parseFloat(pnlPct)>=0?'up':'down'}">${pnlPct}%</div>
+          <div class="detail-stat-k">ROI</div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Details</div>
+      <div class="detail-row"><span class="detail-row-k">Outcome</span><span class="tag tag-${tagCls}">${p.outcome}</span></div>
+      <div class="detail-row"><span class="detail-row-k">Shares held</span><span class="detail-row-v">${(p.size||0).toFixed(1)}</span></div>
+      <div class="detail-row"><span class="detail-row-k">Avg buy price</span><span class="detail-row-v">${cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—'}</span></div>
+      <div class="detail-row"><span class="detail-row-k">Cost basis</span><span class="detail-row-v">$${cost.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="detail-row-k">Potential payout</span><span class="detail-row-v up">$${(p.size||0).toFixed(2)}</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open on Polymarket
+      </button>
+    </div>`;
+}
+
+// ══ SIGNALS ══════════════════════════════════════════════════════
+async function loadSignals() {
+  if (window.__SSR__?.signals) {
+    _signals = (Array.isArray(window.__SSR__.signals) ? window.__SSR__.signals : (window.__SSR__.signals.signals || [])).sort((a,b)=>(b.score||0)-(a.score||0));
+    renderSignals(_signals);
+    const strong = _signals.filter(s=>s.score>=8).length;
+    if (strong>0){const b=document.getElementById('sig-badge');if(b){b.style.display='flex';b.textContent=strong;}}
+    const cb=document.getElementById('signals-count-badge');if(cb)cb.textContent=_signals.length+' signals';
+    return;
+  }
+  try {
+    const r = await fetch('/data.json');
+    const _raw = await r.json();
+    _signals = (_raw.signals||_raw.data?.signals||[]).sort((a,b)=>(b.score||0)-(a.score||0));
+    renderSignals(_signals);
+    // update badge
+    const strong = _signals.filter(s=>s.score>=8).length;
+    const badge = document.getElementById('sig-badge');
+    const countBadge = document.getElementById('signals-count-badge');
+    if (strong>0){badge.style.display='flex';badge.textContent=strong;}
+    if(countBadge) countBadge.textContent = _signals.length + ' signals';
+  } catch(e) {
+    document.getElementById('signals-content').innerHTML='<div class="empty"><div class="empty-icon">📡</div>Error loading signals</div>';
+  }
+}
+
+function renderSignals(sigs) {
+  if (!sigs||!sigs.length) {
+    document.getElementById('signals-content').innerHTML='<div class="empty"><div class="empty-icon">📡</div>No signals right now.<br>Scanner runs every 30 min.</div>';
+    return;
+  }
+  const cards = sigs.slice(0,15).map((s,i)=>{
+    const score=s.score||0, isStrong=score>=8, isMed=score>=5;
+    const lvl=isStrong?'strong':isMed?'medium':'weak';
+    const fillColor=isStrong?'#ef4444':isMed?'#f59e0b':'#6b7280';
+    const fillW=Math.round(score/10*100);
+    const hasWallet = s.type==='smartwallet' && s.addr;
+    return `<div class="card" onclick="openSignal(${i})">
+      <div class="card-left">
+        <div class="card-meta" style="margin-bottom:6px">
+          <span class="tag tag-${lvl}">${(s.type||'').replace('_',' ')}</span>
+          ${hasWallet?`<span class="card-sub">${s.addr.slice(0,8)}...</span>`:''}
+        </div>
+        <div class="card-title">${(s.market||s.title||'').slice(0,60)}</div>
+        ${s.side?`<div class="card-sub" style="margin-top:4px">Side: ${s.side}${s.amount?' · $'+s.amount:''}</div>`:''}
+        <div class="score-bar"><div class="score-fill" style="width:${fillW}%;background:${fillColor}"></div></div>
+      </div>
+      <div class="card-right" style="padding-left:8px">
+        <div class="card-price ${isStrong?'down':isMed?'':'neu'}">${score.toFixed(1)}</div>
+        <div class="card-sub">/10</div>
+      </div>
+      <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </div>`;
+  }).join('');
+
+  document.getElementById('signals-content').innerHTML=`
+    <div class="content">
+      <div class="sec-title">Live Market Signals</div>
+      ${cards}
+      <div class="virix">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div>
+    </div>`;
+}
+
+// ══ SIGNAL DETAIL ════════════════════════════════════════════════
+function openSignal(i) {
+  const s = _signals?.[i];
+  if (!s) return;
+  if (s.type==='smartwallet' && s.addr) {
+    renderWalletDetail(s);
+    showScreen('wallet-detail');
+  } else {
+    renderSignalDetail(s);
+    showScreen('sig-detail');
+  }
+}
+
+function renderSignalDetail(s) {
+  const score=s.score||0, isStrong=score>=8, isMed=score>=5;
+  const lvl=isStrong?'strong':isMed?'medium':'weak';
+  const fillColor=isStrong?'#ef4444':isMed?'#f59e0b':'#6b7280';
+  const polyLink='https://polymarket.com/event/'+slug(s.market||s.title||'');
+  const typeLabels={ob_imbalance:'Order Book Imbalance',whale_order:'Whale Order',price_drift:'Price Drift',vol_spike:'Volume Spike',news_edge:'News Edge',cross_market:'Cross-Market Arb'};
+  const typeLabel=typeLabels[s.type]||s.type;
+  const icons={ob_imbalance:'⚖️',whale_order:'🐋',price_drift:'📈',vol_spike:'⚡',news_edge:'📰',cross_market:'🔗'};
+  const icon=icons[s.type]||'📡';
+
+  let detailRows = '';
+  if (s.side) detailRows+=`<div class="detail-row"><span class="detail-row-k">Side</span><span class="detail-row-v tag tag-${s.side.toLowerCase()==='yes'?'yes':s.side.toLowerCase()==='no'?'no':'other'}">${s.side}</span></div>`;
+  if (s.price) detailRows+=`<div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">${Math.round((s.price||0)*100)}¢</span></div>`;
+  if (s.amount) detailRows+=`<div class="detail-row"><span class="detail-row-k">Order Size</span><span class="detail-row-v up">$${s.amount}</span></div>`;
+  if (s.ratio) detailRows+=`<div class="detail-row"><span class="detail-row-k">Bid/Ask Ratio</span><span class="detail-row-v">${s.ratio}x</span></div>`;
+  if (s.bidDepth) detailRows+=`<div class="detail-row"><span class="detail-row-k">Bid Depth</span><span class="detail-row-v up">$${s.bidDepth}</span></div>`;
+  if (s.askDepth) detailRows+=`<div class="detail-row"><span class="detail-row-k">Ask Depth</span><span class="detail-row-v down">$${s.askDepth}</span></div>`;
+  if (s.from) detailRows+=`<div class="detail-row"><span class="detail-row-k">Price Move</span><span class="detail-row-v">${Math.round(s.from*100)}¢ → ${Math.round((s.to||0)*100)}¢</span></div>`;
+  if (s.volume) detailRows+=`<div class="detail-row"><span class="detail-row-k">Volume Spike</span><span class="detail-row-v">$${s.volume}</span></div>`;
+  if (s.edgePct) detailRows+=`<div class="detail-row"><span class="detail-row-k">Edge</span><span class="detail-row-v up">+${s.edgePct}pp</span></div>`;
+
+  document.getElementById('sig-detail-content').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-icon" style="background:var(--accent-dim);font-size:22px">${icon}</div>
+      <div>
+        <div class="detail-title">${typeLabel}</div>
+        <div class="detail-sub">Score: ${score.toFixed(1)}/10 · ${isStrong?'Strong':'Medium'} signal</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Market</div>
+      <div style="font-size:14px;line-height:1.5;color:var(--text)">${s.market||s.title||''}</div>
+      ${s.newsContext?`<div style="margin-top:10px;font-size:12px;color:var(--muted);line-height:1.5">📰 ${s.newsContext}</div>`:''}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Signal Data</div>
+      ${detailRows||'<div style="color:var(--muted);font-size:13px">No additional data</div>'}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Confidence</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="score-bar" style="flex:1;height:6px"><div class="score-fill" style="width:${Math.round(score/10*100)}%;background:${fillColor}"></div></div>
+        <span style="font-size:15px;font-weight:700;color:${fillColor}">${score.toFixed(1)}/10</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">${isStrong?'🔴 Strong signal — auto-trade may trigger':isMed?'🟡 Medium signal — monitor closely':'⚪ Weak signal — informational only'}</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        View on Polymarket
+      </button>
+    </div>`;
+}
+
+function renderWalletDetail(s) {
+  const wr = s.winRate?Math.round(s.winRate*100):null;
+  const polyLink = 'https://polymarket.com/event/'+slug(s.market||s.title||'');
+  const walletLink = 'https://polymarket.com/@'+s.addr;
+
+  document.getElementById('wallet-detail-content').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-icon" style="background:rgba(16,185,129,.12);font-size:22px">🧠</div>
+      <div>
+        <div class="detail-title">Smart Money Signal</div>
+        <div class="detail-sub" style="font-family:monospace;font-size:11px">${s.addr?.slice(0,18)}...</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Wallet Stats</div>
+      <div class="detail-stats">
+        <div class="detail-stat"><div class="detail-stat-v up">${wr||'—'}%</div><div class="detail-stat-k">Win Rate</div></div>
+        <div class="detail-stat"><div class="detail-stat-v ${(s.totalPnl||0)>=0?'up':'down'}">${s.totalPnl?fmt(s.totalPnl):'—'}</div><div class="detail-stat-k">Total P&amp;L</div></div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">Current Bet</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px">${s.market||s.title||''}</div>
+      <div class="detail-row"><span class="detail-row-k">Outcome</span><span class="tag tag-${(s.outcome||'').toLowerCase()==='yes'?'yes':'other'}">${s.outcome||'—'}</span></div>
+      <div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">${Math.round((s.price||0)*100)}¢</span></div>
+      <div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v up">${(s.score||0).toFixed(1)}/10</span></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        View Market
+      </button>
+      <button class="btn btn-secondary" onclick="openExternal('${walletLink}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        View Wallet on Polymarket
+      </button>
+    </div>`;
+}
+
+// ══ STATS ════════════════════════════════════════════════════════
+let _statsLoaded = false;
+async function loadStats() {
+  var el = document.getElementById('stats-content');
+  if (!el) return;
+  try {
+    var r = await fetch('/data.json');
+    var raw = await r.json();
+    var port = raw.portfolio || {};
+    var sigs = raw.signals || [];
+    var pnl = port.totalPnl || 0;
+    var val = port.totalValue || 0;
+    var pct = port.pnlPct || 0;
+    var positions = port.positions || [];
+    var strong = sigs.filter(function(s){return s.score>=8;}).length;
+    var medium = sigs.filter(function(s){return s.score>=5&&s.score<8;}).length;
+    var weak = sigs.filter(function(s){return s.score<5;}).length;
+    var posCards = '';
+    positions.slice(0,5).forEach(function(p) {
+      var pp = p.cashPnl||0, ppos = pp>=0;
+      posCards += '<div class="card" style="margin-bottom:8px"><div class="card-left"><div class="card-title" style="font-size:12px">'+(p.title||p.market||'').slice(0,55)+'</div><div class="card-sub" style="margin-top:4px">'+(p.outcome||'')+' · '+Math.round((p.curPrice||0)*100)+'¢</div></div><div class="card-right"><div class="card-price '+(ppos?'up':'down')+'">'+(ppos?'+':'')+'$'+Math.abs(pp).toFixed(2)+'</div></div></div>';
+    });
+    var updTime = raw.updated ? new Date(raw.updated).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '--';
+    el.innerHTML = '<div class="content"><div class="hero"><div class="hero-label">AI Portfolio P&amp;L</div><div class="hero-pnl '+(pnl>=0?'up':'down')+'">'+fmt(pnl)+'</div><div class="hero-row"><div class="hero-stat"><span class="hero-stat-v '+(pnl>=0?'up':'down')+'">'+(pct>=0?'+':'')+pct.toFixed(1)+'%</span><span class="hero-stat-k">ROI</span></div><div class="hero-stat"><span class="hero-stat-v">$'+val.toFixed(0)+'</span><span class="hero-stat-k">Value</span></div><div class="hero-stat"><span class="hero-stat-v">'+positions.length+'</span><span class="hero-stat-k">Open</span></div></div></div>'
+      +'<div class="sec-title" style="margin-top:16px">Live Signals</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">'
+      +'<div style="background:#111118;border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#ef4444">'+strong+'</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Strong</div></div>'
+      +'<div style="background:#111118;border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#f59e0b">'+medium+'</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Medium</div></div>'
+      +'<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:800;color:#6b7280">'+weak+'</div><div style="font-size:10px;color:#6b7280;margin-top:2px">Weak</div></div>'
+      +'</div><div class="sec-title">Top Positions</div>'+posCards
+      +'<div class="sec-title" style="margin-top:16px">Scanner Info</div>'
+      +'<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px">'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:#6b7280;font-size:13px">Wallets tracked</span><span style="font-weight:600;font-size:13px">53</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:#6b7280;font-size:13px">Scan frequency</span><span style="font-weight:600;font-size:13px">30 min</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:#6b7280;font-size:13px">Last updated</span><span style="font-weight:600;font-size:13px">'+updTime+'</span></div>'
+      +'</div><div class="virix" style="margin-top:20px">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div></div>';
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">&#128202;</div>Error loading stats</div>';
+  }
+}
+
+async function sendChat() {
+  const inp=document.getElementById('chat-in');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  addMsg('user',msg);
+  const el=addMsg('ai','...');
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+    const {data}=await r.json();
+    el.querySelector('.bubble').textContent=data?.reply||'Error';
+  }catch{el.querySelector('.bubble').textContent='Connection error';}
+}
+
+function addMsg(role,text){
+  const w=document.getElementById('chat-messages');
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  d.innerHTML='<div class="bubble">'+text+'</div>';
+  w.appendChild(d);
+  w.scrollTop=w.scrollHeight;
+  return d;
+}
+
+// ══ INIT ═════════════════════════════════════════════════════════
+const tg=window.Telegram?.WebApp;
+if(tg){tg.expand();tg.setHeaderColor?.('#0a0a0f');tg.setBackgroundColor?.('#0a0a0f');}
+// Global error handler
+window.onerror = function(msg, src, line, col, err) {
+  document.getElementById('portfolio-content').innerHTML = 
+    '<div class="empty"><div class="empty-icon">🚨</div>JS Error:<br>' + msg + '<br>Line ' + line + '</div>';
+  return false;
+};
+
+// Test API connectivity first
+fetch('/api/portfolio')
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      console.log('API OK, positions:', d.data.positions.length);
+    } else {
+      document.getElementById('portfolio-content').innerHTML = 
+        '<div class="empty"><div class="empty-icon">❌</div>API error: ' + JSON.stringify(d) + '</div>';
+    }
+  })
+  .catch(e => {
+    document.getElementById('portfolio-content').innerHTML = 
+      '<div class="empty"><div class="empty-icon">🌐</div>Network error — check connection</div>';
+  });
+
+
+// ── WALLET TAB ────────────────────────────────────────────────────
+async function loadWallet() {
+  var el = document.getElementById('wallet-content');
+  if (!el) return;
+  var tgId = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user)
+    ? window.Telegram.WebApp.initDataUnsafe.user.id
+    : new URLSearchParams(location.search).get('tgId');
+
+  if (!tgId) {
+    el.innerHTML = '<div style="text-align:center;padding:48px 20px"><div style="font-size:40px;margin-bottom:12px">💼</div><div style="font-size:16px;font-weight:700">Open in Telegram</div><div style="color:var(--muted);font-size:13px;margin-top:6px">@PolyClawsterBot</div></div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="display:flex;justify-content:center;padding:48px"><div class="spinner"></div></div>';
+
+  try {
+    var r = await fetch('/api/wallet?tgId=' + tgId);
+    var resp = await r.json();
+    if (resp.ok && resp.data && resp.data.address) {
+      el.innerHTML = walletDataHTML(resp.data);
+      // Copy button
+      var copyBtn = document.getElementById('copy-addr-btn');
+      if (copyBtn) copyBtn.onclick = function() {
+        var a = this.getAttribute('data-addr');
+        if (navigator.clipboard) navigator.clipboard.writeText(a).then(function() {
+          copyBtn.textContent = '✅ Copied!';
+          setTimeout(function() { copyBtn.textContent = '📋 Copy Address'; }, 1500);
+        });
+      };
+      // Deposit button — показываем адрес крупно
+      var depBtn = document.getElementById('deposit-btn');
+      if (depBtn) depBtn.onclick = function() {
+        var addr = resp.data.address;
+        var tg = window.Telegram && window.Telegram.WebApp;
+        if (tg && tg.showPopup) {
+          tg.showPopup({title:'Deposit USDC', message:'Send USDC on Polygon network to:\n' + addr + '\n\nMin: $10 to start auto-trading.', buttons:[{id:'copy',type:'default',text:'Copy Address'},{type:'close',text:'Close'}]}, function(btnId) {
+            if (btnId==='copy' && navigator.clipboard) navigator.clipboard.writeText(addr);
+          });
+        } else {
+          if(navigator.clipboard) navigator.clipboard.writeText(addr).then(function(){alert('Address copied! Send USDC on Polygon.\n'+addr)});
+        }
+      };
+    } else {
+      el.innerHTML = walletOnboardHTML(tgId);
+    var btn = document.getElementById('create-wallet-btn');
+    if (btn) btn.onclick = function() { createWalletFlow(tgId); };
+    }
+  } catch(e) {
+    el.innerHTML = walletOnboardHTML(tgId);
+  }
+}
+
+function walletOnboardHTML(tgId) {
+  return '<div style="padding:24px 16px"><div style="text-align:center;padding:32px 0 24px"><div style="font-size:48px;margin-bottom:14px">🎰</div><div style="font-size:22px;font-weight:800;margin-bottom:8px">Get Your Wallet</div><div style="color:var(--muted);font-size:14px;line-height:1.6">AI trades Polymarket for you.<br>5% fee on profits only.</div></div>'
+    + '<div style="background:#111118;border:1px solid rgba(139,92,246,.15);border-radius:14px;padding:16px;margin-bottom:16px"><div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--muted)">📊 AI Performance (live)</div><div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted);font-size:13px">P&L (2 days)</span><span style="font-weight:700;color:#10b981">+$137</span></div><div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--muted);font-size:13px">ROI</span><span style="font-weight:700;color:#10b981">+29%</span></div></div>'
+    + '<button id="create-wallet-btn" style="width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer">✨ Create Wallet — Free</button>'
+    + '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:10px">Auto-created on Polygon · Non-custodial</div></div>';
+}
+
+function walletDataHTML(w) {
+  var addr = w.address || '';
+  var pnl = +(w.totalPnl || 0);
+  var bal = +(w.totalValue || 0);
+  var dep = +(w.totalDeposited || 0);
+  var trades = Array.isArray(w.trades) ? w.trades.length : (+(w.trades||0));
+  var pnlPos = pnl >= 0;
+  var pnlStr = (pnlPos?'+':'-') + '$' + Math.abs(pnl).toFixed(2);
+  var pnlPct = dep > 0 ? ((pnl/dep)*100) : 0;
+  var pctStr = (pnlPct>=0?'+':'') + pnlPct.toFixed(1) + '%';
+  var shortAddr = addr.length > 12 ? addr.slice(0,8)+'...'+addr.slice(-6) : addr;
+
+  return '<div style="padding:0 16px 16px">'
+    // === BALANCE HERO ===
+    + '<div style="margin-bottom:16px;padding:24px 20px;background:linear-gradient(135deg,rgba(139,92,246,.15),rgba(109,40,217,.08));border:1px solid rgba(139,92,246,.2);border-radius:14px;text-align:center">'
+    + '<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Portfolio Balance</div>'
+    + '<div style="font-size:38px;font-weight:800;letter-spacing:-1px;margin-bottom:4px">$' + bal.toFixed(2) + '</div>'
+    + '<div style="font-size:13px;color:' + (pnlPos?'#10b981':'#ef4444') + ';font-weight:600">' + pnlStr + ' (' + pctStr + ')</div>'
+    + '</div>'
+
+    // === ACTION BUTTONS ===
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<button id="deposit-btn" style="padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">⬇ Deposit</button>'
+    + '<button disabled style="padding:14px;background:#1a1a24;color:#4b5563;border:1px solid #1f1f2e;border-radius:10px;font-size:14px;font-weight:600;cursor:not-allowed">⬆ Withdraw</button>'
+    + '</div>'
+
+    // === ADDRESS ===
+    + '<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px;margin-bottom:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    + '<div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px">Deposit Address</div>'
+    + '<div style="font-size:10px;color:#8b5cf6">USDC · Polygon</div>'
+    + '</div>'
+    + '<div style="font-family:monospace;font-size:12px;color:#94a3b8;word-break:break-all;margin-bottom:10px;line-height:1.6">' + addr + '</div>'
+    + '<button id="copy-addr-btn" data-addr="' + addr + '" style="width:100%;padding:9px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);color:#a78bfa;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">📋 Copy Address</button>'
+    + '</div>'
+
+    // === STATS ===
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
+    + '<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;text-align:center"><div style="font-size:16px;font-weight:700;color:' + (pnlPos?'#10b981':'#ef4444') + '">' + pnlStr + '</div><div style="font-size:9px;color:#6b7280;margin-top:2px">P&L</div></div>'
+    + '<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;text-align:center"><div style="font-size:16px;font-weight:700">' + trades + '</div><div style="font-size:9px;color:#6b7280;margin-top:2px">Trades</div></div>'
+    + '<div style="background:#111118;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;text-align:center"><div style="font-size:16px;font-weight:700;color:#f59e0b">5%</div><div style="font-size:9px;color:#6b7280;margin-top:2px">Fee</div></div>'
+    + '</div>'
+
+    // === INFO ===
+    + '<div style="font-size:11px;color:#374151;text-align:center;line-height:1.6">Auto-trading active · 5% fee on profits only · Non-custodial</div>'
+    + '</div>';
+}
+
+
+
+async function createWalletFlow(tgId) {
+  var el = document.getElementById('wallet-content');
+  el.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;padding:48px 20px"><div class="spinner"></div><div style="color:var(--muted);font-size:13px;margin-top:16px">Creating your wallet...</div></div>';
+  el.innerHTML = '<div style="text-align:center;padding:40px 20px"><div style="font-size:36px;margin-bottom:12px">✅</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">Wallet ready!</div><div style="color:var(--muted);font-size:13px">Use /wallet in @PolyClawsterBot to see your address</div></div>';
+}
+
+
+async function createWallet() {
+  const el = document.getElementById('wallet-content');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><div style="margin-top:12px;color:var(--text-muted)">Creating wallet...</div></div>';
+  try {
+    const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'demo';
+    const r = await fetch('/api/wallet/create', { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ tgId }) });
+    const { data } = await r.json();
+    if (data?.address) renderWallet(data);
+    else el.innerHTML = '<div class="empty"><div class="empty-icon">❌</div>Error creating wallet. Try via bot: /wallet</div>';
+  } catch(e) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">❌</div>' + e.message + '</div>';
+  }
+}
+
+function copyAddr(addr) {
+  navigator.clipboard.writeText(addr).then(() => {
+    showToast('Address copied!');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = addr; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('Copied!');
+  });
+}
+
+function showBackup() {
+  if (!confirm('⚠️ Your private key gives full access to your funds. Only view in a private place.')) return;
+  const tgId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  fetch('/api/wallet/backup?tgId=' + tgId)
+    .then(r=>r.json())
+    .then(({data}) => {
+      if (data?.privateKey) {
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px';
+        modal.innerHTML = `
+          <div style="background:#111118;border:1px solid rgba(139,92,246,.3);border-radius:16px;padding:24px;max-width:340px;width:100%">
+            <div style="font-weight:700;margin-bottom:16px;font-size:16px">🔑 Private Key</div>
+            <button onclick="navigator.clipboard.writeText('${data.privateKey}');showToast('Copied!')" style="width:100%;padding:12px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);color:#a78bfa;border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:8px">📋 Copy</button>
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;padding:12px;background:transparent;border:1px solid rgba(255,255,255,.1);color:var(--text-muted);border-radius:8px;cursor:pointer">Close</button>
+          </div>`;
+        document.body.appendChild(modal);
+      }
+    });
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#8b5cf6;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;animation:fadeIn .2s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+
+// Safe area & fullscreen handling
+(function() {
+  const tg = window.Telegram?.WebApp;
+  function applyLayout() {
+    const isFS = tg?.isFullscreen || false;
+    document.body.setAttribute('data-fullscreen', isFS);
+    
+    if (isFS) {
+      // Fullscreen: Telegram overlays Close button + status bar on top
+      // safeAreaInset.top = device notch/status bar (e.g. 50px on iPhone)
+      // contentSafeAreaInset.top = Telegram UI (close btn etc, ~44px)
+      // We need BOTH
+      const safe = tg.safeAreaInset?.top || 0;
+      const content = tg.contentSafeAreaInset?.top || 0;
+      const total = Math.max(safe + content, 54); // min 54px for fullscreen
+      document.body.style.paddingTop = total + 'px';
+      document.body.style.setProperty('--header-top-pad', total + 'px');
+    } else {
+      // Not fullscreen — Telegram handles header, we just need safe-area for notch
+      const safe = tg?.safeAreaInset?.top || 0;
+      document.body.style.paddingTop = safe > 0 ? safe + 'px' : '0px';
+      document.body.style.setProperty('--header-top-pad', '0px');
+    }
+  }
+  if (tg) {
+    tg.onEvent('fullscreenChanged', applyLayout);
+    tg.onEvent('viewportChanged', applyLayout);
+    applyLayout();
+  }
+})();
+
+// ── PULL-TO-REFRESH + SWIPE CONTROL ──────────────────────────────
+(function() {
+  var tgw = window.Telegram && window.Telegram.WebApp;
+  var haptic = tgw && tgw.HapticFeedback;
+
+  // Отключаем свайп-закрытие (Bot API 7.7+)
+  if (tgw && typeof tgw.disableVerticalSwipes === 'function') tgw.disableVerticalSwipes();
+  if (tgw && typeof tgw.enableClosingConfirmation === 'function') tgw.enableClosingConfirmation();
+
+  var PTR_THRESHOLD = 65; // px для активации обновления
+  var startY = 0, pulling = false, triggered = false;
+  var ptrEl, ptrInner, ptrArc, ptrDot, ptrSvg;
+  function initPtrEls() {
+    if (!ptrEl) {
+      ptrEl = document.getElementById('ptr-indicator');
+      ptrInner = document.getElementById('ptr-inner');
+      ptrArc = document.getElementById('ptr-arc');
+      ptrDot = document.getElementById('ptr-dot');
+      ptrSvg = document.getElementById('ptr-svg');
+    }
+    return !!ptrEl;
+  }
+
+  function vibrateLight() {
+    if (haptic) haptic.impactOccurred('light');
+    else if (navigator.vibrate) navigator.vibrate(10);
+  }
+  function vibrateSuccess() {
+    if (haptic) { haptic.impactOccurred('medium'); setTimeout(function(){ haptic.impactOccurred('light'); },80); }
+    else if (navigator.vibrate) navigator.vibrate([15,30,10]);
+  }
+  function vibrateReady() {
+    // Приятная двойная вибрация когда дотянул до порога
+    if (haptic) { haptic.impactOccurred('rigid'); setTimeout(function(){ haptic.impactOccurred('soft'); },100); }
+    else if (navigator.vibrate) navigator.vibrate([20,20,20]);
+  }
+
+  var CIRCUMFERENCE = 87.96; // 2 * PI * 14
+
+  function showPtr(dy) {
+    if (!initPtrEls()) return;
+    var pct = Math.min(dy / PTR_THRESHOLD, 1);
+    // Высота индикатора
+    // Высота = от top:0 до низа нашего header
+    // = body.paddingTop (safe area) + высота .header (~44px)
+    var bodyPad = parseInt(document.body.style.paddingTop) || 0;
+    var headerH = 44; // примерная высота .header
+    var maxH = bodyPad + headerH + 16; // +16px чтобы круг был по центру header
+    var h = Math.min(dy * 0.6, maxH);
+    ptrEl.style.height = h + 'px';
+    // Появление из прозрачности с scale
+    var vis = pct > 0.15 ? Math.min((pct - 0.15) / 0.4, 1) : 0;
+    ptrInner.style.opacity = vis.toFixed(2);
+    ptrInner.style.transform = 'scale(' + (0.6 + vis * 0.4).toFixed(2) + ')';
+    // Заполнение дуги
+    if (ptrArc) {
+      var offset = CIRCUMFERENCE * (1 - pct);
+      ptrArc.style.strokeDashoffset = offset.toFixed(2);
+      // Цвет: фиолетовый → зелёный на пороге
+      if (pct >= 1) {
+        ptrArc.style.stroke = '#10b981';
+        if (ptrDot) { ptrDot.setAttribute('r','4'); ptrDot.style.fill='#10b981'; }
+        if (ptrSvg) ptrSvg.style.filter = 'drop-shadow(0 0 8px rgba(16,185,129,.7))';
+      } else {
+        ptrArc.style.stroke = '#8b5cf6';
+        if (ptrDot) { ptrDot.setAttribute('r','3'); ptrDot.style.fill='#8b5cf6'; }
+        if (ptrSvg) ptrSvg.style.filter = 'drop-shadow(0 0 6px rgba(139,92,246,.6))';
+      }
+    }
+    if (pct >= 1 && !triggered) {
+      triggered = true;
+      vibrateReady();
+    } else if (pct < 1 && triggered) {
+      triggered = false;
+    }
+  }
+
+  function startRefresh() {
+    if (!initPtrEls()) return;
+    var _bodyPad = parseInt(document.body.style.paddingTop) || 0;
+    ptrEl.style.height = (_bodyPad + 44 + 16) + 'px';
+    ptrInner.style.opacity = '1';
+    ptrInner.style.transform = 'scale(1)';
+    // Спиннер: дуга заполнена, крутится
+    if (ptrArc) {
+      ptrArc.style.strokeDashoffset = '0';
+      ptrArc.style.stroke = '#8b5cf6';
+      ptrArc.style.transition = 'none';
+    }
+    if (ptrSvg) {
+      ptrSvg.style.animation = 'ptrSpin .7s linear infinite';
+      ptrSvg.style.transformOrigin = '18px 18px';
+      ptrSvg.style.filter = 'drop-shadow(0 0 8px rgba(139,92,246,.8))';
+    }
+    vibrateSuccess();
+
+    // Обновляем текущий таб
+    var tab = window._tab || 'portfolio';
+    var refreshDone = false;
+    function done() {
+      if (refreshDone) return;
+      refreshDone = true;
+      // Стоп-кадр: зелёная дуга заполнена
+      if (ptrSvg) { ptrSvg.style.animation = 'none'; }
+      if (ptrArc) { ptrArc.style.stroke = '#10b981'; ptrArc.style.strokeDashoffset = '0'; }
+      if (ptrDot) { ptrDot.setAttribute('r','5'); ptrDot.style.fill='#10b981'; }
+      if (haptic) haptic.notificationOccurred('success');
+      setTimeout(hidePtr, 700);
+    }
+    if (tab === 'portfolio') { window._portfolio = null; if(typeof loadPortfolio==='function') loadPortfolio(); setTimeout(done, 1200); }
+    else if (tab === 'signals') { window._signals = null; if(typeof loadSignals==='function') loadSignals(); setTimeout(done, 1200); }
+    else if (tab === 'stats') { if(typeof loadStats==='function') loadStats(); setTimeout(done, 800); }
+    else if (tab === 'wallet') { if(typeof loadWallet==='function') loadWallet(); setTimeout(done, 800); }
+    else setTimeout(done, 600);
+  }
+
+  function hidePtr() {
+    if (!initPtrEls()) return;
+    // Финальная анимация — вспышка зелёного и уход
+    if (ptrArc) { ptrArc.style.stroke = '#10b981'; ptrArc.style.transition = 'stroke .2s'; }
+    if (ptrSvg) { ptrSvg.style.animation = 'none'; ptrSvg.style.filter = 'drop-shadow(0 0 10px rgba(16,185,129,.7))'; }
+    setTimeout(function() {
+      ptrEl.style.transition = 'height .35s cubic-bezier(.4,0,.2,1)';
+      ptrEl.style.height = '0';
+      ptrInner.style.opacity = '0';
+      ptrInner.style.transform = 'scale(0.7)';
+      // Сброс
+      setTimeout(function() {
+        if (ptrArc) { ptrArc.style.strokeDashoffset = CIRCUMFERENCE.toFixed(2); ptrArc.style.stroke = '#8b5cf6'; ptrArc.style.transition = ''; }
+        if (ptrSvg) { ptrSvg.style.filter = 'drop-shadow(0 0 6px rgba(139,92,246,.6))'; }
+        if (ptrDot) { ptrDot.setAttribute('r','3'); ptrDot.style.fill='#8b5cf6'; }
+        ptrEl.style.transition = '';
+        ptrInner.style.transform = 'scale(0.5) translateY(8px)';
+        triggered = false;
+      }, 400);
+    }, 200);
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    pulling = false;
+    triggered = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    var dy = e.touches[0].clientY - startY;
+    if (dy <= 2) return;
+
+    // Проверяем что scroll-area в самом верху
+    var el = e.target;
+    var scrollEl = null;
+    while (el && el !== document.body) {
+      if (el.classList && el.classList.contains('scroll-area')) { scrollEl = el; break; }
+      el = el.parentElement;
+    }
+    if (scrollEl && scrollEl.scrollTop > 0) return;
+
+    // Показываем PTR + двигаем экран
+    var resistance = Math.min(dy * 0.3, PTR_THRESHOLD * 0.85);
+    var screen = document.querySelector('.screen.active');
+    if (screen) {
+      screen.style.transform = 'translateY(' + resistance + 'px)';
+      screen.style.transition = 'none';
+      pulling = true;
+    }
+    showPtr(dy);
+
+    // Лёгкая вибрация каждые 15px
+    if (Math.round(dy) % 15 === 0 && dy > 10) vibrateLight();
+
+  }, { passive: true });
+
+  document.addEventListener('touchend', function() {
+    var screen = document.querySelector('.screen.active');
+    if (screen) {
+      screen.style.transition = 'transform .35s cubic-bezier(.25,.46,.45,.94)';
+      screen.style.transform = 'translateY(0)';
+    }
+    if (pulling && triggered) {
+      startRefresh();
+    } else {
+      hidePtr();
+    }
+    pulling = false;
+  }, { passive: true });
+
+  document.addEventListener('touchcancel', function() {
+    var screen = document.querySelector('.screen.active');
+    if (screen) { screen.style.transition = 'transform .3s ease'; screen.style.transform = 'translateY(0)'; }
+    hidePtr();
+    pulling = false;
+  }, { passive: true });
+})();
+
+// Обновляем позицию PTR-индикатора — он сидит поверх header активного экрана
+function updatePtrPosition() {
+  var ptr = document.getElementById('ptr-indicator');
+  if (!ptr) return;
+  ptr.style.top = '0';
+  ptr.style.height = '0';
+}
+
+updatePtrPosition();
+loadPortfolio();
+loadSignals();
+</script>
+
+
+</body>
+</html>

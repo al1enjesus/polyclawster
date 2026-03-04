@@ -1,0 +1,16 @@
+node_modules/
+.env*
+KEYS.md
+*.log
+.DS_Store
+polymarket-creds.json
+polymarket-wallet.json
+ton_wallet.json
+polymarket-config.json
+.env
+.vercel
+*.bak
+*.bak2
+*.bak3
+memory/
+.github/
