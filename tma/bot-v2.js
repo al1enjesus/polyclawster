@@ -202,18 +202,32 @@ async function handleOwnerStats(chatId) {
       refMap[referredId] = r.referrer;
     }
 
+    const now = Date.now();
     const lines = users.map(u => {
       const name = u.username ? '@' + u.username : (u.first_name || 'id:' + u.id);
-      const date = (u.created_at || '').slice(0, 10);
       const hasWallet = u.address ? '💼' : '👤';
       const dep = u.total_deposited > 0 ? ' $' + parseFloat(u.total_deposited).toFixed(0) : '';
-      const demo = u.demo_balance > 0 ? ' 🎁$' + parseFloat(u.demo_balance).toFixed(0) : '';
-      
-      // Referral: who referred this user
+      const demo = u.demo_balance > 0 ? ' gift$' + parseFloat(u.demo_balance).toFixed(0) : '';
       const referrer = u.referred_by || refMap[String(u.id)];
-      const refStr = referrer ? ' ← ref:' + referrer : '';
-      
-      return `${hasWallet} ${name}${dep}${demo} · ${date}${refStr}`;
+      const refStr = referrer ? ' <- ' + referrer : '';
+
+      // Time: "04 Mar 07:01 (8h ago)" or "2min ago"
+      const ts = new Date(u.created_at).getTime();
+      const diffMs = now - ts;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffH   = Math.floor(diffMin / 60);
+      const diffD   = Math.floor(diffH / 24);
+      let ago;
+      if (diffMin < 60)       ago = diffMin + 'min ago';
+      else if (diffH < 24)    ago = diffH + 'h ago';
+      else if (diffD < 7)     ago = diffD + 'd ago';
+      else                    ago = diffD + 'd ago';
+      const dt = new Date(u.created_at);
+      const dateStr = dt.getDate().toString().padStart(2,'0') + ' '
+        + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]
+        + ' ' + dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+
+      return hasWallet + ' ' + name + dep + demo + ' · ' + dateStr + ' (' + ago + ')' + refStr;
     });
 
     const total = users.length;
