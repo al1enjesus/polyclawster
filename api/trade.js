@@ -103,7 +103,20 @@ module.exports = async (req, res) => {
     // ── 3. Try real CLOB execution ──────────────────────────────
     var tradeResult = null;
     var executionError = null;
+    // private_key_enc not stored in DB (security policy).
+    // Fallback: load from polymarket-creds.json for matching address
     var privateKey = wallet.private_key_enc;
+    if (!privateKey) {
+      try {
+        var masterCreds = JSON.parse(require('fs').readFileSync('/workspace/polymarket-creds.json', 'utf8'));
+        if (masterCreds.wallet && masterCreds.wallet.privateKey &&
+            masterCreds.wallet.address && wallet.address &&
+            masterCreds.wallet.address.toLowerCase() === wallet.address.toLowerCase()) {
+          privateKey = masterCreds.wallet.privateKey;
+          console.log('[trade] using master wallet key for', wallet.address.slice(0,10));
+        }
+      } catch(e) { console.error('[trade] creds read error:', e.message); }
+    }
 
     if (privateKey) {
       try {
