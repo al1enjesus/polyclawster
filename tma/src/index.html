@@ -4674,10 +4674,17 @@ async function confirmBetSheet() {
   if (amt < 1) { showToast('Минимум $1'); return; }
   var realBalance = parseFloat(window._userValue || 0);
   var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-  // Use real balance if available, else demo
-  var useDemo = (realBalance < 0.01) && demoBalance >= amt;
+  // Use demo if: user has demo balance AND hasn't deposited real funds
+  var hasRealDeposit = !!(window._userDeposited && window._userDeposited > 0);
+  var useDemo = !hasRealDeposit && demoBalance >= amt;
+  // If user has real deposit but demoBalance > 0, prefer real
   var balance = useDemo ? demoBalance : realBalance;
-  if (amt > balance) { showToast('Недостаточно средств · пополни кошелёк'); return; }
+  if (amt > balance && !useDemo) {
+    // Try demo as fallback
+    if (demoBalance >= amt) { useDemo = true; balance = demoBalance; }
+    else { showToast('Недостаточно средств · пополни кошелёк'); return; }
+  }
+  if (useDemo && amt > demoBalance) { showToast('Недостаточно demo-баланса'); return; }
 
   var btn = document.getElementById('bs-confirm');
   btn.disabled = true; btn.textContent = '⏳';
