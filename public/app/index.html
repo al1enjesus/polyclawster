@@ -1060,7 +1060,8 @@ async function loadWallet() {
   }
   el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading wallet…</div>';
   try {
-    var r = await fetch('/api/wallet?tgId=' + tgId);
+    var dbg = (new URLSearchParams(location.search)).get('debug') === '1' ? '&debug=1' : '';
+    var r = await fetch('/api/wallet?tgId=' + tgId + dbg);
     if (!r.ok) throw new Error('API error');
     var resp = await r.json();
     var w = resp.data || resp;

@@ -1,9 +1,51 @@
 /**
- * /api/wallet — данные кошелька юзера из Supabase
+ * /api/wallet — данные кошелька юзера
  * GET ?tgId=xxx
+ *
+ * Returns:
+ *  - address, network
+ *  - totalValue, totalPnl, totalDeposited (from Supabase — snapshot)
+ *  - freeUsdc (CLOB collateral — real-time)
+ *  - positionsValue (open bets value — real-time)
+ *  - polBalance (POL/MATIC for gas — real-time)
+ *  - demoBalance
  */
 'use strict';
-const db = require('../lib/db');
+const db      = require('../lib/db');
+const https   = require('https');
+
+function rpcCall(data) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(data);
+    const req = https.request({
+      hostname: 'polygon-bor-rpc.publicnode.com', path: '/', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      timeout: 6000,
+    }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d).result); } catch { resolve(null); } });
+    });
+    req.on('error', reject).on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    req.write(body); req.end();
+  });
+}
+
+async function getPolBalance(address) {
+  try {
+    const r = await rpcCall({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [address, 'latest'] });
+    return r ? Number(BigInt(r)) / 1e18 : 0;
+  } catch { return 0; }
+}
+
+async function getUsdcBalance(address) {
+  const USDC_n = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+  const sel = '70a08231';
+  const pad = address.toLowerCase().replace('0x', '').padStart(64, '0');
+  try {
+    const r = await rpcCall({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: USDC_n, data: '0x' + sel + pad }, 'latest'] });
+    return r && r !== '0x' ? Number(BigInt(r)) / 1e6 : 0;
+  } catch { return 0; }
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,34 +56,76 @@ module.exports = async (req, res) => {
 
   if (!tgId) return res.json({ ok: false, error: 'no tgId' });
 
+  const debug = (req.query?.debug || new URL(req.url||'/', 'http://x').searchParams.get('debug')) === '1';
+
   try {
-    const user = await db.getUser(tgId);
+    const [user, wallet] = await Promise.all([
+      db.getUser(tgId),
+      db.getWallet(tgId).catch(() => null),
+    ]);
+
     if (!user) return res.json({ ok: false, error: 'user not found' });
 
-    const wallet = await db.getWallet(tgId).catch(() => null);
-    const address = (wallet && wallet.address) || user.address || null;
-    const network = (wallet && wallet.network) || 'polygon';
+    const address = wallet?.address || user.address || null;
+
+    // Real-time on-chain balances (parallel)
+    const [polBalance, usdcOnChain] = address
+      ? await Promise.all([getPolBalance(address), getUsdcBalance(address)])
+      : [0, 0];
+
+    // CLOB free balance — only if we have creds
+    let freeUsdc = 0;
+    let positionsValue = 0;
+    let positionCount = 0;
+    const clobErrors = [];
+
+    if (address && wallet?.private_key_enc) {
+      try {
+        const { getWalletBalance } = require('../lib/wallet-balance');
+        const fs = require('fs');
+        let apiCreds = null;
+        try {
+          const master = JSON.parse(fs.readFileSync('/workspace/polymarket-creds.json', 'utf8'));
+          if (master.wallet?.address?.toLowerCase() === address.toLowerCase()) apiCreds = master.api;
+        } catch {}
+        const bal = await getWalletBalance(address, wallet.private_key_enc, apiCreds);
+        freeUsdc = bal.freeUsdc;
+        positionsValue = bal.positionsValue;
+        positionCount = bal.positionCount;
+      } catch (e) {
+        clobErrors.push('CLOB balance: ' + e.message?.slice(0, 60));
+      }
+    }
 
     const totalDeposited = parseFloat(user.total_deposited || 0);
-    const totalPnl = parseFloat(user.total_pnl || 0);
-    const totalValue = totalDeposited + totalPnl; // estimated current value
+    const totalPnl       = parseFloat(user.total_pnl || 0);
+    const totalValue     = freeUsdc + positionsValue || (totalDeposited + totalPnl);
 
-    return res.json({
-      ok: true,
-      data: {
-        address,
-        network,
-        tgId: String(tgId),
-        username: user.username || null,
-        totalDeposited,
-        totalPnl,
-        totalValue,
-        demoBalance: parseFloat(user.demo_balance || 0),
-        hasWallet: !!address,
-        trades: (user.trades || 0),
-      }
-    });
+    const data = {
+      address,
+      network:         wallet?.network || 'polygon',
+      tgId:            String(tgId),
+      username:        user.username || null,
+      // On-chain
+      polBalance:      parseFloat(polBalance.toFixed(6)),
+      usdcOnChain:     parseFloat(usdcOnChain.toFixed(4)),
+      // Polymarket
+      freeUsdc:        parseFloat(freeUsdc.toFixed(4)),
+      positionsValue:  parseFloat(positionsValue.toFixed(4)),
+      positionCount,
+      // Snapshots (Supabase)
+      totalDeposited,
+      totalPnl,
+      totalValue:      parseFloat(totalValue.toFixed(4)),
+      demoBalance:     parseFloat(user.demo_balance || 0),
+      hasWallet:       !!address,
+      trades:          user.trades || 0,
+      // Debug
+      ...(debug ? { _debug: { clobErrors, walletInDb: !!wallet, userInDb: !!user } } : {}),
+    };
+
+    return res.json({ ok: true, data });
   } catch(e) {
-    return res.json({ ok: false, error: e.message });
+    return res.json({ ok: false, error: e.message, ...(debug ? { _stack: e.stack?.slice(0, 500) } : {}) });
   }
 };
