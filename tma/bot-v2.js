@@ -203,7 +203,7 @@ async function handleOwnerStats(chatId) {
     }
 
     const lines = users.map(u => {
-      const name = u.username ? '@' + u.username : (u.first_name || 'unknown #' + u.id);
+      const name = u.username ? '@' + u.username : (u.first_name || 'id:' + u.id);
       const date = (u.created_at || '').slice(0, 10);
       const hasWallet = u.address ? '💼' : '👤';
       const dep = u.total_deposited > 0 ? ' $' + parseFloat(u.total_deposited).toFixed(0) : '';
@@ -221,10 +221,11 @@ async function handleOwnerStats(chatId) {
     const withDeposit = users.filter(u => parseFloat(u.total_deposited) > 0).length;
     const totalDeposited = users.reduce((s, u) => s + parseFloat(u.total_deposited || 0), 0);
 
-    const msg = '👥 *Users (' + total + ' total)*\n'
-      + '💼 ' + withWallet + ' wallets · 💰 ' + withDeposit + ' deposited · $' + totalDeposited.toFixed(0) + ' total\n\n'
+    const msg = '👥 Users (' + total + ' total)\n'
+      + '💼 ' + withWallet + ' wallets  💰 ' + withDeposit + ' deposited  $' + totalDeposited.toFixed(0) + ' total\n\n'
       + lines.join('\n');
-    await sendMsg(chatId, msg);
+    // Send without Markdown to avoid parse errors with underscores/special chars
+    await tgPost('sendMessage', { chat_id: chatId, text: msg });
   } catch(e) {
     await sendMsg(chatId, '❌ Error: ' + e.message);
     console.error('[bot] handleOwnerStats error:', e.message);
