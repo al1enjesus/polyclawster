@@ -188,6 +188,49 @@ async function handleRef(chatId, username) {
 }
 
 // ── STATS ─────────────────────────────────────────────────────────
+async function handleOwnerStats(chatId) {
+  try {
+    const users = await db.getAllUsers();
+    // Sort newest first
+    users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // Load referral data
+    const refs = loadRefs();
+    // Build reverse map: tgId → referrer tgId
+    const refMap = {}; // referred tgId -> referrer tgId
+    for (const [referredId, r] of Object.entries(refs)) {
+      refMap[referredId] = r.referrer;
+    }
+
+    const lines = users.map(u => {
+      const name = u.username ? '@' + u.username : (u.first_name || 'unknown #' + u.id);
+      const date = (u.created_at || '').slice(0, 10);
+      const hasWallet = u.address ? '💼' : '👤';
+      const dep = u.total_deposited > 0 ? ' $' + parseFloat(u.total_deposited).toFixed(0) : '';
+      const demo = u.demo_balance > 0 ? ' 🎁$' + parseFloat(u.demo_balance).toFixed(0) : '';
+      
+      // Referral: who referred this user
+      const referrer = u.referred_by || refMap[String(u.id)];
+      const refStr = referrer ? ' ← ref:' + referrer : '';
+      
+      return `${hasWallet} ${name}${dep}${demo} · ${date}${refStr}`;
+    });
+
+    const total = users.length;
+    const withWallet = users.filter(u => u.address).length;
+    const withDeposit = users.filter(u => parseFloat(u.total_deposited) > 0).length;
+    const totalDeposited = users.reduce((s, u) => s + parseFloat(u.total_deposited || 0), 0);
+
+    const msg = '👥 *Users (' + total + ' total)*\n'
+      + '💼 ' + withWallet + ' wallets · 💰 ' + withDeposit + ' deposited · $' + totalDeposited.toFixed(0) + ' total\n\n'
+      + lines.join('\n');
+    await sendMsg(chatId, msg);
+  } catch(e) {
+    await sendMsg(chatId, '❌ Error: ' + e.message);
+    console.error('[bot] handleOwnerStats error:', e.message);
+  }
+}
+
 async function handleStats(chatId) {
   let stats = null;
   try {
@@ -279,7 +322,11 @@ async function handleCommand(msg) {
   if (text.startsWith('/start'))    return sendWelcome(chatId, firstName, refCode);
   if (text.startsWith('/connect'))  return handleConnect(chatId);
   if (text.startsWith('/ref'))      return handleRef(chatId, username);
-  if (text.startsWith('/stats') || text.startsWith('/mystats')) return handleStats(chatId);
+  if (text.startsWith('/stats') || text.startsWith('/mystats')) {
+    // Owner sees all users list; others see personal stats
+    if (String(chatId) === OWNER_ID) return handleOwnerStats(chatId);
+    return handleStats(chatId);
+  }
   if (text.startsWith('/signals') || text.startsWith('/top')) {
     // Pull top signals from API
     try {
