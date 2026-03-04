@@ -14,7 +14,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYK
 const TMA_URL   = 'https://polyclawster.com/tma.html';
 const OWNER_ID  = '399089761';
 
-const { registerWallet, getUser, getActiveUsers, getUserStats, FEE_PCT } = require('../edge/modules/users');
+const FEE_PCT = 0.05; // 5% performance fee (no longer importing from edge/modules/users — all via Supabase)
 const db = require('../lib/db');
 
 // ── User state machine (onboarding) ──────────────────────────────
@@ -49,30 +49,30 @@ async function sendMsg(chatId, text, extra = {}) {
 
 // ── ONBOARDING ───────────────────────────────────────────────────
 async function sendWelcome(chatId, firstName, refCode) {
-  // First try edge/data/users.json, then fallback to Supabase
-  let user = getUser(chatId);
-  if (!user) {
-    try {
-      const sbUser = await db.getUser(String(chatId));
-      const sbWallet = sbUser ? await db.getWallet(String(chatId)) : null;
-      if (sbUser) {
-        user = {
-          telegramId: String(chatId),
-          address: (sbWallet && sbWallet.address) || sbUser.address || null,
-          totalDeposited: parseFloat(sbUser.total_deposited || 0),
-          totalPnl: parseFloat(sbUser.total_pnl || 0),
-          demoBalance: parseFloat(sbUser.demo_balance || 0),
-        };
-        // Also register user in Supabase if not there (upsert metadata)
-        await db.upsertUser({
-          id: parseInt(chatId),
-          username: firstName || null,
-          onboarded: true,
-          updated_at: new Date().toISOString(),
-        }).catch(() => {});
-      }
-    } catch(e) { console.error('[bot] db.getUser fallback error:', e.message); }
-  }
+  // All user data from Supabase
+  let user = null;
+  try {
+    const sbUser = await db.getUser(String(chatId));
+    const sbWallet = sbUser ? await db.getWallet(String(chatId)).catch(() => null) : null;
+    if (sbUser) {
+      user = {
+        telegramId: String(chatId),
+        address: (sbWallet && sbWallet.address) || sbUser.address || null,
+        totalDeposited: parseFloat(sbUser.total_deposited || 0),
+        totalPnl: parseFloat(sbUser.total_pnl || 0),
+        demoBalance: parseFloat(sbUser.demo_balance || 0),
+        onboarded: sbUser.onboarded,
+      };
+    }
+    // Upsert user metadata on every /start
+    await db.upsertUser({
+      id: parseInt(chatId),
+      username: (typeof chatId === 'string' ? null : null) || null, // set below
+      first_name: firstName || null,
+      onboarded: true,
+      updated_at: new Date().toISOString(),
+    }).catch(() => {});
+  } catch(e) { console.error('[bot] db.getUser error:', e.message); }
   const hasWallet = !!user?.address;
 
   // Track referral
@@ -141,15 +141,22 @@ async function handlePrivateKey(chatId, key, firstName) {
 
   await sendMsg(chatId, '⏳ Verifying wallet...');
 
-  const result = registerWallet(chatId, trimmed);
-  if (!result.ok) {
-    await sendMsg(chatId, `❌ Error: ${result.error}`);
+  // Derive address only — NO private key stored (security policy: keys never saved to DB)
+  let walletAddress = null;
+  try {
+    const { ethers } = require('ethers');
+    walletAddress = new ethers.Wallet(trimmed).address;
+  } catch(e) {
+    await sendMsg(chatId, '❌ Invalid private key: ' + e.message);
     return;
   }
+  try {
+    await db.upsertUser({ id: parseInt(chatId), address: walletAddress, onboarded: true, updated_at: new Date().toISOString() });
+  } catch(e) { console.error('[bot] upsertUser error:', e.message); }
 
   await sendMsg(chatId,
     `✅ *Wallet connected!*\n\n` +
-    `📍 Address: \`${result.address}\`\n\n` +
+    `📍 Address: \`${walletAddress}\`\n\n` +
     `*What happens next:*\n` +
     `• I'll scan Polymarket every 30 min\n` +
     `• Strong signals (8+/10) → auto-trade\n` +
@@ -182,27 +189,31 @@ async function handleRef(chatId, username) {
 
 // ── STATS ─────────────────────────────────────────────────────────
 async function handleStats(chatId) {
-  let stats = getUserStats(chatId);
-  if (!stats) {
-    // Fallback: check Supabase
-    try {
-      const sbUser = await db.getUser(String(chatId));
-      const sbWallet = sbUser ? await db.getWallet(String(chatId)) : null;
-      if (sbUser && (sbUser.address || (sbWallet && sbWallet.address))) {
-        const addr = (sbWallet && sbWallet.address) || sbUser.address;
-        stats = {
-          address: addr,
-          trades: 0, wins: 0, losses: 0, winRate: 0,
-          totalProfit: parseFloat(sbUser.total_pnl || 0),
-          totalFees: parseFloat(sbUser.total_fees_paid || 0),
-          netProfit: parseFloat(sbUser.total_pnl || 0),
-          totalDeposited: parseFloat(sbUser.total_deposited || 0),
-          demoBalance: parseFloat(sbUser.demo_balance || 0),
-        };
-      }
-    } catch(e) {}
-  }
-  if (!stats) {
+  let stats = null;
+  try {
+    const sbUser = await db.getUser(String(chatId));
+    const sbWallet = sbUser ? await db.getWallet(String(chatId)).catch(() => null) : null;
+    if (sbUser) {
+      const addr = (sbWallet && sbWallet.address) || sbUser.address;
+      const bets = addr ? await db.getUserBets(String(chatId), 200).catch(() => []) : [];
+      const closed = Array.isArray(bets) ? bets.filter(b => b.status === 'won' || b.status === 'lost') : [];
+      const wins = closed.filter(b => b.status === 'won').length;
+      const losses = closed.filter(b => b.status === 'lost').length;
+      stats = {
+        address: addr || null,
+        trades: closed.length,
+        wins, losses,
+        winRate: (wins + losses) > 0 ? Math.round(wins / (wins + losses) * 100) : 0,
+        totalProfit: parseFloat(sbUser.total_pnl || 0),
+        totalFees: parseFloat(sbUser.total_fees_paid || 0),
+        netProfit: parseFloat(sbUser.total_pnl || 0) - parseFloat(sbUser.total_fees_paid || 0),
+        totalDeposited: parseFloat(sbUser.total_deposited || 0),
+        demoBalance: parseFloat(sbUser.demo_balance || 0),
+        activeBets: Array.isArray(bets) ? bets.filter(b => b.status === 'open' || b.status === 'queued').length : 0,
+      };
+    }
+  } catch(e) { console.error('[bot] handleStats db error:', e.message); }
+  if (!stats || !stats.address) {
     await sendMsg(chatId, '📊 No wallet connected yet.\n\nUse /connect to start auto-trading.');
     return;
   }
@@ -355,7 +366,8 @@ async function broadcastToGroups(signal) {
 
 // ── WHALE ALERT ───────────────────────────────────────────────────
 async function sendWhaleAlert(wallet, signal) {
-  const users = getActiveUsers();
+  let allUsers = [];
+  try { allUsers = await db.getAllUsers().catch(() => []); } catch {}
   const text  =
     `🐋 *WHALE ALERT*\n\n` +
     `Smart wallet \`${wallet.slice(0,8)}...\` (WR ${signal.walletWR || '?'}%)\n` +
@@ -365,7 +377,7 @@ async function sendWhaleAlert(wallet, signal) {
     `_Auto-trade will execute in 60s if score 8+_`;
 
   // Send to all registered users + owner
-  const targets = [...new Set([OWNER_ID, ...users.map(u => String(u.telegramId))])];
+  const targets = [...new Set([OWNER_ID, ...allUsers.map(u => String(u.id || u.telegramId))])];
   for (const tid of targets) {
     await tgPost('sendMessage', {
       chat_id: tid, text, parse_mode: 'Markdown',
