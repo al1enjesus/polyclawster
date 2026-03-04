@@ -66,7 +66,11 @@ module.exports = async (req, res) => {
     try { existingWallet = await db.getWallet(tgId); } catch {}
 
     if (existingWallet && existingWallet.address) {
-      return res.json({ ok: true, data: { address: existingWallet.address, network: 'polygon' }, created: false });
+      // Get demo balance from user record
+      let existingUser = null;
+      try { existingUser = await db.getUser(tgId); } catch {}
+      const existingDemo = existingUser ? parseFloat(existingUser.demo_balance || 0) : 0;
+      return res.json({ ok: true, data: { address: existingWallet.address, network: 'polygon', demoBalance: existingDemo }, created: false });
     }
 
     // Создаём новый кошелёк
@@ -104,7 +108,7 @@ module.exports = async (req, res) => {
       r.write(tgMsg); r.end();
     });
 
-    res.json({ ok: true, data: { address, network: 'polygon', tgId }, created: true });
+    res.json({ ok: true, data: { address, network: 'polygon', tgId, demoBalance: 1.00 }, created: true });
 
   } catch(e) {
     res.json({ ok: false, error: e.message });
