@@ -87,12 +87,22 @@ module.exports = async (req, res) => {
 
   if (uid === OWNER_ID && globalData?.portfolio) {
     // Owner: merge live Polymarket positions with user DB fields
+    // Also load bets from Supabase
+    let ownerBets = [];
+    try {
+      const rawOwnerBets = await db.getUserBets(uid, 100);
+      if (Array.isArray(rawOwnerBets)) ownerBets = rawOwnerBets;
+    } catch {}
+    const ownerActiveBets = ownerBets.filter(b => b.status === 'open' || b.status === 'queued');
+
     portfolio = Object.assign({}, globalData.portfolio, {
       hasWallet: !!(user ? user.address : true),
       address: user ? user.address : null,
       demoBalance: user ? parseFloat(user.demo_balance || 0) : 0,
       totalDeposited: user ? parseFloat(user.total_deposited || 0) : 0,
       demoBonusGranted: true,
+      bets: ownerBets,
+      activeBets: ownerActiveBets,
     });
   } else if (user) {
     // Regular user: build from wallet data
