@@ -15,6 +15,7 @@ const TMA_URL   = 'https://polyclawster.com/tma.html';
 const OWNER_ID  = '399089761';
 
 const { registerWallet, getUser, getActiveUsers, getUserStats, FEE_PCT } = require('../edge/modules/users');
+const db = require('../lib/db');
 
 // ── User state machine (onboarding) ──────────────────────────────
 const STATE_FILE = '/tmp/poly_bot_states.json';
@@ -48,7 +49,30 @@ async function sendMsg(chatId, text, extra = {}) {
 
 // ── ONBOARDING ───────────────────────────────────────────────────
 async function sendWelcome(chatId, firstName, refCode) {
-  const user = getUser(chatId);
+  // First try edge/data/users.json, then fallback to Supabase
+  let user = getUser(chatId);
+  if (!user) {
+    try {
+      const sbUser = await db.getUser(String(chatId));
+      const sbWallet = sbUser ? await db.getWallet(String(chatId)) : null;
+      if (sbUser) {
+        user = {
+          telegramId: String(chatId),
+          address: (sbWallet && sbWallet.address) || sbUser.address || null,
+          totalDeposited: parseFloat(sbUser.total_deposited || 0),
+          totalPnl: parseFloat(sbUser.total_pnl || 0),
+          demoBalance: parseFloat(sbUser.demo_balance || 0),
+        };
+        // Also register user in Supabase if not there (upsert metadata)
+        await db.upsertUser({
+          id: parseInt(chatId),
+          username: firstName || null,
+          onboarded: true,
+          updated_at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+    } catch(e) { console.error('[bot] db.getUser fallback error:', e.message); }
+  }
   const hasWallet = !!user?.address;
 
   // Track referral
@@ -158,7 +182,26 @@ async function handleRef(chatId, username) {
 
 // ── STATS ─────────────────────────────────────────────────────────
 async function handleStats(chatId) {
-  const stats = getUserStats(chatId);
+  let stats = getUserStats(chatId);
+  if (!stats) {
+    // Fallback: check Supabase
+    try {
+      const sbUser = await db.getUser(String(chatId));
+      const sbWallet = sbUser ? await db.getWallet(String(chatId)) : null;
+      if (sbUser && (sbUser.address || (sbWallet && sbWallet.address))) {
+        const addr = (sbWallet && sbWallet.address) || sbUser.address;
+        stats = {
+          address: addr,
+          trades: 0, wins: 0, losses: 0, winRate: 0,
+          totalProfit: parseFloat(sbUser.total_pnl || 0),
+          totalFees: parseFloat(sbUser.total_fees_paid || 0),
+          netProfit: parseFloat(sbUser.total_pnl || 0),
+          totalDeposited: parseFloat(sbUser.total_deposited || 0),
+          demoBalance: parseFloat(sbUser.demo_balance || 0),
+        };
+      }
+    } catch(e) {}
+  }
   if (!stats) {
     await sendMsg(chatId, '📊 No wallet connected yet.\n\nUse /connect to start auto-trading.');
     return;
