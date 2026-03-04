@@ -1974,6 +1974,20 @@ async function loadPortfolio() {
     _portfolio._signals = d.signals || [];
     _portfolio._tgId    = tgId;
     _portfolio._isOwner = d.isOwner;
+    // Sync demo balance from server
+    var serverDemoFresh = parseFloat((_portfolio.demoBalance) || 0);
+    if (serverDemoFresh > 0) {
+      var localDemoFresh = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+      var syncedDemo = Math.max(serverDemoFresh, localDemoFresh);
+      localStorage.setItem('pc_demo_balance', syncedDemo.toFixed(2));
+      window._demoBal = syncedDemo;
+    } else if (!window._demoBal) {
+      window._demoBal = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+    }
+    window._userWallet = (_portfolio.hasWallet && _portfolio.address) ? _portfolio.address : (window._userWallet || '');
+    window._userDeposited = parseFloat(_portfolio.totalDeposited || 0);
+    window._hasDeposited = window._userDeposited > 0;
+    window._userValue = parseFloat(_portfolio.totalValue || 0) || window._demoBal || 0;
     try {
       renderPortfolio(_portfolio);
     } catch(renderErr) {
@@ -2116,8 +2130,8 @@ async function renderPortfolio(d) {
   // ── Empty state: no positions yet ──
   // Show wallet CTA if no wallet, else deposit CTA
   // CTA: показываем только если кошелька нет ИЛИ баланс = 0 (не задепозитил)
-  // Demo balance — check localStorage (server might return 0 for new users)
-  var demoBalRender = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  // Effective value: real OR demo
+  var demoBalRender = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
   var effectiveVal = val > 0 ? val : demoBalRender;
 
   const ctaBlock = effectiveVal > 0
@@ -2186,15 +2200,18 @@ async function renderPortfolio(d) {
       var activeBets = (betsData.bets || []).filter(function(b) {
         return b.status === 'open' || b.status === 'queued';
       });
+      // Sort: demo last
+      activeBets.sort(function(a,b){ return (a.is_demo?1:0)-(b.is_demo?1:0); });
       if (activeBets.length > 0) {
         var betCards = activeBets.slice(0, 5).map(function(b) {
           var sideClr = b.side === 'YES' ? '#00E87A' : '#FF3D5A';
           var statusTxt = b.status === 'queued' ? '⏳ В очереди' : '🟢 Открыта';
+          var demoTag = b.is_demo ? ' <span style="background:rgba(153,69,255,.15);color:#a78bfa;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700">DEMO</span>' : '';
           return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
             + '<div style="flex:1;min-width:0">'
             + '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-            + (b.market || 'Unknown market').slice(0, 50) + '</div>'
-            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + statusTxt + '</div>'
+            + (b.market || 'Unknown market').slice(0, 45) + demoTag + '</div>'
+            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + statusTxt + ' · ' + (b.created_at ? new Date(b.created_at).toLocaleDateString('ru',{month:'short',day:'numeric'}) : '') + '</div>'
             + '</div>'
             + '<div style="text-align:right;flex-shrink:0">'
             + '<div style="font-size:13px;font-weight:700;color:' + sideClr + '">' + b.side + '</div>'
@@ -3648,10 +3665,13 @@ async function createWalletFlow(tgId) {
     if (res.ok && res.data && res.data.address) {
       const addr = res.data.address;
       // ── Update global wallet state immediately ──
-      window._userWallet = addr;
-      window._userValue  = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
-      localStorage.setItem('pc_demo_balance', window._userValue.toFixed(2));
+      window._userWallet   = addr;
+      var grantedDemo      = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
+      window._demoBal      = grantedDemo;
+      window._userValue    = grantedDemo;
+      window._userDeposited = 0;
       window._hasDeposited = false;
+      localStorage.setItem('pc_demo_balance', grantedDemo.toFixed(2));
       // Show success screen with CTA — DO NOT call loadWallet() after (it would overwrite)
       el.innerHTML = `<div style="text-align:center;padding:32px 20px">
         <div style="font-size:52px;margin-bottom:14px">🎉</div>
@@ -4081,11 +4101,21 @@ function initUserState(forceRefresh) {
       // ── Set ALL wallet globals from ONE fetch ──
       window._userWallet    = (p.hasWallet && p.address) ? p.address : (window._userWallet || '');
       window._userDeposited = parseFloat(p.totalDeposited || 0);
-      // Don't override _userValue with 0 if we have local demo balance
-      var serverVal = parseFloat(p.totalValue || 0);
-      var localDemo = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-      window._userValue = serverVal > 0 ? serverVal : (localDemo > 0 ? localDemo : 0);
       window._hasDeposited  = (window._userDeposited > 0);
+      // Demo balance: server is source of truth, sync to localStorage
+      var serverDemo = parseFloat(p.demoBalance || 0);
+      if (serverDemo > 0) {
+        var localDemo = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+        // Take max (server might have granted bonus not yet in localStorage)
+        var effectiveDemo = Math.max(serverDemo, localDemo);
+        localStorage.setItem('pc_demo_balance', effectiveDemo.toFixed(2));
+        window._demoBal = effectiveDemo;
+      } else {
+        window._demoBal = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+      }
+      // _userValue: real deposited value OR demo balance for display
+      var serverVal = parseFloat(p.totalValue || 0);
+      window._userValue = serverVal > 0 ? serverVal : window._demoBal;
       // Demo balance: server wins if local not yet set
       var demoSrv   = parseFloat(p.demoBalance || 0);
       var demoLocal = parseFloat(localStorage.getItem('pc_demo_balance') || '-1');
@@ -4567,11 +4597,11 @@ function openBetSheet(sigOrStr, side) {
 
   // Determine state
   var hasWallet   = !!(window._userWallet || (window._userState && window._userState.address));
-  var realBalance = parseFloat(window._userValue || 0);
-  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-  var balance     = realBalance > 0 ? realBalance : demoBalance;
-  var isDemo      = realBalance < 1 && demoBalance >= 1;
-  var noFunds     = !hasWallet || balance < 1;
+  var realBalance = parseFloat(window._userDeposited || 0) > 0 ? parseFloat(window._userValue || 0) : 0;
+  var demoBalance = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
+  var isDemo      = !window._hasDeposited && demoBalance > 0;
+  var balance     = isDemo ? demoBalance : realBalance;
+  var noFunds     = !hasWallet || (realBalance < 1 && demoBalance < 1);
 
   var confirmBtn = document.getElementById('bs-confirm');
   var inpWrap    = document.getElementById('bs-inp-wrap');
@@ -4600,7 +4630,13 @@ function openBetSheet(sigOrStr, side) {
     if (inp) { inp.value = def; }
     // Show balance hint
     var bsBalEl = document.getElementById('bs-balance-hint');
-    if (bsBalEl) bsBalEl.textContent = 'Баланс: $' + balance.toFixed(2) + (isDemo ? ' (demo)' : '');
+    if (bsBalEl) {
+      if (isDemo) {
+        bsBalEl.innerHTML = 'Demo-баланс: <strong style="color:#a78bfa">$' + balance.toFixed(2) + '</strong>';
+      } else {
+        bsBalEl.innerHTML = 'Доступно: <strong style="color:#19fb9b">$' + balance.toFixed(2) + '</strong>';
+      }
+    }
     _bsPayoutUpdate();
     confirmBtn.disabled    = false;
     confirmBtn.textContent = 'Подтвердить';
@@ -4672,19 +4708,15 @@ async function confirmBetSheet() {
   var inp = document.getElementById('bs-amount');
   var amt = parseFloat(inp && inp.value) || 0;
   if (amt < 1) { showToast('Минимум $1'); return; }
+  var demoBalance = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
+  var useDemo = !window._hasDeposited && demoBalance >= amt;
   var realBalance = parseFloat(window._userValue || 0);
-  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-  // Use demo if: user has demo balance AND hasn't deposited real funds
-  var hasRealDeposit = !!(window._userDeposited && window._userDeposited > 0);
-  var useDemo = !hasRealDeposit && demoBalance >= amt;
-  // If user has real deposit but demoBalance > 0, prefer real
   var balance = useDemo ? demoBalance : realBalance;
-  if (amt > balance && !useDemo) {
-    // Try demo as fallback
+  if (!useDemo && amt > realBalance) {
     if (demoBalance >= amt) { useDemo = true; balance = demoBalance; }
     else { showToast('Недостаточно средств · пополни кошелёк'); return; }
   }
-  if (useDemo && amt > demoBalance) { showToast('Недостаточно demo-баланса'); return; }
+  if (useDemo && demoBalance < amt) { showToast('Недостаточно demo-баланса'); return; }
 
   var btn = document.getElementById('bs-confirm');
   btn.disabled = true; btn.textContent = '⏳';
@@ -4694,7 +4726,8 @@ async function confirmBetSheet() {
   if (useDemo) {
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
-    window._userValue = newBal; // update display value
+    window._demoBal = newBal;
+    window._userValue = newBal;
     // Update hero balance immediately
     var heroEl = document.getElementById('hero-balance-amount');
     if (heroEl) heroEl.textContent = '$' + newBal.toFixed(2);
