@@ -1,0 +1,145 @@
+{
+  "signals": [
+    {
+      "type": "whale_order",
+      "score": 10,
+      "market": "Will the Iranian regime fall by March 31?",
+      "side": "NO",
+      "amount": "25934",
+      "price": "99.9",
+      "newsContext": "Iran regime fall] U.S. President Trump announces neutralization of much of Iranian navy, sinking 9 vessels in Persian Gulf.[1]"
+    },
+    {
+      "type": "whale_order",
+      "score": 10,
+      "market": "Will Jesus Christ return before GTA VI?",
+      "side": "YES",
+      "amount": "24926",
+      "price": "1.0"
+    },
+    {
+      "type": "smartwallet",
+      "score": 7.0022794,
+      "market": "Khamenei out as Supreme Leader of Iran by February 28?",
+      "price": 0.998,
+      "newsContext": "Iran regime fall] Supreme Leader Ali Khamenei's death announced by Supreme National Security Council, sparking public celebrations and potential regime collapse.[1][2]",
+      "addr": "0xdf6f85ff51133209764fe15147d41f8cb808f6ee",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 5.48383737,
+      "market": "Khamenei out as Supreme Leader of Iran by February 28?",
+      "price": 0.998,
+      "newsContext": "Iran regime fall] Supreme Leader Ali Khamenei's death announced by Supreme National Security Council, sparking public celebrations and potential regime collapse.[1][2]",
+      "addr": "0x9cdda449d7cedf1072d74982a5dc2349df3d3e97",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 4.04849381,
+      "market": "Khamenei out as Supreme Leader of Iran by February 28?",
+      "price": 0.998,
+      "addr": "0x6139c42e48cf190e67a0a85d492413b499336b7a",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 8.360457116,
+      "market": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
+      "price": 0.994,
+      "addr": "0x360c69c7085212e9e7155806d319a99c9e683b5a",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 8.365849999649999,
+      "market": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
+      "price": 0.995,
+      "addr": "0x360c69c7085212e9e7155806d319a99c9e683b5a",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 8.781684969899999,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.9969999999999396,
+      "addr": "0xe7ea4d858b3de796029c65b0aa2a263d3c3c5734",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 5.7943999999999996,
+      "market": "Khamenei out as Supreme Leader of Iran by March 31?",
+      "price": 0.998,
+      "addr": "0xcb59ea1babf3b26ea50088057e427ab0ed8f0a22",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 7.8951,
+      "market": "Khamenei out as Supreme Leader of Iran by March 31?",
+      "price": 0.999,
+      "addr": "0x899843e09e4faaafc65682535cb1fd8ad2f032be",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Khamenei out as Supreme Leader of Iran by March 31?",
+      "price": 0.999,
+      "addr": "0x7e30c3a56d89edac738d788dd218a9e64fb91e50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "Yes"
+    },
+    {
+      "type": "smartwallet",
+      "score": 3.621463696,
+      "market": "Will Oprah Winfrey win the 2028 Democratic presidential nomination?",
+      "price": 0.992,
+      "addr": "0x9225b656b51b6da5b1b175344e84d4eb623600ee",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "news_edge",
+      "score": 7.999999999999998,
+      "market": "Russia x Ukraine ceasefire by end of 2026?",
+      "side": "YES",
+      "headline": "[Iran war ceasefire] Countries including China and Russia urge immediate ceasefire after Khamenei's killing.[1]",
+      "currentPrice": "37.5",
+      "fairPrice": "47.5",
+      "edgePct": "10"
+    },
+    {
+      "type": "news_edge",
+      "score": 7.999999999999998,
+      "market": "Will the Iranian regime fall before 2027?",
+      "side": "YES",
+      "headline": "[Iran war] Iran sustains attacks to impose costs and force US ceasefire before regime topples.[3]",
+      "currentPrice": "53.5",
+      "fairPrice": "63.5",
+      "edgePct": "10"
+    }
+  ],
+  "updated": "2026-03-02T09:09:41.062Z",
+  "count": 14
+}
