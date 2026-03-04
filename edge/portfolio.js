@@ -1,73 +1,75 @@
 #!/usr/bin/env node
 /**
- * edge/portfolio.js — Portfolio status reporter
- * Sends a brief P&L snapshot to Telegram
- * Compares vs last snapshot to detect changes
+ * edge/portfolio.js — Real-time portfolio status
+ *
+ * Checks:
+ *  1. CLOB free USDC (spendable)
+ *  2. Open positions value (locked in bets)
+ *  3. Historical P&L from CLOB trades
+ *
+ * Sends Telegram message only if:
+ *  - P&L changed > $2 since last check
+ *  - Position was resolved (value dropped significantly)
+ *  - --force flag passed
+ *
+ * Architecture:
+ *  - System wallet = 0x3eAe9f8a... (polymarket-creds.json)
+ *  - Free USDC ≠ total portfolio value
+ *  - Open positions are locked as conditional tokens (CTF)
  */
+'use strict';
+require('dotenv').config({ path: '/workspace/.env' });
 
-const fs = require('fs');
+const fs   = require('fs');
 const { sendTg } = require('./modules/notify');
 const { load, save } = require('./modules/state');
 
-const WALLET = '0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b';
-const SNAPSHOT_FILE = '/tmp/portfolio_snapshot.json';
-
-async function fetchJSON(url) {
-  const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
-  const res = await (await fetch)(url);
-  return res.json();
-}
+const CREDS_FILE = '/workspace/polymarket-creds.json';
+const SNAPSHOT   = '/tmp/portfolio_snapshot.json';
 
 async function main() {
-  const positions = await fetchJSON(
-    `https://data-api.polymarket.com/positions?user=${WALLET}&limit=100&sizeThreshold=0.01`
-  );
+  const creds = JSON.parse(fs.readFileSync(CREDS_FILE));
+  const addr  = creds.wallet.address;
+  const pk    = creds.wallet.privateKey || 'REMOVED_KEY';
 
-  if (!Array.isArray(positions)) {
-    console.log('[portfolio] No positions data');
+  const { getWalletBalance } = require('../lib/wallet-balance');
+  const bal = await getWalletBalance(addr, pk, creds.api);
+
+  const last = load(SNAPSHOT, { totalPnl: null, totalValue: null, freeUsdc: null });
+  const force = process.argv.includes('--force');
+
+  const pnlChanged   = last.totalPnl   !== null && Math.abs(bal.totalPnl   - last.totalPnl)   > 2;
+  const valueChanged = last.totalValue !== null && Math.abs(bal.totalValue  - last.totalValue) > 10;
+  const cashChanged  = last.freeUsdc   !== null && Math.abs(bal.freeUsdc   - last.freeUsdc)   > 5;
+
+  save(SNAPSHOT, { totalPnl: bal.totalPnl, totalValue: bal.totalValue, freeUsdc: bal.freeUsdc, ts: Date.now() });
+
+  const pnlSign = bal.totalPnl >= 0 ? '+' : '';
+  console.log(`[portfolio] Free: $${bal.freeUsdc.toFixed(2)} | Positions: $${bal.positionsValue.toFixed(2)} (${bal.positionCount}) | PnL: ${pnlSign}$${bal.totalPnl.toFixed(2)}`);
+
+  if (!force && !pnlChanged && !valueChanged && !cashChanged) {
+    console.log('[portfolio] No significant change, skip TG');
     return;
   }
 
-  const open = positions.filter(p => p.currentValue > 0.01);
-  const totalValue = open.reduce((s, p) => s + p.currentValue, 0);
-  const totalCost  = open.reduce((s, p) => s + (p.initialValue || 0), 0);
-  const totalPnl   = open.reduce((s, p) => s + (p.cashPnl || 0), 0);
-  const pnlPct     = totalCost > 0 ? (totalPnl / totalCost * 100) : 0;
-
-  // Load last snapshot
-  const last = load(SNAPSHOT_FILE, { totalPnl: null, totalValue: null });
-
-  const pnlChanged = last.totalPnl !== null && Math.abs(totalPnl - last.totalPnl) > 2;
-  const newResolved = last.totalValue !== null && (last.totalValue - totalValue) > 10;
-
-  // Save new snapshot
-  save(SNAPSHOT_FILE, { totalPnl, totalValue, ts: Date.now() });
-
-  // Build message
-  const pnlSign = totalPnl >= 0 ? '+' : '';
-  const sorted = open.sort((a, b) => (b.cashPnl || 0) - (a.cashPnl || 0));
-
-  const lines = sorted.map(p => {
-    const pnl = p.cashPnl || 0;
-    const pnlStr = (pnl >= 0 ? '+' : '') + pnl.toFixed(2);
-    const price = ((p.curPrice || 0) * 100).toFixed(0) + '¢';
-    return `${pnl >= 0 ? '🟢' : '🔴'} ${p.title.slice(0, 38)} | ${p.outcome} @ ${price} | ${pnlStr}`;
-  }).join('\n');
+  const posLines = (bal.positions || [])
+    .sort((a, b) => (b.cashPnl || 0) - (a.cashPnl || 0))
+    .slice(0, 5)
+    .map(p => {
+      const pnlSign = (p.cashPnl || 0) >= 0 ? '📈' : '📉';
+      return `${pnlSign} ${(p.title || '').slice(0, 45)}\n   ${p.outcome} @ ${((p.price||0)*100).toFixed(0)}¢ → $${(p.currentValue||0).toFixed(2)}`;
+    }).join('\n');
 
   const msg =
-    `📊 *Polymarket Portfolio*\n` +
-    `💼 ${open.length} позиций | $${totalValue.toFixed(0)} | P&L: *${pnlSign}$${totalPnl.toFixed(2)} (${pnlSign}${pnlPct.toFixed(1)}%)*\n\n` +
-    lines.slice(0, 600);
+    `💼 *Портфолио Polymarket*\n\n` +
+    `💵 Свободно: *$${bal.freeUsdc.toFixed(2)}*\n` +
+    `📊 В позициях: *$${bal.positionsValue.toFixed(2)}* (${bal.positionCount} шт)\n` +
+    `📈 P&L: *${pnlSign}$${bal.totalPnl.toFixed(2)}*\n\n` +
+    (posLines ? posLines + '\n' : '_Открытых позиций нет_\n') +
+    `\n_Source: ${bal.source}_`;
 
-  // Only send if changed significantly OR forced
-  const force = process.argv.includes('--force');
-  if (force || pnlChanged || newResolved) {
-    await sendTg(msg);
-    console.log('[portfolio] Sent update, P&L:', totalPnl.toFixed(2));
-  } else {
-    console.log('[portfolio] No significant change, skipping TG send');
-    console.log('P&L: ' + pnlSign + '$' + totalPnl.toFixed(2));
-  }
+  await sendTg(msg);
+  console.log('[portfolio] Sent update');
 }
 
-main().catch(e => console.error('[portfolio] Error:', e.message));
+main().catch(e => { console.error('[portfolio] Error:', e.message); process.exit(1); });

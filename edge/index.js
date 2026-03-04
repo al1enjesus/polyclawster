@@ -23,6 +23,7 @@ const signalsStore  = require('./modules/signals-store');
 const db            = require('../lib/db');
 const { scanRisk } = require('./modules/risk');
 const { checkResolutions } = require('./modules/tracker');
+const { syncAll: syncBalances } = require('./modules/sync-balances');
 
 // ── Push file to GitHub ──────────────────────────────────────
 async function ghPush(filename, content, token=process.env.GH_TOKEN||'') {
@@ -92,6 +93,7 @@ async function main() {
   // ── RISK MANAGEMENT (runs first) ─────────────────────────────
   try { await scanRisk(); } catch(e) { console.log('[risk] skip:', e.message?.slice(0,50)); }
   try { await checkResolutions(); } catch(e) { console.log('[tracker] skip:', e.message?.slice(0,50)); }
+  try { await syncBalances(); } catch(e) { console.log('[sync] skip:', e.message?.slice(0,50)); }
 
   console.log(`\n${'═'.repeat(55)}`);
   console.log(`🤖 POLYMARKET EDGE — ${new Date().toISOString()}`);
