@@ -2584,6 +2584,15 @@ function _noBetDemoClick() {
   showBetConfirm(ctx.signal, ctx.side, ctx.amt, true);
 }
 
+function _noBetPolyClick() {
+  var ctx = window._noBetCtx;
+  if (!ctx) return;
+  var el = document.getElementById('no-bet-sheet-overlay');
+  if (el) el.remove();
+  var polyLink = 'https://polymarket.com/event/' + (ctx.signal.slug || slug(ctx.signal.market || ctx.signal.title || ''));
+  openExternal(polyLink);
+}
+
 function showNoBetSheet(amt, signal, side) {
   window._noBetCtx = { amt: amt, signal: signal, side: side };
   var existing = document.getElementById('no-bet-sheet-overlay');
@@ -2609,7 +2618,12 @@ function showNoBetSheet(amt, signal, side) {
     + '<div style="font-size:28px">\uD83D\uDCB0</div>'
     + '<div><div style="font-size:14px;font-weight:700">\u041f\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u044c USDC</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">\u041c\u0438\u043d\u0438\u043c\u0443\u043c $1 \u00b7 Polygon</div></div>'
     + '</div>'
-    // Option 3: Cancel
+    // Option 3: Trade on Polymarket directly
+    + '<div onclick="_noBetPolyClick()" style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">'
+    + '<div style="font-size:28px">🔗</div>'
+    + '<div><div style="font-size:14px;font-weight:700">Открыть на Polymarket</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Ставить напрямую в браузере</div></div>'
+    + '</div>'
+    // Option 4: Cancel
     + '<button onclick="_noBetCancel()" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:4px">\u041e\u0442\u043c\u0435\u043d\u0430</button>'
     + '</div>'
   );
@@ -2644,11 +2658,9 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet(\'' + market.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + amt + ',\'' + side + '\')">'
     + '📤 Поделиться'
     + '</button>'
-    + (isDemo
-        ? '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
-        : '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
-    )
+    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
     + '</div>'
+    + '<button onclick="openExternal(\'https://polymarket.com/event/\' + encodeURIComponent(slug(signal.market||signal.title||\'\')))" style="width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;margin-top:8px">🔗 Поставить на Polymarket</button>'
     + '</div>'
   );
   overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
