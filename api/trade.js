@@ -107,15 +107,24 @@ module.exports = async (req, res) => {
     // Fallback: load from polymarket-creds.json for matching address
     var privateKey = wallet.private_key_enc;
     if (!privateKey) {
-      try {
-        var masterCreds = JSON.parse(require('fs').readFileSync('/workspace/polymarket-creds.json', 'utf8'));
-        if (masterCreds.wallet && masterCreds.wallet.privateKey &&
-            masterCreds.wallet.address && wallet.address &&
-            masterCreds.wallet.address.toLowerCase() === wallet.address.toLowerCase()) {
-          privateKey = masterCreds.wallet.privateKey;
-          console.log('[trade] using master wallet key for', wallet.address.slice(0,10));
-        }
-      } catch(e) { console.error('[trade] creds read error:', e.message); }
+      // Try env vars (Vercel production)
+      if (process.env.POLY_PRIVATE_KEY && process.env.POLY_WALLET_ADDRESS &&
+          wallet.address && process.env.POLY_WALLET_ADDRESS.toLowerCase() === wallet.address.toLowerCase()) {
+        privateKey = process.env.POLY_PRIVATE_KEY;
+        console.log('[trade] using env wallet key for', wallet.address.slice(0,10));
+      }
+      // Fallback: local creds file (dev)
+      if (!privateKey) {
+        try {
+          var masterCreds = JSON.parse(require('fs').readFileSync('/workspace/polymarket-creds.json', 'utf8'));
+          if (masterCreds.wallet && masterCreds.wallet.privateKey &&
+              masterCreds.wallet.address && wallet.address &&
+              masterCreds.wallet.address.toLowerCase() === wallet.address.toLowerCase()) {
+            privateKey = masterCreds.wallet.privateKey;
+            console.log('[trade] using local creds wallet key for', wallet.address.slice(0,10));
+          }
+        } catch(e) {}
+      }
     }
 
     if (privateKey) {
