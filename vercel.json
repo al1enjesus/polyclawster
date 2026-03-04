@@ -3,7 +3,12 @@
   "builds": [
     {
       "src": "api/trade.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "regions": [
+          "iad1"
+        ]
+      }
     },
     {
       "src": "api/snapshots.js",
