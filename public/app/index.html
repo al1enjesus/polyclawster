@@ -848,7 +848,7 @@ function openSignalDetail(idx) {
   if (s.change24h !== undefined) detailRows += '<div class="detail-row"><span class="detail-row-k">24h Change</span><span class="detail-row-v ' + ((s.change24h || 0) >= 0 ? 'up' : 'down') + '">' + ((s.change24h || 0) >= 0 ? '+' : '') + ((s.change24h || 0) * 100).toFixed(1) + '%</span></div>';
 
   var quickTrade = '';
-  if (isStrong && tgId) {
+  if (tgId) {
     _tradeSignal = s;
     quickTrade = '<div class="detail-section">'
       + '<div class="detail-section-title">⚡ Quick Trade</div>'
@@ -920,9 +920,12 @@ async function submitSignalTrade() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
         tgId: String(tgId),
-        marketId: s.marketId || s.conditionId || '',
+        market: s.market || s.title || '',
+        conditionId: s.marketId || s.conditionId || s.market_id || '',
+        slug: s.slug || '',
         side: (s.side || 'YES').toUpperCase(),
-        amount: amt
+        amount: amt,
+        signalScore: s.score || 0
       })
     });
     var data = await r.json();
@@ -993,7 +996,26 @@ function renderPortfolio() {
     posHTML = '<div class="glass-card" style="text-align:center;padding:32px 16px"><div style="font-size:32px;margin-bottom:8px">📭</div><div style="color:var(--muted);font-size:13px">No open positions</div></div>';
   }
 
-  el.innerHTML = '<div class="content">' + heroHTML + posHTML + '</div>';
+  var betsHTML = '';
+  if (p.activeBets && p.activeBets.length > 0) {
+    betsHTML += '<div class="sec-title" style="margin-top:16px">🎯 Active Bets</div>';
+    p.activeBets.forEach(function(b) {
+      var statusColor = b.status === 'open' ? '#19fb9b' : '#F7B731';
+      var sideClass = (b.side || '').toLowerCase() === 'yes' ? 'outcome-yes' : (b.side || '').toLowerCase() === 'no' ? 'outcome-no' : 'outcome-other';
+      var polyLink = b.slug ? 'https://polymarket.com/event/' + b.slug : '';
+      betsHTML += '<div class="glass-card" style="padding:14px;margin-bottom:8px">'
+        + '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.4">' + (b.market || b.market_name || 'Market') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+        +   '<span class="outcome-badge ' + sideClass + '">' + (b.side || 'YES') + '</span>'
+        +   '<span style="font-size:12px;color:var(--text2)">$' + (+(b.amount || 0)).toFixed(2) + '</span>'
+        +   '<span style="font-size:11px;background:rgba(255,255,255,.08);border-radius:6px;padding:2px 8px;color:' + statusColor + '">' + (b.status || 'pending') + '</span>'
+        + '</div>'
+        + (polyLink ? '<button class="btn btn-secondary" style="margin-top:10px;font-size:12px;padding:6px 12px" onclick="openExternal(\'' + polyLink + '\')">View on Polymarket</button>' : '')
+        + '</div>';
+    });
+  }
+
+  el.innerHTML = '<div class="content">' + heroHTML + posHTML + betsHTML + '</div>';
 }
 
 function openPosDetail(idx) {
@@ -1084,6 +1106,109 @@ function renderWallet(w) {
     +   '<button class="btn btn-secondary" style="font-size:13px" onclick="openExternal(\'https://polygonscan.com/address/' + addr + '\')">🔍 View on Chain</button>'
     + '</div>'
     + '</div>';
+}
+
+function renderWalletDetail(s) {
+  if (!s) return;
+  var tgId = getTgId();
+  var addr = s.addr || '';
+  var polyLink = 'https://polymarket.com/event/' + slug(s.market || s.title || '');
+  var walletLink = addr ? 'https://polymarket.com/profile/' + addr : '';
+  var sc = +(s.score || 0);
+  var barColor = sc >= 8 ? '#FF3366' : sc >= 5 ? '#F7B731' : '#45AAF2';
+
+  var quickTrade = '';
+  if (tgId) {
+    _tradeSignal = s;
+    quickTrade = '<div class="detail-section">'
+      + '<div class="detail-section-title">⚡ Quick Trade</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Place a trade on this signal via your Polymarket wallet.</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">'
+      + [5,10,25,50].map(function(a) { return '<button class="chip" style="font-size:12px" onclick="setTradeAmt(' + a + ')">$' + a + '</button>'; }).join('')
+      + '</div>'
+      + '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'
+      + '<input id="trade-amount-inp" type="number" min="1" step="1" placeholder="Amount $" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-size:14px;outline:none"/>'
+      + '<span style="font-size:12px;color:var(--muted)">USDC</span>'
+      + '</div>'
+      + '<button class="btn btn-primary" onclick="submitSignalTrade(); closeOverlay(&quot;wallet-detail&quot;)" style="font-size:13px">🎯 Trade ' + (s.side || 'YES') + ' on this signal</button>'
+      + '</div>';
+  }
+
+  // Скелетон для stats — заполнится через fetchWalletStats()
+  var statsHTML = addr
+    ? '<div id="wallet-stats-grid" class="detail-stats">'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-winrate"><div class="spinner" style="width:18px;height:18px;margin:0 auto"></div></div><div class="detail-stat-k">WIN RATE</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-pnl"><div class="spinner" style="width:18px;height:18px;margin:0 auto"></div></div><div class="detail-stat-k">TOTAL P&L</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-positions">—</div><div class="detail-stat-k">POSITIONS</div></div>'
+      + '<div class="detail-stat"><div class="detail-stat-v" id="ws-value">—</div><div class="detail-stat-k">PORT VALUE</div></div>'
+      + '</div>'
+    : '<div style="color:var(--muted);font-size:12px">No wallet address</div>';
+
+  document.getElementById('wallet-detail-content').innerHTML =
+    '<div class="detail-hero">'
+    + '<div class="detail-icon">🧠</div>'
+    + '<div style="flex:1;min-width:0">'
+    +   '<div class="detail-title">Smart Money Signal</div>'
+    +   (addr ? '<div class="detail-sub" style="font-family:monospace;font-size:10px;word-break:break-all">' + addr + '</div>' : '')
+    + '</div>'
+    + '</div>'
+    + '<div class="detail-section">'
+    +   '<div class="detail-section-title">Wallet Stats</div>'
+    +   statsHTML
+    + '</div>'
+    + '<div class="detail-section">'
+    +   '<div class="detail-section-title">Current Signal</div>'
+    +   '<div style="font-size:13px;color:var(--text);line-height:1.5;margin-bottom:10px">' + (s.market || s.title || '') + '</div>'
+    +   (s.side ? '<div class="detail-row"><span class="detail-row-k">Side</span><span class="outcome-badge outcome-' + ((s.side||'').toLowerCase() === 'yes' ? 'yes' : (s.side||'').toLowerCase() === 'no' ? 'no' : 'other') + '">' + s.side + '</span></div>' : '')
+    +   (s.price !== undefined ? '<div class="detail-row"><span class="detail-row-k">Price</span><span class="detail-row-v">' + Math.round((s.price||0)*100) + '¢</span></div>' : '')
+    +   '<div class="detail-row"><span class="detail-row-k">Score</span><span class="detail-row-v" style="color:' + barColor + ';font-weight:700">' + sc.toFixed(1) + '/10</span></div>'
+    + '</div>'
+    + quickTrade
+    + '<div class="btn-row">'
+    +   '<button class="btn btn-secondary" onclick="openExternal(\'' + polyLink + '\')">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+    +   'View Market</button>'
+    + (walletLink ? '<button class="btn btn-secondary" onclick="openExternal(\'' + walletLink + '\')">'
+    +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+    +   'View Wallet</button>' : '')
+    + '</div>';
+
+  openOverlay('wallet-detail');
+
+  // Асинхронно загрузить реальную статистику
+  if (addr) fetchWalletStats(addr);
+}
+
+async function fetchWalletStats(addr) {
+  try {
+    var r = await fetch('/api/wallet-stats?addr=' + encodeURIComponent(addr));
+    var data = await r.json();
+    if (!data.ok || !data.stats) return;
+    var st = data.stats;
+
+    var wrEl = document.getElementById('ws-winrate');
+    var pnlEl = document.getElementById('ws-pnl');
+    var posEl = document.getElementById('ws-positions');
+    var valEl = document.getElementById('ws-value');
+
+    if (wrEl) {
+      var wr = st.winRatePct !== null ? st.winRatePct + '%' : '—%';
+      wrEl.textContent = wr;
+      wrEl.style.color = st.winRatePct !== null && st.winRatePct >= 50 ? 'var(--green)' : 'var(--red)';
+    }
+    if (pnlEl) {
+      var pnl = st.totalPnl;
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (posEl) posEl.textContent = st.totalPositions || '0';
+    if (valEl) valEl.textContent = '$' + (st.totalValue || 0).toFixed(0);
+  } catch(e) {
+    var wrEl = document.getElementById('ws-winrate');
+    if (wrEl) wrEl.textContent = '—%';
+    var pnlEl = document.getElementById('ws-pnl');
+    if (pnlEl) pnlEl.textContent = '—';
+  }
 }
 
 function copyAddr(addr) {

@@ -120,6 +120,10 @@
     {
       "src": "og-image.jpg",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/wallet-stats.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -202,6 +206,10 @@
     {
       "src": "/api/agents",
       "dest": "/api/agents.js"
+    },
+    {
+      "src": "/api/wallet-stats",
+      "dest": "/api/wallet-stats.js"
     }
   ]
 }
