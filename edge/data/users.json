@@ -1,0 +1,15 @@
+{
+  "399089761": {
+    "telegramId": 399089761,
+    "address": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+    "privateKey": "0x5731ea5a8fb9fda1496032cdbc9d27e07cacba7de438e68780f07bd7db03137f",
+    "createdAt": 1772441181925,
+    "totalDeposited": 437.27,
+    "totalProfit": 0,
+    "totalFeesPaid": 0,
+    "trades": [],
+    "active": true,
+    "totalPnl": 135.21,
+    "totalValue": 572.48
+  }
+}
