@@ -116,9 +116,17 @@
     {
       "src": "skill.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "og-image.jpg",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/og-image.jpg",
+      "dest": "/og-image.jpg"
+    },
     {
       "src": "/",
       "dest": "/public/index.html"
