@@ -2491,7 +2491,7 @@ async function placeBet(signal, side) {
       var d = await r.json();
       if (d.ok) {
         window._userValue = Math.max(0, realBalance - amt); // optimistic update
-        showBetConfirm(signal, side, amt, false, d.executed !== false, d.status);
+        showBetConfirm(signal, side, amt, false);
       } else {
         showToast(d.error || 'Ошибка ставки');
         if (btnYes) { btnYes.disabled = false; btnYes.textContent = 'YES'; }
@@ -2631,44 +2631,22 @@ function showNoBetSheet(amt, signal, side) {
   document.body.appendChild(overlay);
 }
 
-function showBetConfirm(signal, side, amt, isDemo, executed, status) {
-  // executed: true = CLOB filled immediately, false = queued for agent
-  // status: 'demo' | 'open' | 'queued'
-  var tgw      = window.Telegram && window.Telegram.WebApp;
-  var isQueued = !isDemo && executed === false;
+function showBetConfirm(signal, side, amt, isDemo) {
+  var tgw = window.Telegram && window.Telegram.WebApp;
+  if (tgw && tgw.HapticFeedback) tgw.HapticFeedback.notificationOccurred('success');
 
-  if (tgw && tgw.HapticFeedback) {
-    tgw.HapticFeedback.notificationOccurred(isQueued ? 'warning' : 'success');
-  }
-
-  var market    = (signal.market || signal.title || '').slice(0, 50);
+  var market = (signal.market || signal.title || '').slice(0, 50);
   var sideColor = side === 'YES' ? '#19fb9b' : '#FF4F4F';
 
-  var icon, title, subtitle;
-  if (isDemo) {
-    icon     = '🎁';
-    title    = 'Demo-ставка принята!';
-    subtitle = '';
-  } else if (isQueued) {
-    icon     = '⏳';
-    title    = 'Ставка принята!';
-    subtitle = '<div style="display:inline-block;background:rgba(247,183,49,.1);border:1px solid rgba(247,183,49,.25);border-radius:8px;padding:4px 10px;font-size:11px;color:#F7B731;margin-top:6px">Исполнится через ~1 мин</div>';
-  } else {
-    icon     = '✅';
-    title    = 'Ставка исполнена!';
-    subtitle = '';
-  }
-
   var overlay = document.createElement('div');
-  overlay.id  = 'bet-confirm-overlay';
+  overlay.id = 'bet-confirm-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = (
     '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;padding:28px 24px 40px">'
     + '<div style="text-align:center;margin-bottom:20px">'
-    + '<div style="font-size:52px">' + icon + '</div>'
-    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:4px">' + title + '</div>'
-    + (subtitle ? subtitle : '')
-    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:260px;margin:8px auto 0">' + market + '</div>'
+    + '<div style="font-size:52px">' + (isDemo ? '🎁' : '✅') + '</div>'
+    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:6px">Ставка ' + (isDemo ? 'demo-' : '') + 'принята!</div>'
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:260px;margin:0 auto">' + market + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'
     + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:' + sideColor + '">' + side + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Ставка</div></div>'
@@ -2677,15 +2655,15 @@ function showBetConfirm(signal, side, amt, isDemo, executed, status) {
     + '</div>'
     + (isDemo ? '<div style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:12px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.5">🎁 Demo-ставка. Пополни кошелёк для реальных денег.</div>' : '')
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet('' + market.replace(/\/g, '\\').replace(/'/g, "\'") + '',' + amt + ','' + side + '')">'
+    + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet(\'' + market.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + amt + ',\'' + side + '\')">'
     + '📤 Поделиться'
     + '</button>'
-    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById('bet-confirm-overlay').remove();showTab('portfolio');loadPortfolio&&loadPortfolio()">📊 Портфель</button>'
+    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
     + '</div>'
-    + '<button onclick="openExternal('https://polymarket.com/event/' + encodeURIComponent(slug(signal.market||signal.title||'')))" style="width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;margin-top:8px">🔗 Открыть на Polymarket</button>'
+    + '<button onclick="openExternal(\'https://polymarket.com/event/\' + encodeURIComponent(slug(signal.market||signal.title||\'\')))" style="width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;margin-top:8px">🔗 Поставить на Polymarket</button>'
     + '</div>'
   );
-  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
 
