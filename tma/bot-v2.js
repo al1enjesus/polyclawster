@@ -75,14 +75,20 @@ async function sendWelcome(chatId, firstName, refCode) {
   } catch(e) { console.error('[bot] db.getUser error:', e.message); }
   const hasWallet = !!user?.address;
 
-  // Track referral
+  // Track referral in Supabase
   if (refCode) {
-    const refs = loadRefs();
-    if (!refs[String(chatId)]) {
-      refs[String(chatId)] = { referrer: refCode, ts: Date.now() };
-      saveRefs(refs);
-      await sendMsg(refCode, `🎉 *New referral!* ${firstName} just joined via your link.`);
-    }
+    try {
+      const existingUser = await db.getUser(String(chatId));
+      if (!existingUser || !existingUser.referred_by) {
+        await db.updateUser(String(chatId), { referred_by: String(refCode) });
+        // Update referrer's ref_count
+        const referrer = await db.getUser(String(refCode));
+        if (referrer) {
+          await db.updateUser(String(refCode), { ref_count: (parseInt(referrer.ref_count || 0) + 1) });
+          await sendMsg(refCode, '🎉 New referral! ' + (firstName || 'Someone') + ' just joined via your link.');
+        }
+      }
+    } catch(e) { console.error('[bot] referral track error:', e.message); }
   }
 
   const text = hasWallet
@@ -172,9 +178,12 @@ async function handlePrivateKey(chatId, key, firstName) {
 
 // ── REFERRAL ─────────────────────────────────────────────────────
 async function handleRef(chatId, username) {
-  const link = `https://t.me/PolyClawsterBot?start=ref_${chatId}`;
-  const refs  = loadRefs();
-  const myRefs = Object.values(refs).filter(r => r.referrer === String(chatId)).length;
+  const link = 'https://t.me/PolyClawsterBot?start=ref_' + chatId;
+  let myRefs = 0;
+  try {
+    const me = await db.getUser(String(chatId));
+    myRefs = parseInt(me && me.ref_count || 0);
+  } catch {}
 
   await sendMsg(chatId,
     `🔗 *Your Referral Link*\n\n` +
@@ -194,13 +203,7 @@ async function handleOwnerStats(chatId) {
     // Sort newest first
     users.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    // Load referral data
-    const refs = loadRefs();
-    // Build reverse map: tgId → referrer tgId
-    const refMap = {}; // referred tgId -> referrer tgId
-    for (const [referredId, r] of Object.entries(refs)) {
-      refMap[referredId] = r.referrer;
-    }
+    // Referral data comes from Supabase referred_by field (already in users)
 
     const now = Date.now();
     const lines = users.map(u => {
