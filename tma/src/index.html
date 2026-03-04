@@ -2116,8 +2116,12 @@ async function renderPortfolio(d) {
   // ── Empty state: no positions yet ──
   // Show wallet CTA if no wallet, else deposit CTA
   // CTA: показываем только если кошелька нет ИЛИ баланс = 0 (не задепозитил)
-  const ctaBlock = val > 0
-    ? '' // уже есть деньги — не мешаем
+  // Demo balance — check localStorage (server might return 0 for new users)
+  var demoBalRender = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  var effectiveVal = val > 0 ? val : demoBalRender;
+
+  const ctaBlock = effectiveVal > 0
+    ? '' // есть деньги (real or demo) — не мешаем
     : d.hasWallet
       ? `<div class="glass-card" style="text-align:center;margin-bottom:12px;padding:20px 16px">
           <div style="font-size:32px;margin-bottom:8px">💰</div>
@@ -3641,18 +3645,12 @@ async function createWalletFlow(tgId) {
     const res = await r.json();
     if (res.ok && res.data && res.data.address) {
       const addr = res.data.address;
-      el.innerHTML = `<div style="text-align:center;padding:40px 20px">
-        <div style="font-size:44px;margin-bottom:14px">✅</div>
-        <div style="font-size:17px;font-weight:700;margin-bottom:8px">Wallet created!</div>
-        <div style="background:#1a1535;border-radius:12px;padding:14px;margin:16px 0;word-break:break-all;font-family:monospace;font-size:12px;color:#a78bfa;">${addr}</div>
-        <div style="color:var(--muted);font-size:12px;margin-bottom:20px">Polygon · USDC.e</div>
-        <button onclick="copyAddr('${addr}')" style="background:#6d28d9;border:none;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;cursor:pointer">📋 Copy Address</button>
-      </div>`;
       // ── Update global wallet state immediately ──
       window._userWallet = addr;
       window._userValue  = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
+      localStorage.setItem('pc_demo_balance', window._userValue.toFixed(2));
       window._hasDeposited = false;
-      // Show success with CTA to place first bet
+      // Show success screen with CTA — DO NOT call loadWallet() after (it would overwrite)
       el.innerHTML = `<div style="text-align:center;padding:32px 20px">
         <div style="font-size:52px;margin-bottom:14px">🎉</div>
         <div style="font-size:20px;font-weight:800;margin-bottom:8px">Кошелёк создан!</div>
@@ -3662,10 +3660,9 @@ async function createWalletFlow(tgId) {
           <div style="background:rgba(25,251,155,.1);border:1px solid rgba(25,251,155,.25);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;color:#19fb9b">🎁 $1 demo-баланс</div>
         </div>
         <button onclick="showTab('signals')" class="btn btn-primary" style="font-size:15px;height:52px;margin-bottom:10px;width:100%">⚡ Поставить первую ставку →</button>
-        <button onclick="copyAddr('${addr}')" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer">📋 Скопировать адрес</button>
+        <button onclick="showTab('wallet')" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:rgba(255,255,255,.6);font-size:13px;cursor:pointer">Посмотреть кошелёк</button>
       </div>`;
       showToast('Кошелёк создан! 🎉');
-      setTimeout(() => loadWallet(), 2000);
     } else {
       el.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#f87171">❌ ' + (res.error || 'Error creating wallet') + '</div>';
     }
@@ -4082,7 +4079,10 @@ function initUserState(forceRefresh) {
       // ── Set ALL wallet globals from ONE fetch ──
       window._userWallet    = (p.hasWallet && p.address) ? p.address : (window._userWallet || '');
       window._userDeposited = parseFloat(p.totalDeposited || 0);
-      window._userValue     = parseFloat(p.totalValue || 0);
+      // Don't override _userValue with 0 if we have local demo balance
+      var serverVal = parseFloat(p.totalValue || 0);
+      var localDemo = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+      window._userValue = serverVal > 0 ? serverVal : (localDemo > 0 ? localDemo : 0);
       window._hasDeposited  = (window._userDeposited > 0);
       // Demo balance: server wins if local not yet set
       var demoSrv   = parseFloat(p.demoBalance || 0);
@@ -4672,7 +4672,8 @@ async function confirmBetSheet() {
   if (amt < 1) { showToast('Минимум $1'); return; }
   var realBalance = parseFloat(window._userValue || 0);
   var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-  var useDemo = realBalance < amt && demoBalance >= amt;
+  // Use real balance if available, else demo
+  var useDemo = (realBalance < 0.01) && demoBalance >= amt;
   var balance = useDemo ? demoBalance : realBalance;
   if (amt > balance) { showToast('Недостаточно средств · пополни кошелёк'); return; }
 
@@ -4684,6 +4685,10 @@ async function confirmBetSheet() {
   if (useDemo) {
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
+    window._userValue = newBal; // update display value
+    // Update hero balance immediately
+    var heroEl = document.getElementById('hero-balance-amount');
+    if (heroEl) heroEl.textContent = '$' + newBal.toFixed(2);
     // Save demo bet to server (best-effort)
     var sig2 = _bs.sig;
     fetch('/api/trade', {
