@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     // ── 1b. Handle demo bets ──────────────────────────────────
     var isDemo = body.isDemo === true || body.isDemo === 'true';
     if (isDemo) {
-      // Demo bets don't need real balance — just record and return ok
+      // Demo bets: record in bets table AND deduct from demo_balance in users
       var demoBetRecord = {
         tg_id:        parseInt(tgId),
         market:       market.slice(0, 200),
@@ -60,6 +60,17 @@ module.exports = async (req, res) => {
         signal_score: signalScore || null,
       };
       try { await db.insertBet(demoBetRecord); } catch(e) { console.error('[trade] demo insertBet fail:', e.message); }
+
+      // Deduct from demo_balance in users table
+      try {
+        var demoUser = await db.getUser(tgId);
+        if (demoUser) {
+          var curDemo = parseFloat(demoUser.demo_balance || 0);
+          var newDemo = Math.max(0, curDemo - amount);
+          await db.updateUser(tgId, { demo_balance: newDemo });
+        }
+      } catch(e) { console.error('[trade] demo_balance update fail:', e.message); }
+
       return res.json({
         ok: true,
         isDemo: true,
