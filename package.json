@@ -1,0 +1,19 @@
+{
+  "name": "polyclawster",
+  "version": "1.0.0",
+  "description": "Auto-trade Polymarket prediction markets via CLOB API",
+  "main": "scripts/edge.js",
+  "scripts": {
+    "edge": "node scripts/edge.js --auto",
+    "balance": "node scripts/balance.js",
+    "setup": "node scripts/setup.js"
+  },
+  "keywords": ["polymarket", "prediction-markets", "trading", "defi", "polygon"],
+  "author": "Virix Labs <general@virixlabs.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@polymarket/clob-client": "^7.0.0",
+    "ethers": "^5.7.0",
+    "https-proxy-agent": "^7.0.0"
+  }
+}
