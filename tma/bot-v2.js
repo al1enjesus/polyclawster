@@ -386,6 +386,49 @@ async function sendWhaleAlert(wallet, signal) {
 
 // ── POLLING ───────────────────────────────────────────────────────
 let offset = 0;
+// ── STARS PAYMENT HANDLERS ────────────────────────────────────────
+const STARS_TO_USD = 0.013;
+
+async function handlePreCheckout(q) {
+  await tgPost('answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: true });
+}
+
+async function handleStarsPayment(msg) {
+  const payment = msg.successful_payment;
+  if (!payment || payment.currency !== 'XTR') return;
+  const stars = payment.total_amount;
+  const usdValue = parseFloat((stars * STARS_TO_USD).toFixed(4));
+  let tgId = String(msg.chat.id);
+  try {
+    const payload = JSON.parse(payment.invoice_payload);
+    if (payload.tgId) tgId = String(payload.tgId);
+  } catch {}
+  console.log(`[stars] ${stars}⭐ = $${usdValue} from tgId=${tgId}`);
+  try {
+    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hlcwzuggblsvcofwphza.supabase.co';
+    const SUPABASE_KEY = process.env.SUPABASE_KEY;
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
+      headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY }
+    });
+    const users = await r.json();
+    const user = users && users[0];
+    if (!user) return;
+    const newDemo = parseFloat(user.demo_balance || 0) + usdValue;
+    const newDeposited = parseFloat(user.total_deposited || 0) + usdValue;
+    await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ demo_balance: newDemo, total_deposited: newDeposited })
+    });
+    await sendMsg(tgId, `⭐ *${stars} звёзд получено!*
+
+💰 Зачислено *$${usdValue}* на баланс.
+
+Открой приложение и начинай ставить 🚀`, { parse_mode: 'Markdown' });
+  } catch (e) { console.error('[stars] error:', e.message); }
+}
+
+
 async function poll() {
   while (true) {
     try {
@@ -399,6 +442,8 @@ async function poll() {
         offset = upd.update_id + 1;
         if (upd.message?.text) await handleCommand(upd.message);
         if (upd.callback_query) await handleCallback(upd.callback_query);
+        if (upd.pre_checkout_query) await handlePreCheckout(upd.pre_checkout_query);
+        if (upd.message?.successful_payment) await handleStarsPayment(upd.message);
         if (upd.message?.new_chat_members) {
           const groups = loadGroups();
           const cid = upd.message.chat.id;

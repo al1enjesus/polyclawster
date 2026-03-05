@@ -1,52 +1,200 @@
 {
   "version": 2,
   "builds": [
-    { "src": "api/trade.js", "use": "@vercel/node", "config": { "regions": ["iad1"] } },
-    { "src": "api/snapshots.js", "use": "@vercel/node" },
-    { "src": "api/chat.js", "use": "@vercel/node" },
-    { "src": "api/wallet.js", "use": "@vercel/node" },
-    { "src": "api/wallet-withdraw.js", "use": "@vercel/node" },
-    { "src": "api/balance.js", "use": "@vercel/node" },
-    { "src": "api/transactions.js", "use": "@vercel/node" },
-    { "src": "api/portfolio.js", "use": "@vercel/node" },
-    { "src": "api/wallet-create.js", "use": "@vercel/node" },
-    { "src": "api/feed.js", "use": "@vercel/node" },
-    { "src": "api/withdraw.js", "use": "@vercel/node" },
-    { "src": "api/demo-bonus.js", "use": "@vercel/node" },
-    { "src": "api/signals.js", "use": "@vercel/node" },
-    { "src": "api/agents.js", "use": "@vercel/node" },
-    { "src": "api/wallet-stats.js", "use": "@vercel/node" },
-    { "src": "api/search-markets.js", "use": "@vercel/node" },
-    { "src": "api/leaderboard.js", "use": "@vercel/node" },
-    { "src": "public/**", "use": "@vercel/static" },
-    { "src": "tma/src/**", "use": "@vercel/static" },
-    { "src": "manifest.json", "use": "@vercel/static" },
-    { "src": "data.json", "use": "@vercel/static" },
-    { "src": "og-image.jpg", "use": "@vercel/static" }
+    {
+      "src": "api/trade.js",
+      "use": "@vercel/node",
+      "config": {
+        "regions": [
+          "iad1"
+        ]
+      }
+    },
+    {
+      "src": "api/snapshots.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/chat.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/wallet.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/wallet-withdraw.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/balance.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/transactions.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/portfolio.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/wallet-create.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/feed.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/withdraw.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/demo-bonus.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/signals.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/agents.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/wallet-stats.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/search-markets.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/leaderboard.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/stars-invoice.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "tma/src/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "manifest.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "data.json",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "og-image.jpg",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    { "src": "/", "dest": "/public/index.html" },
-    { "src": "/tma.html", "dest": "/tma/src/index.html" },
-    { "src": "/tma", "dest": "/tma/src/index.html" },
-    { "src": "/og-image.jpg", "dest": "/og-image.jpg" },
-    { "src": "/api/trade", "dest": "/api/trade.js" },
-    { "src": "/api/snapshots", "dest": "/api/snapshots.js" },
-    { "src": "/api/feed", "dest": "/api/feed.js" },
-    { "src": "/api/portfolio", "dest": "/api/portfolio.js" },
-    { "src": "/api/chat", "dest": "/api/chat.js" },
-    { "src": "/api/wallet", "dest": "/api/wallet.js" },
-    { "src": "/api/wallet/withdraw", "dest": "/api/wallet-withdraw.js" },
-    { "src": "/api/wallet/create", "dest": "/api/wallet-create.js" },
-    { "src": "/api/balance", "dest": "/api/balance.js" },
-    { "src": "/api/transactions", "dest": "/api/transactions.js" },
-    { "src": "/api/withdraw", "dest": "/api/withdraw.js" },
-    { "src": "/api/demo-bonus", "dest": "/api/demo-bonus.js" },
-    { "src": "/api/signals", "dest": "/api/signals.js" },
-    { "src": "/api/agents", "dest": "/api/agents.js" },
-    { "src": "/api/wallet-stats", "dest": "/api/wallet-stats.js" },
-    { "src": "/api/search-markets", "dest": "/api/search-markets.js" },
-    { "src": "/api/leaderboard", "dest": "/api/leaderboard.js" },
-    { "src": "/dashboard", "dest": "/public/dashboard.html" },
-    { "src": "/leaderboard", "dest": "/public/leaderboard.html" }
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
+      "src": "/tma.html",
+      "dest": "/tma/src/index.html"
+    },
+    {
+      "src": "/tma",
+      "dest": "/tma/src/index.html"
+    },
+    {
+      "src": "/og-image.jpg",
+      "dest": "/og-image.jpg"
+    },
+    {
+      "src": "/api/trade",
+      "dest": "/api/trade.js"
+    },
+    {
+      "src": "/api/snapshots",
+      "dest": "/api/snapshots.js"
+    },
+    {
+      "src": "/api/feed",
+      "dest": "/api/feed.js"
+    },
+    {
+      "src": "/api/portfolio",
+      "dest": "/api/portfolio.js"
+    },
+    {
+      "src": "/api/chat",
+      "dest": "/api/chat.js"
+    },
+    {
+      "src": "/api/wallet",
+      "dest": "/api/wallet.js"
+    },
+    {
+      "src": "/api/wallet/withdraw",
+      "dest": "/api/wallet-withdraw.js"
+    },
+    {
+      "src": "/api/wallet/create",
+      "dest": "/api/wallet-create.js"
+    },
+    {
+      "src": "/api/balance",
+      "dest": "/api/balance.js"
+    },
+    {
+      "src": "/api/transactions",
+      "dest": "/api/transactions.js"
+    },
+    {
+      "src": "/api/withdraw",
+      "dest": "/api/withdraw.js"
+    },
+    {
+      "src": "/api/demo-bonus",
+      "dest": "/api/demo-bonus.js"
+    },
+    {
+      "src": "/api/signals",
+      "dest": "/api/signals.js"
+    },
+    {
+      "src": "/api/agents",
+      "dest": "/api/agents.js"
+    },
+    {
+      "src": "/api/wallet-stats",
+      "dest": "/api/wallet-stats.js"
+    },
+    {
+      "src": "/api/search-markets",
+      "dest": "/api/search-markets.js"
+    },
+    {
+      "src": "/api/leaderboard",
+      "dest": "/api/leaderboard.js"
+    },
+    {
+      "src": "/api/stars-invoice",
+      "dest": "/api/stars-invoice.js"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/public/dashboard.html"
+    },
+    {
+      "src": "/leaderboard",
+      "dest": "/public/leaderboard.html"
+    }
   ]
 }

@@ -4576,6 +4576,62 @@ function closeSheet(name) {
   document.body.style.overflow = '';
 }
 
+function showDepositTab(tab) {
+  var cryptoEl = document.getElementById('dep-crypto-tab');
+  var starsEl  = document.getElementById('dep-stars-tab');
+  var btnC = document.getElementById('dep-tab-crypto');
+  var btnS = document.getElementById('dep-tab-stars');
+  if (tab === 'crypto') {
+    if (cryptoEl) cryptoEl.style.display = '';
+    if (starsEl)  starsEl.style.display  = 'none';
+    if (btnC) { btnC.style.border = '2px solid rgba(139,92,246,.5)'; btnC.style.background = 'rgba(139,92,246,.15)'; btnC.style.color = '#a78bfa'; }
+    if (btnS) { btnS.style.border = '1px solid rgba(255,255,255,.1)'; btnS.style.background = 'rgba(255,255,255,.04)'; btnS.style.color = 'rgba(255,255,255,.5)'; }
+  } else {
+    if (cryptoEl) cryptoEl.style.display = 'none';
+    if (starsEl)  starsEl.style.display  = '';
+    if (btnS) { btnS.style.border = '2px solid rgba(255,215,0,.4)'; btnS.style.background = 'rgba(255,215,0,.1)'; btnS.style.color = '#FFD700'; }
+    if (btnC) { btnC.style.border = '1px solid rgba(255,255,255,.1)'; btnC.style.background = 'rgba(255,255,255,.04)'; btnC.style.color = 'rgba(255,255,255,.5)'; }
+  }
+}
+
+async function buyStars(stars) {
+  var statusEl = document.getElementById('stars-status');
+  var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || '';
+  if (!tgId) { showToast('Открой в Telegram'); return; }
+  if (statusEl) statusEl.textContent = 'Создаём инвойс...';
+  try {
+    var r = await fetch('/api/stars-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tgId: String(tgId), stars })
+    });
+    var d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'ошибка');
+    if (statusEl) statusEl.textContent = '';
+    // Open Telegram invoice
+    var tg = window.Telegram && window.Telegram.WebApp;
+    if (tg && tg.openInvoice) {
+      tg.openInvoice(d.link, function(status) {
+        if (status === 'paid') {
+          showToast('⭐ Звёзды зачислены! Баланс обновится через секунду.');
+          setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2000);
+          closeSheet('deposit');
+        } else if (status === 'cancelled') {
+          if (statusEl) statusEl.textContent = 'Оплата отменена';
+        } else {
+          if (statusEl) statusEl.textContent = 'Статус: ' + status;
+        }
+      });
+    } else {
+      // Fallback: open link
+      window.open(d.link, '_blank');
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = 'Ошибка: ' + e.message;
+  }
+}
+
+
 async function openDepositSheet() {
   var el = document.getElementById('deposit-addr-text');
   var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || new URLSearchParams(location.search).get('tgId');
@@ -4989,31 +5045,79 @@ async function confirmBetSheet() {
 <div id="deposit-sheet" class="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
-    <span class="sheet-title">💳 Deposit</span>
+    <span class="sheet-title">💰 Пополнение</span>
     <div class="sheet-close" onclick="closeSheet('deposit')">✕</div>
   </div>
   <div class="sheet-body">
-    <div id="deposit-qr-wrap" class="qr-wrap">
-      <canvas id="qr-canvas" width="160" height="160"></canvas>
+
+    <!-- Method tabs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">
+      <button id="dep-tab-crypto" onclick="showDepositTab('crypto')"
+        style="padding:11px;border-radius:12px;border:2px solid rgba(139,92,246,.5);background:rgba(139,92,246,.15);color:#a78bfa;font-size:13px;font-weight:700;cursor:pointer">
+        🟣 POL (Polygon)
+      </button>
+      <button id="dep-tab-stars" onclick="showDepositTab('stars')"
+        style="padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer">
+        ⭐ Telegram Stars
+      </button>
     </div>
-    <div class="addr-box" id="deposit-addr-text">Loading...</div>
-    <button class="btn btn-primary" style="margin-bottom:12px" onclick="copyDepositAddr()">
-      📋 Copy Address
-    </button>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-      <div class="glass-card" style="text-align:center;padding:10px 6px">
-        <div style="font-size:13px;font-weight:700;color:var(--accent)">$10</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">Minimum</div>
+
+    <!-- Crypto tab -->
+    <div id="dep-crypto-tab">
+      <div id="deposit-qr-wrap" class="qr-wrap">
+        <canvas id="qr-canvas" width="160" height="160"></canvas>
       </div>
-      <div class="glass-card" style="text-align:center;padding:10px 6px">
-        <span class="network-badge">🟣 Polygon</span>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">USDC.e</div>
+      <div class="addr-box" id="deposit-addr-text">Загрузка...</div>
+      <button class="btn btn-primary" style="margin-bottom:16px" onclick="copyDepositAddr()">
+        📋 Скопировать адрес
+      </button>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;margin-bottom:4px">
+        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.7">
+          Отправь <b style="color:#a78bfa">POL</b> на этот адрес (сеть Polygon).<br>
+          Мы автоматически конвертируем в USDC и зачислим баланс.<br>
+          <span style="color:rgba(255,255,255,.35);font-size:11px">Зачисление ~30 сек после подтверждения.</span>
+        </div>
       </div>
     </div>
-    <div class="deposit-hint">
-      Send <strong>USDC or POL</strong> (Polygon) to this address.<br>POL auto-swaps to USDC.<br>
-      Funds appear automatically after 1 confirmation (~30 sec).
+
+    <!-- Stars tab -->
+    <div id="dep-stars-tab" style="display:none">
+      <div style="text-align:center;padding:16px 0 24px">
+        <div style="font-size:48px;margin-bottom:8px">⭐</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px">Пополнить звёздами</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:20px;line-height:1.5">
+          1 ⭐ ≈ $0.013 · Мгновенное зачисление
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+          <button onclick="buyStars(50)"  style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 50</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">≈ $0.65</div>
+          </button>
+          <button onclick="buyStars(100)" style="background:rgba(255,215,0,.12);border:2px solid rgba(255,215,0,.35);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 100</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:2px">≈ $1.30</div>
+          </button>
+          <button onclick="buyStars(500)" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 500</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">≈ $6.50</div>
+          </button>
+          <button onclick="buyStars(1000)" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 1K</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">≈ $13</div>
+          </button>
+          <button onclick="buyStars(2500)" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 2.5K</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">≈ $32</div>
+          </button>
+          <button onclick="buyStars(5000)" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:12px 4px;cursor:pointer">
+            <div style="font-size:18px">⭐ 5K</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px">≈ $65</div>
+          </button>
+        </div>
+        <div id="stars-status" style="font-size:12px;color:rgba(255,255,255,.35);min-height:20px"></div>
+      </div>
     </div>
+
   </div>
 </div>
 
