@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolyClawster — Agent Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a25;
+    --accent: #8b5cf6; --green: #19fb9b; --red: #FF4F4F;
+    --muted: rgba(255,255,255,.45); --text: #e8e8ed;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; }
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+  .header { text-align: center; padding: 30px 0 20px; }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header h1 span { color: var(--accent); }
+  .header .address { color: var(--muted); font-size: 13px; font-family: monospace; margin-top: 8px; word-break: break-all; }
+  .card { background: var(--bg2); border-radius: 14px; padding: 20px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,.06); }
+  .card h2 { font-size: 15px; color: var(--muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg3); border-radius: 10px; padding: 14px; text-align: center; }
+  .stat .value { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .stat .label { font-size: 12px; color: var(--muted); }
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+  .positions-list { list-style: none; }
+  .positions-list li { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; }
+  .positions-list li:last-child { border-bottom: none; }
+  .pos-title { font-size: 14px; flex: 1; margin-right: 12px; }
+  .pos-outcome { font-size: 12px; color: var(--muted); }
+  .pos-value { text-align: right; white-space: nowrap; }
+  .pos-value .amount { font-weight: 600; }
+  .pos-value .pnl { font-size: 12px; }
+  .bets-list { list-style: none; }
+  .bets-list li { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .bets-list li:last-child { border-bottom: none; }
+  .bet-side { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .bet-side.yes { background: rgba(25,251,155,.15); color: var(--green); }
+  .bet-side.no { background: rgba(255,79,79,.15); color: var(--red); }
+  .deposit-link { display: block; text-align: center; background: var(--accent); color: #fff; padding: 14px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; margin-top: 8px; }
+  .deposit-link:hover { opacity: .9; }
+  .empty { color: var(--muted); text-align: center; padding: 20px; font-size: 14px; }
+  .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .error-msg { text-align: center; padding: 40px; color: var(--red); }
+  .back-link { display: inline-block; color: var(--accent); text-decoration: none; font-size: 13px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back-link">← polyclawster.com</a>
+  <div class="header">
+    <h1>🤖 <span>PolyClawster</span> Dashboard</h1>
+    <div class="address" id="addr"></div>
+  </div>
+  <div id="content"><div class="loading">Loading dashboard...</div></div>
+</div>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const address = params.get('address') || params.get('addr');
+  const tgId = params.get('tgId');
+  const el = id => document.getElementById(id);
+
+  if (!address && !tgId) {
+    el('content').innerHTML = '<div class="error-msg">No wallet address provided.<br><small>Use ?address=0x... or ?tgId=...</small></div>';
+    return;
+  }
+
+  el('addr').textContent = address || `tgId: ${tgId}`;
+
+  try {
+    // Fetch wallet data
+    const walletParam = address ? `address=${address}` : `tgId=${tgId}`;
+    const [walletRes, positionsRes, txRes] = await Promise.all([
+      fetch(`/api/wallet?${walletParam}`).then(r => r.json()).catch(() => ({ ok: false })),
+      address
+        ? fetch(`https://data-api.polymarket.com/positions?user=${address.toLowerCase()}&limit=50&sizeThreshold=0.01`)
+            .then(r => r.json()).catch(() => [])
+        : Promise.resolve([]),
+      fetch(`/api/transactions?${address ? `tgId=${tgId || ''}` : `tgId=${tgId}`}`).then(r => r.json()).catch(() => ({ bets: [] })),
+    ]);
+
+    const w = walletRes.ok ? walletRes.data : {};
+    const positions = Array.isArray(positionsRes) ? positionsRes.filter(p => (p.currentValue || 0) > 0.01) : [];
+    const bets = Array.isArray(txRes.bets) ? txRes.bets.slice(0, 20) : [];
+
+    const totalPosValue = positions.reduce((s, p) => s + (p.currentValue || 0), 0);
+    const totalPosPnl = positions.reduce((s, p) => s + (p.cashPnl || 0), 0);
+    const freeUsdc = w.freeUsdc || w.usdcOnChain || 0;
+    const totalValue = freeUsdc + totalPosValue;
+
+    if (w.address) el('addr').textContent = w.address;
+
+    let html = '';
+
+    // Stats
+    html += `<div class="card"><h2>💰 Balance</h2><div class="stats-grid">
+      <div class="stat"><div class="value">$${totalValue.toFixed(2)}</div><div class="label">Total Value</div></div>
+      <div class="stat"><div class="value">$${freeUsdc.toFixed(2)}</div><div class="label">Free USDC</div></div>
+      <div class="stat"><div class="value ${totalPosPnl >= 0 ? 'positive' : 'negative'}">$${totalPosPnl >= 0 ? '+' : ''}${totalPosPnl.toFixed(2)}</div><div class="label">Open P&L</div></div>
+      <div class="stat"><div class="value">${positions.length}</div><div class="label">Positions</div></div>
+      <div class="stat"><div class="value">$${(w.polBalance || 0).toFixed(4)}</div><div class="label">POL (gas)</div></div>
+      <div class="stat"><div class="value">${w.trades || 0}</div><div class="label">Trades</div></div>
+    </div></div>`;
+
+    // Positions
+    html += `<div class="card"><h2>📊 Active Positions</h2>`;
+    if (positions.length === 0) {
+      html += `<div class="empty">No active positions</div>`;
+    } else {
+      html += `<ul class="positions-list">`;
+      positions.forEach(p => {
+        const pnl = p.cashPnl || 0;
+        html += `<li>
+          <div><div class="pos-title">${p.title || 'Unknown'}</div><div class="pos-outcome">${p.outcome || ''} @ ${(p.curPrice || 0).toFixed(2)}</div></div>
+          <div class="pos-value"><div class="amount">$${(p.currentValue || 0).toFixed(2)}</div><div class="pnl ${pnl >= 0 ? 'positive' : 'negative'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</div></div>
+        </li>`;
+      });
+      html += `</ul>`;
+    }
+    html += `</div>`;
+
+    // Recent bets
+    html += `<div class="card"><h2>🎲 Recent Bets</h2>`;
+    if (bets.length === 0) {
+      html += `<div class="empty">No bets yet</div>`;
+    } else {
+      html += `<ul class="bets-list">`;
+      bets.forEach(b => {
+        const side = (b.side || 'YES').toUpperCase();
+        const dt = b.created_at ? new Date(b.created_at).toLocaleDateString() : '';
+        html += `<li>
+          <span class="bet-side ${side === 'YES' ? 'yes' : 'no'}">${side}</span>
+          <span style="flex:1;margin:0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.market || 'Unknown market'}</span>
+          <span>$${(b.amount || 0).toFixed(2)}</span>
+          <span style="color:var(--muted);margin-left:8px;font-size:12px">${dt}</span>
+        </li>`;
+      });
+      html += `</ul>`;
+    }
+    html += `</div>`;
+
+    // Deposit link
+    if (w.address) {
+      html += `<a class="deposit-link" href="https://app.uniswap.org/swap?chain=polygon&outputCurrency=0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" target="_blank">💵 Get USDC on Polygon</a>`;
+      html += `<div style="text-align:center;margin-top:10px;font-size:12px;color:var(--muted)">Send USDC (Polygon) to: <code style="font-size:11px">${w.address}</code></div>`;
+    }
+
+    el('content').innerHTML = html;
+  } catch (e) {
+    el('content').innerHTML = `<div class="error-msg">Error: ${e.message}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

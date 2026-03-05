@@ -51,10 +51,22 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-store');
 
-  const tgId = (req.query && req.query.tgId)
-    || new URL(req.url || '/', 'http://x').searchParams.get('tgId');
+  const params = new URL(req.url || '/', 'http://x').searchParams;
+  let tgId = (req.query && req.query.tgId) || params.get('tgId');
+  const addrQuery = (req.query && req.query.address) || params.get('address');
 
-  if (!tgId) return res.json({ ok: false, error: 'no tgId' });
+  // If address provided instead of tgId, look up wallet by address
+  if (!tgId && addrQuery) {
+    try {
+      const allWallets = await db.getAllWallets();
+      const found = Array.isArray(allWallets) && allWallets.find(
+        w => w.address && w.address.toLowerCase() === addrQuery.toLowerCase()
+      );
+      if (found) tgId = String(found.tg_id);
+    } catch {}
+  }
+
+  if (!tgId) return res.json({ ok: false, error: 'no tgId or address' });
 
   const debug = (req.query?.debug || new URL(req.url||'/', 'http://x').searchParams.get('debug')) === '1';
 
