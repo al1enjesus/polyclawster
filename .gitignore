@@ -23,3 +23,15 @@ edge/db/
 drafts/
 *.sqlite
 *.sqlite-journal
+
+# OpenClaw internal
+.agents/
+.openclaw/
+BOOTSTRAP.md
+SOUL.md
+IDENTITY.md
+TOOLS.md
+USER.md
+HEARTBEAT.md
+memory/
+KEYS.md

@@ -2,7 +2,7 @@
   "portfolio": {
     "positions": [
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "94559586571241563470235664821564670251180951772614764383113614156422396181162",
         "conditionId": "0xd9fb1184af0064e5e34b129f5b79afa5a17b7e32f2953ab05efed82315fee6d4",
         "size": 846.9632,
@@ -30,7 +30,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "39317885422026394259056328144566743331998444273202427934141325790266108570112",
         "conditionId": "0xd4bbf7f6707c67beb736135ad32a41f6db41f8ae52d3ac4919650de9eeb94ed8",
         "size": 228.469,
@@ -58,7 +58,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "32851347603814597567286401821747519149361393403508148310403406159392316568857",
         "conditionId": "0xd823132bd9f4b569d000f199b87c075b550fd898485c7f48c76039b8e257c58e",
         "size": 143.8271,
@@ -86,7 +86,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "65193234666628291664907888364936366210889305490897648116746073820519263548476",
         "conditionId": "0xdde06286a7b9464d344f410ab0b3d2ebc6469904e72c27fd982f65fdbf78768d",
         "size": 70,
@@ -114,7 +114,7 @@
         "negativeRisk": true
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "70771354585365381988139008309072205730081182435161568795508496003376222185889",
         "conditionId": "0x70909f0ba8256a89c301da58812ae47203df54957a07c7f8b10235e877ad63c2",
         "size": 66.3157,
@@ -142,7 +142,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "51713015197422285626048285149966472233480554281986587435517727912909466366695",
         "conditionId": "0x8ab9b741b6b6c61f785b444758aa0661b656af3a351f0a0b7de883d57310f149",
         "size": 66.2983,
@@ -170,7 +170,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "89664010425854839009768839725835871616576840096174336508682478001254549444523",
         "conditionId": "0x913bc2e548670b0dee477907a837c49dcff1b391efc81844a45f13fbf68cf908",
         "size": 48.5045,
@@ -198,7 +198,7 @@
         "negativeRisk": true
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "73485508199321485564314459126613583918348268943364721530151693805373908202750",
         "conditionId": "0x7bbb1881e097d38bd64cb649a84c3123dba26388d109001194b6ac28ebf32510",
         "size": 43.4782,
@@ -226,7 +226,7 @@
         "negativeRisk": true
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "39753284845285625770224988455608608692462747994213670499864745068223065201185",
         "conditionId": "0xec0adbce745d15aaa5b8b395b71fdd6fdaaa9ce0b7872e66f4730aa89f6d0ffb",
         "size": 36.5853,
@@ -254,7 +254,7 @@
         "negativeRisk": false
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "10463093494221715368026630089007609406678972704511286886956306725186675687759",
         "conditionId": "0x913bc2e548670b0dee477907a837c49dcff1b391efc81844a45f13fbf68cf908",
         "size": 33.3333,
@@ -282,7 +282,7 @@
         "negativeRisk": true
       },
       {
-        "proxyWallet": "0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b",
+        "proxyWallet": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
         "asset": "98022490269692409998126496127597032490334070080325855126491859374983463996227",
         "conditionId": "0x1fad72fae204143ff1c3035e99e7c0f65ea8d5cd9bd1070987bd1a3316f772be",
         "size": 9.2592,

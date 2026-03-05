@@ -6,7 +6,7 @@ const fs = require('fs');
 const fetch = (...a) => import('node-fetch').then(({default:f}) => f(...a));
 
 async function updateDataJson() {
-  const WALLET = '0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b';
+  const WALLET = '0x6f314d7d2f50808cec1d26c1092e7729d9378d75';
   try {
     const pos = await (await fetch(`https://data-api.polymarket.com/positions?user=${WALLET}&limit=100&sizeThreshold=0.01`)).json();
     const open = pos.filter(p => p.currentValue > 0.01);

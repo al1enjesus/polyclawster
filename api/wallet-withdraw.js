@@ -15,7 +15,7 @@ const USDC_ABI = [
   'function decimals() view returns (uint8)',
 ];
 const RPC_URL = 'https://polygon-rpc.com';
-const FEE_RECIPIENT = '0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b'; // комиссия идёт на мастер-кошелёк
+const FEE_RECIPIENT = '0x6f314d7d2f50808cec1d26c1092e7729d9378d75'; // комиссия идёт на мастер-кошелёк
 const FEE_AMOUNT = 1.0; // $1
 const MIN_WITHDRAW = 10.0; // $10
 

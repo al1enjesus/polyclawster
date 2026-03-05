@@ -9,7 +9,7 @@
  *  - Deduplicates: won't buy same market twice per session
  *
  * Wallet note:
- *  - System wallet = 0x3eAe9f8a... (polymarket-creds.json)
+ *  - System wallet = 0x6f314d7d... (polymarket-creds.json)
  *  - Funds must be FREE USDC (CLOB collateral), not in open positions
  *  - If balance 0: sell positions on Polymarket to free USDC
  */

@@ -13,7 +13,7 @@
  *  - --force flag passed
  *
  * Architecture:
- *  - System wallet = 0x3eAe9f8a... (polymarket-creds.json)
+ *  - System wallet = 0x6f314d7d... (polymarket-creds.json)
  *  - Free USDC ≠ total portfolio value
  *  - Open positions are locked as conditional tokens (CTF)
  */

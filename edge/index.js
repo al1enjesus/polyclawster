@@ -255,7 +255,7 @@ async function updateStaticData() {
   const fetch = (...a) => import('node-fetch').then(({default:f}) => f(...a));
   const DATA_PATH = '/workspace/data.json';
   try {
-    const WALLET = '0x3eae9f8a3e1eba6b7f4792fc3877e50a32e2c47b';
+    const WALLET = '0x6f314d7d2f50808cec1d26c1092e7729d9378d75';
     const r = await fetch(`https://data-api.polymarket.com/positions?user=${WALLET}&limit=100&sizeThreshold=0.01`);
     const positions = await r.json();
     const open = Array.isArray(positions) ? positions.filter(p => p.currentValue > 0.01) : [];
