@@ -28,7 +28,7 @@ const MIN_POL_SWAP   = 1.0;   // минимум для свапа (ниже — 
 const KYBER_API      = 'https://aggregator-api.kyberswap.com/polygon/api/v1';
 const KYBER_ROUTER   = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5';
 const NATIVE_POL     = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-const USDC_NATIVE    = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+const USDC_NATIVE    = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC.e (Polymarket)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function loadUsers() {
