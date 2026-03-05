@@ -146,11 +146,18 @@ async function swapPolToUsdc(privateKey, address) {
   if (!buildRes?.data?.data) throw new Error('Failed to build swap tx');
 
   // Send tx
+  const feeData = await provider.getFeeData();
+  const maxPriorityFeePerGas = ethers.utils.parseUnits('30','gwei');
+  const maxFeePerGas = feeData.maxFeePerGas?.mul ? feeData.maxFeePerGas.mul(150).div(100) : ethers.utils.parseUnits('100','gwei');
+
   const tx = await wallet.sendTransaction({
     to: KYBER_ROUTER,
     data: buildRes.data.data,
     value: amountIn,
-    gasLimit: buildRes.data.gas || 350000,
+    gasLimit: buildRes.data.gas || 400000,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    type: 2,
   });
 
   console.log(`[swap] TX: ${tx.hash}`);

@@ -1,261 +1,226 @@
 {
   "ob": {
     "48825140812430902098404528620382945035793471220915259967486864813738884055220": {
-      "bidDepth": 148187.80434999996,
-      "askDepth": 1210115.2781599998,
+      "bidDepth": 143699.60295000003,
+      "askDepth": 1213854.02527,
       "lastPrice": 0.001,
       "whaleBids": 0,
       "whaleAsks": 1,
-      "ts": 1772650464712,
-      "bidAskRatio": 0.12245759311073401,
-      "askBidRatio": 8.166092233216897
+      "ts": 1772679717579,
+      "bidAskRatio": 0.11838293564008788,
+      "askBidRatio": 8.447163390509562
     },
     "107505882767731489358349912513945399560393482969656700824895970500493757150417": {
-      "bidDepth": 676274.0087000001,
-      "askDepth": 1095697.8593000001,
+      "bidDepth": 678385.6061000001,
+      "askDepth": 1116281.0769000002,
       "lastPrice": 0.01,
       "whaleBids": 0,
       "whaleAsks": 3,
-      "ts": 1772650464900,
-      "bidAskRatio": 0.6172084785599983,
-      "askBidRatio": 1.6201980930869389
+      "ts": 1772679717735,
+      "bidAskRatio": 0.6077193460843482,
+      "askBidRatio": 1.645496406265805
     },
     "104071616575689490708756996503755160411785604144351427331378560378097635400347": {
-      "bidDepth": 200256.46749999997,
-      "askDepth": 1392911.0008000003,
+      "bidDepth": 198346.6605,
+      "askDepth": 1399727.279600001,
       "lastPrice": 0.01,
       "whaleBids": 0,
       "whaleAsks": 1,
-      "ts": 1772650465062,
-      "bidAskRatio": 0.14376831497847692,
-      "askBidRatio": 6.955635531721343
+      "ts": 1772679718062,
+      "bidAskRatio": 0.14170379001020927,
+      "askBidRatio": 7.056974269551672
     },
     "90435811253665578014957380826505992530054077692143838383981805324273750424057": {
-      "bidDepth": 155555.7314,
-      "askDepth": 1839033.1599,
+      "bidDepth": 134275.77560000002,
+      "askDepth": 1849126.2925999998,
       "lastPrice": 0.01,
       "whaleBids": 1,
       "whaleAsks": 3,
-      "ts": 1772650465571,
-      "bidAskRatio": 0.08458560443165611,
-      "askBidRatio": 11.822342663614645
+      "ts": 1772679718379,
+      "bidAskRatio": 0.07261579489586889,
+      "askBidRatio": 13.771108633238827
     },
     "54533043819946592547517511176940999955633860128497669742211153063842200957669": {
-      "bidDepth": 23311.357829999997,
-      "askDepth": 19589390.039959997,
+      "bidDepth": 22653.17894000001,
+      "askDepth": 19594979.434520002,
       "lastPrice": 0.001,
       "whaleBids": 0,
       "whaleAsks": 2,
-      "ts": 1772650465398,
-      "bidAskRatio": 0.0011899991670209044,
-      "askBidRatio": 840.3367226747255
+      "ts": 1772679718219,
+      "bidAskRatio": 0.0011560705646923236,
+      "askBidRatio": 864.999101734019
     },
     "60745476350338574489643206785963608049827415658137795738920858026399504782388": {
-      "bidDepth": 52439.706099999996,
-      "askDepth": 1187052.3886999998,
+      "bidDepth": 51118.34379999999,
+      "askDepth": 1193299.2933999996,
       "lastPrice": 0.01,
       "whaleBids": 0,
       "whaleAsks": 0,
-      "ts": 1772650465733,
-      "bidAskRatio": 0.044176404174907,
-      "askBidRatio": 22.636518718017754
+      "ts": 1772679718538,
+      "bidAskRatio": 0.04283782290220872,
+      "askBidRatio": 23.34385671939551
     },
     "16040015440196279900485035793550429453516625694844857319147506590755961451627": {
-      "bidDepth": 35319.82967000001,
-      "askDepth": 8623242.04021,
+      "bidDepth": 39781.91324,
+      "askDepth": 8584446.863080002,
       "lastPrice": 0.001,
       "whaleBids": 0,
-      "whaleAsks": 1,
-      "ts": 1772650466060,
-      "bidAskRatio": 0.004095887544998084,
-      "askBidRatio": 244.1473280244728
+      "whaleAsks": 0,
+      "ts": 1772679718996,
+      "bidAskRatio": 0.004634184808236637,
+      "askBidRatio": 215.78768249005415
     },
     "10991849228756847439673778874175365458450913336396982752046655649803657501964": {
-      "bidDepth": 151681.83709999998,
-      "askDepth": 453254.64509999985,
+      "bidDepth": 183356.7847,
+      "askDepth": 461870.9947999999,
       "lastPrice": 0.01,
-      "whaleBids": 1,
+      "whaleBids": 2,
       "whaleAsks": 1,
-      "ts": 1772650465901,
-      "bidAskRatio": 0.33465037532386455,
-      "askBidRatio": 2.988193271955037
+      "ts": 1772679718692,
+      "bidAskRatio": 0.39698700884951094,
+      "askBidRatio": 2.518974116805616
     },
     "108666902993460052548356894576792031068019553485832706137527731404107083354939": {
-      "bidDepth": 1296.9036,
-      "askDepth": 46074.06156000001,
+      "bidDepth": 1051.80024,
+      "askDepth": 49900.2265,
       "lastPrice": 0.001,
       "whaleBids": 0,
       "whaleAsks": 0,
-      "ts": 1772650466377,
-      "bidAskRatio": 0.028148236905728524,
-      "askBidRatio": 35.52620376718825
+      "ts": 1772679719301,
+      "bidAskRatio": 0.021078065447258043,
+      "askBidRatio": 47.44268407849003
     },
     "11259214629259962188961658360673801608680858594287954976598964541495296876564": {
-      "bidDepth": 266645.3521,
-      "askDepth": 259260.997,
+      "bidDepth": 208546.5786,
+      "askDepth": 259731.496,
       "lastPrice": 0.01,
-      "whaleBids": 4,
+      "whaleBids": 2,
       "whaleAsks": 0,
-      "ts": 1772650465227,
-      "bidAskRatio": 1.0284823216197074,
-      "askBidRatio": 0.9723064548403204
+      "ts": 1772679717888,
+      "bidAskRatio": 0.8029314188372442,
+      "askBidRatio": 1.2454363804173194
     },
     "38397507750621893057346880033441136112987238933685677349709401910643842844855": {
-      "bidDepth": 235952.74529999998,
-      "askDepth": 491721.3715999998,
+      "bidDepth": 228198.12269999995,
+      "askDepth": 547084.0858999997,
       "lastPrice": 0.01,
       "whaleBids": 0,
-      "whaleAsks": 0,
-      "ts": 1772650466219,
-      "bidAskRatio": 0.4798504985297655,
-      "askBidRatio": 2.0839824134057228
+      "whaleAsks": 2,
+      "ts": 1772679718844,
+      "bidAskRatio": 0.4171170914697595,
+      "askBidRatio": 2.397408354753305
     },
     "57301498276970257025109591078431189727442302532145853906375186182281603517458": {
-      "bidDepth": 6459.1709,
-      "askDepth": 161159.49880000006,
+      "bidDepth": 5802.8383,
+      "askDepth": 164738.64670000004,
       "lastPrice": 0.01,
       "whaleBids": 0,
       "whaleAsks": 0,
-      "ts": 1772650466700,
-      "bidAskRatio": 0.040079368253781125,
-      "askBidRatio": 24.950493073344763
+      "ts": 1772679719456,
+      "bidAskRatio": 0.035224511165053776,
+      "askBidRatio": 28.38932229078312
     },
     "8067407495040644813204108294851401001772374258077273118510788800804436836793": {
-      "bidDepth": 160548.04372,
-      "askDepth": 1197657.69227,
+      "bidDepth": 422295.64220999996,
+      "askDepth": 1301489.4258700002,
       "lastPrice": 0.001,
-      "whaleBids": 2,
-      "whaleAsks": 3,
-      "ts": 1772650466537,
-      "bidAskRatio": 0.13405169503458259,
-      "askBidRatio": 7.459808693519471
+      "whaleBids": 4,
+      "whaleAsks": 1,
+      "ts": 1772679719148,
+      "bidAskRatio": 0.3244710512555337,
+      "askBidRatio": 3.0819390393396318
+    },
+    "98250445447699368679516529207365255018790721464590833209064266254238063117329": {
+      "bidDepth": 17910.792319999997,
+      "askDepth": 9105988.107,
+      "lastPrice": 0.001,
+      "whaleBids": 0,
+      "whaleAsks": 0,
+      "ts": 1772679719613,
+      "bidAskRatio": 0.001966924633498206,
+      "askBidRatio": 508.4078886243265
+    },
+    "40081275558852222228080198821361202017557872256707631666334039001378518619916": {
+      "bidDepth": 110213.91118,
+      "askDepth": 10834737.352129996,
+      "lastPrice": 0.001,
+      "whaleBids": 0,
+      "whaleAsks": 0,
+      "ts": 1772679719766,
+      "bidAskRatio": 0.010172273456941076,
+      "askBidRatio": 98.30644095766493
+    },
+    "13565458761220145250977753098276900790902214604876327357986816739576288755859": {
+      "bidDepth": 11100.103919999998,
+      "askDepth": 7886463.85649,
+      "lastPrice": 0.001,
+      "whaleBids": 0,
+      "whaleAsks": 0,
+      "ts": 1772679719918,
+      "bidAskRatio": 0.0014074880861674652,
+      "askBidRatio": 710.4855876421382
     }
   },
   "vol": {
-    "0x55aaedf58a379e677f1a72150605119fcbed1c4cb90d163d1bff2445053f4a18": {
-      "total": 2240,
+    "0x2859bb44f6c8feac18494db286c2a8b55d9e7394a8366bc8c58cfde353e41c90": {
+      "total": 281.15656,
       "sides": {
-        "Yes": 2240
+        "No": 281.15656
       },
-      "title": "Will Manchester City FC win on 2026-03-04?"
+      "title": "Will Valérie Pécresse win the 2027 French presidential election?"
     },
-    "0xe0266da952c7be95f42d76770972075b57ac3823f876a4967b9a696bf7f77cb3": {
-      "total": 211.77948,
+    "0xc789aaf8297d267888c642c13dbdeb36a54eb527c25d12f08eda16180d74105e": {
+      "total": 375.87375,
       "sides": {
-        "No": 211.77948
+        "76ers": 375.87375
       },
-      "title": "Will Train Dreams win Best Picture at the 98th Academy Awards?"
+      "title": "Jazz vs. 76ers"
     },
-    "0xbdeff4a14ca419dd819ffd45e4911cff72b7577a0d603a1a336c607044f1088d": {
-      "total": 355.6143,
+    "0x4751c50fd1f354bb223135bb01c8ff18181ffa6291f7bc09848b23cb760be671": {
+      "total": 4700,
       "sides": {
-        "Down": 355.6143
+        "Ducks": 4700
       },
-      "title": "Ethereum Up or Down - March 4, 1:45PM-1:50PM ET"
+      "title": "Islanders vs. Ducks"
     },
-    "0xd623e02534a8db61204fb2b72a4de1366cb9d9f3d0e00742386aa25446ef9831": {
-      "total": 239.1948,
+    "0x2918aceff3605f22879dbe42a78c67912d822c1c3dddab16ad5349a781c83249": {
+      "total": 649.34,
       "sides": {
-        "Yulia Putintseva": 239.1948
+        "Bianca Andreescu": 649.34
       },
-      "title": "BNP Paribas Open: Yulia Putintseva vs Paula Badosa"
+      "title": "BNP Paribas Open: Bianca Andreescu vs Kamilla Rakhimova"
     },
-    "0x1a56b7f926420148fd38ac665944757a6b35537fcb9996716397fe68ca804465": {
-      "total": 247.5,
+    "0x82a801667ac121d0908f5610bfd7bdbbab8980899f36ffdc6173ee47675e1f6a": {
+      "total": 350,
       "sides": {
-        "Yes": 247.5
+        "Pacers": 350
       },
-      "title": "Will the highest temperature in Miami be between 80-81°F on March 4?"
+      "title": "Spread: Clippers (-11.5)"
     },
-    "0xccf8372bc6bae132c8ae0ad5a40b674a5015bf38840abf18b534f790a3547076": {
-      "total": 228.9,
+    "0x4f9a6b5af299117c2ae948215dcdea549ec51fde526854dd7cfa37d10c160fdc": {
+      "total": 1141.6808,
       "sides": {
-        "Yes": 228.9
+        "Under": 1141.6808
       },
-      "title": "Will Delfino Pescara 1936 win on 2026-03-04?"
-    },
-    "0x465da98926d377e600aa020a8b389efc38a29eb747359a5159073c3da96deaa2": {
-      "total": 2425.152,
-      "sides": {
-        "Berlin International Gaming": 2425.152
-      },
-      "title": "LoL: Eintracht Spandau vs Berlin International Gaming (BO5) - Prime League 1st Division Playoffs"
-    },
-    "0x67bf5ce3b7fbf777a4e92ca8575e8fed621ba2bbb7412fec44adf3d0e0c4af2b": {
-      "total": 223.529999,
-      "sides": {
-        "Yes": 223.529999
-      },
-      "title": "Will Leavitt say \"State of the Union\" during the next White House Press Briefing?"
-    },
-    "0xbe6525eb1b615ba8a490abc915d76cdffabb2aad4f71e26aaee5f57c3b096a71": {
-      "total": 266.73136,
-      "sides": {
-        "Yes": 266.73136
-      },
-      "title": "Will Mojtaba Khamenei be the next Supreme Leader of Iran?"
-    },
-    "0xdf0f1c1559c6907f74a2e772a5ddcc850e0432499f11eae661cbfb787b57ebdf": {
-      "total": 434.3415,
-      "sides": {
-        "Over": 434.3415
-      },
-      "title": "North Florida Ospreys vs. West Georgia Wolves: O/U 157.5"
-    },
-    "0xac5a968ce63080fd83fcb9a8eb73512f0ad4f0c689a86740b37969f5fb62bb78": {
-      "total": 200.95996,
-      "sides": {
-        "No": 200.95996
-      },
-      "title": "Will France win Eurovision 2026?"
-    },
-    "0xa31e61f22cf97acf90a49111ed890b7115749a0b65067e63b798371e6c595a24": {
-      "total": 270.72746,
-      "sides": {
-        "No": 270.72746
-      },
-      "title": "Will Park Hong-keun win the 2026 Seoul Mayoral Election"
-    },
-    "0x3f7d268c16070dc23af9c082b25c07ba72a23da27afc6fac78b243baac9260f0": {
-      "total": 207.41991,
-      "sides": {
-        "Down": 207.41991
-      },
-      "title": "Bitcoin Up or Down - March 4, 1:45PM-1:50PM ET"
-    },
-    "0xe709dcb12986139fa5b4cc793069d0c64bde1bfb351914c95bdd6149ec91a3ee": {
-      "total": 226.76556,
-      "sides": {
-        "No": 226.76556
-      },
-      "title": "Will the New Orleans Pelicans win the 2026 NBA Finals?"
-    },
-    "0xe71ce63ef31a0366892e42d881efbd16d8228cc3b8baa5ad7bb9f1e8bfa49905": {
-      "total": 445.9,
-      "sides": {
-        "Yes": 445.9
-      },
-      "title": "Will NVIDIA (NVDA) close above $180 on March 4?"
-    },
-    "0x56ced25c1266e3bdb08450662d82a6361777ddd1de9c5c4572c33652d6dd1aaf": {
-      "total": 269.099,
-      "sides": {
-        "No": 269.099
-      },
-      "title": "Will Israel's Ben Gurion Airport reopen by March 7?"
-    },
-    "0xbeb97cb6d42528a620b66e829b00d6d9e609a34665c109b5c95d581f21b5392f": {
-      "total": 225.8998,
-      "sides": {
-        "No": 225.8998
-      },
-      "title": "US/Israel strike on Fordow nuclear facility by March 31?"
+      "title": "Hurricanes vs. Canucks: O/U 6.5"
     }
   },
   "cross": {
+    "561243": {
+      "price": 0.001,
+      "question": "Will Donald Trump win the 2028 US Presidential Election?"
+    },
+    "561244": {
+      "price": 0.001,
+      "question": "Will Donald Trump Jr. win the 2028 US Presidential Election?"
+    },
     "561829": {
       "price": 0.001,
       "question": "Russia x Ukraine ceasefire by March 31, 2026?"
+    },
+    "561973": {
+      "price": 0.001,
+      "question": "Will Donald Trump win the 2028 Republican presidential nomination?"
     },
     "567687": {
       "price": 0.01,
@@ -293,6 +258,10 @@
       "price": 0.01,
       "question": "Will the Iranian regime fall before 2027?"
     },
+    "666860": {
+      "price": 0.001,
+      "question": "Trump out as President by March 31?"
+    },
     "916732": {
       "price": 0.001,
       "question": "Khamenei out as Supreme Leader of Iran by March 31?"
@@ -308,6 +277,10 @@
     "997488": {
       "price": 0.001,
       "question": "Will Trump acquire Greenland before 2027?"
+    },
+    "1126504": {
+      "price": 0.01,
+      "question": "Will the US acquire part of Greenland in 2026?"
     },
     "1178277": {
       "price": 0.001,
@@ -326,15 +299,31 @@
       "question": "Will the US next strike Iran on February 28, 2026 (ET)?"
     }
   },
-  "ts": 1772650474770,
+  "ts": 1772679727286,
   "lastSignals": [
     {
       "type": "whale_order",
       "score": 10,
-      "market": "Will Iran close the Strait of Hormuz by March 31?",
+      "market": "Will the Iranian regime fall before 2027?",
       "side": "YES",
-      "amount": "43825",
+      "amount": "39979",
       "price": "1.0"
+    },
+    {
+      "type": "whale_order",
+      "score": 10,
+      "market": "Will the Iranian regime fall by June 30?",
+      "side": "NO",
+      "amount": "28923",
+      "price": "99.0"
+    },
+    {
+      "type": "whale_order",
+      "score": 10,
+      "market": "Will US or Israel strike Iran first?",
+      "side": "YES",
+      "amount": "144206",
+      "price": "0.1"
     },
     {
       "type": "ob_imbalance",
@@ -342,190 +331,170 @@
       "market": "Will there be at least 10000 measles cases in the U.S. in 2026?",
       "side": "NO",
       "price": "99.9",
-      "bidDepth": "1297",
-      "askDepth": "46074",
-      "ratio": "35.5"
+      "bidDepth": "1052",
+      "askDepth": "49900",
+      "ratio": "47.4"
     },
     {
       "type": "ob_imbalance",
       "score": 10,
-      "market": "Will US or Israel strike Iran first?",
+      "market": "Will Gavin Newsom win the 2028 US Presidential Election?",
       "side": "NO",
       "price": "99.9",
-      "bidDepth": "160548",
-      "askDepth": "1197658",
-      "ratio": "7.5"
+      "bidDepth": "17911",
+      "askDepth": "9105988",
+      "ratio": "508.4"
     },
     {
-      "type": "smartwallet",
+      "type": "ob_imbalance",
       "score": 10,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0xc6dd722558dbfbd8fa780efcbe819ed8c6604b9f",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
+      "market": "Will J.D. Vance win the 2028 Republican presidential nomination?",
+      "side": "NO",
+      "price": "99.9",
+      "bidDepth": "110214",
+      "askDepth": "10834737",
+      "ratio": "98.3"
     },
     {
-      "type": "smartwallet",
+      "type": "ob_imbalance",
       "score": 10,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x7131cb618fb195c70e8e629c45199096833c29cc",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
+      "market": "Will Marco Rubio win the 2028 Republican presidential nomination?",
+      "side": "NO",
+      "price": "99.9",
+      "bidDepth": "11100",
+      "askDepth": "7886464",
+      "ratio": "710.5"
     },
     {
       "type": "smartwallet",
-      "score": 10,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0xc6dd722558dbfbd8fa780efcbe819ed8c6604b9f",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 3.85839075,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x22e4248bdb066f65c9f11cd66cdd3719a28eef1c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 10,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x1602856ef17c9b838b2f2b941b9c628cd5eecbf7",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 10,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x43440ab002eaac9fede6f9d21bea96d84228f90d",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 6.493,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.998,
-      "addr": "0x28b340ecf1a193607e177312849bfc2f79a730c8",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.64090745,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 3.69195735,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 3.84929985,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.60943895,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 3.8741250000000003,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x84571f1bf97a5c710cbe51daff2dd4556cc887fd",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.62482355,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.7482500000000005,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0xa16a1302ca05463f30faebeb5c045767fde233a1",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.7482500000000005,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 4.7482500000000005,
-      "market": "Will Trump nominate Judy Shelton as the next Fed chair?",
-      "price": 0.999,
-      "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
-      "winRate": 0,
-      "totalPnl": 0,
-      "outcome": "No"
-    },
-    {
-      "type": "smartwallet",
-      "score": 3.1891309,
+      "score": 8.57409996535,
       "market": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
-      "price": 0.997,
+      "price": 0.9969999999998748,
+      "addr": "0xf6a999b16d5ed13d10b6f140e514fd325cea44a1",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 8.544725060000001,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.995,
+      "addr": "0xd0a7b937cf5f3cf71341badb33840d4d6f08da3f",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 8.5502999139,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0xd0a7b937cf5f3cf71341badb33840d4d6f08da3f",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 5.4402,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 10,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
+      "addr": "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50",
+      "winRate": 0,
+      "totalPnl": 0,
+      "outcome": "No"
+    },
+    {
+      "type": "smartwallet",
+      "score": 3.1837122,
+      "market": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+      "price": 0.996,
       "addr": "0x6c979ffcc3528a5d2395a2f7c89135711da0988c",
       "winRate": 0,
       "totalPnl": 0,
       "outcome": "No"
     }
   ],
-  "lastRun": "2026-03-04T18:54:34.889Z"
+  "lastRun": "2026-03-05T03:02:07.395Z"
 }

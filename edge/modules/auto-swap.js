@@ -121,11 +121,22 @@ async function swapPolToUsdc(privateKey) {
 
   // Send tx
   const gasLimit = txData.gas || 300000;
+  // Get current gas price with buffer (Polygon needs min 25+ gwei tip)
+  let maxFeePerGas, maxPriorityFeePerGas;
+  try {
+    const feeData = await provider.getFeeData();
+    maxPriorityFeePerGas = ethersLib.utils.parseUnits('30', 'gwei');
+    maxFeePerGas = feeData.maxFeePerGas?.mul ? feeData.maxFeePerGas.mul(150).div(100) : maxPriorityFeePerGas.mul(2);
+  } catch { maxPriorityFeePerGas = ethersLib.utils.parseUnits('30','gwei'); maxFeePerGas = ethersLib.utils.parseUnits('100','gwei'); }
+
   const tx = await wallet.sendTransaction({
     to: KYBER_ROUTER,
     data: txData.data,
     value: BigInt(Math.floor(polToSwap * 1e18)).toString(),
     gasLimit,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    type: 2,
   });
 
   console.log(`[swap] TX sent: ${tx.hash}`);

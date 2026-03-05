@@ -442,11 +442,11 @@
   "0x6c979ffcc3528a5d2395a2f7c89135711da0988c": {
     "type": "whale",
     "score": 5.66063,
-    "totalVol": 2165535.1520000007,
+    "totalVol": 2271395.2120000008,
     "dominantSide": "No",
     "dominantMarket": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
     "addedAt": "2026-03-01T10:15:27.684Z",
-    "lastSeen": "2026-03-04T18:54:27.676Z",
+    "lastSeen": "2026-03-05T03:02:00.454Z",
     "wins": 0,
     "losses": 0
   },
@@ -2730,11 +2730,11 @@
   "0x241f846866c2de4fb67cdb0ca6b963d85e56ef50": {
     "type": "whale",
     "score": 6.1145491125,
-    "totalVol": 1465374.6227599997,
+    "totalVol": 2083220.5669599997,
     "dominantSide": "No",
     "dominantMarket": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
     "addedAt": "2026-03-04T00:19:17.523Z",
-    "lastSeen": "2026-03-04T18:54:27.676Z",
+    "lastSeen": "2026-03-05T03:02:00.454Z",
     "wins": 0,
     "losses": 0
   },
@@ -2807,11 +2807,11 @@
   "0x5c88611ce3031d75400666b8b31456cb843a4b0b": {
     "type": "whale",
     "score": 5.0591229834,
-    "totalVol": 100014.54490800001,
+    "totalVol": 105897.75343200001,
     "dominantSide": "No",
     "dominantMarket": "Will Oprah Winfrey win the 2028 Democratic presidential nomination?",
     "addedAt": "2026-03-04T01:19:19.198Z",
-    "lastSeen": "2026-03-04T18:54:29.124Z",
+    "lastSeen": "2026-03-05T03:02:01.407Z",
     "wins": 0,
     "losses": 0
   },
@@ -3346,11 +3346,11 @@
   "0xd7e1c08db3c17bdb52e50d6b7d05ca1b8a8cd1bc": {
     "type": "whale",
     "score": 5.073906996,
-    "totalVol": 35552.69136,
+    "totalVol": 41478.139919999994,
     "dominantSide": "No",
     "dominantMarket": "Will Chelsea Clinton win the 2028 Democratic presidential nomination?",
     "addedAt": "2026-03-04T17:00:14.679Z",
-    "lastSeen": "2026-03-04T18:54:28.163Z",
+    "lastSeen": "2026-03-05T03:02:00.817Z",
     "wins": 0,
     "losses": 0
   },
@@ -3802,6 +3802,94 @@
     "dominantMarket": "Will Trump nominate Judy Shelton as the next Fed chair?",
     "addedAt": "2026-03-04T18:54:29.275Z",
     "lastSeen": "2026-03-04T18:54:29.275Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0xf6a999b16d5ed13d10b6f140e514fd325cea44a1": {
+    "type": "whale",
+    "score": 8.57409996535,
+    "totalVol": 15925.999901,
+    "dominantSide": "No",
+    "dominantMarket": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
+    "addedAt": "2026-03-05T03:02:00.204Z",
+    "lastSeen": "2026-03-05T03:02:00.204Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0x700d5d86a80125ee958df867751ad008297ccfb6": {
+    "type": "whale",
+    "score": 10,
+    "totalVol": 29407.238829,
+    "dominantSide": "No",
+    "dominantMarket": "Will the Fed decrease interest rates by 50+ bps after the March 2026 meeting?",
+    "addedAt": "2026-03-05T03:02:00.204Z",
+    "lastSeen": "2026-03-05T03:02:00.204Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0xd0a7b937cf5f3cf71341badb33840d4d6f08da3f": {
+    "type": "whale",
+    "score": 10,
+    "totalVol": 31700.071354,
+    "dominantSide": "No",
+    "dominantMarket": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+    "addedAt": "2026-03-05T03:02:00.454Z",
+    "lastSeen": "2026-03-05T03:02:00.454Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0xe8dd7741ccb12350957ec71e9ee332e0d1e6ec86": {
+    "type": "whale",
+    "score": 5.239954137750001,
+    "totalVol": 6399.868965000001,
+    "dominantSide": "No",
+    "dominantMarket": "Will the Fed increase interest rates by 25+ bps after the March 2026 meeting?",
+    "addedAt": "2026-03-05T03:02:00.455Z",
+    "lastSeen": "2026-03-05T03:02:00.455Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0xbaea927d9ad5933b7268888ae821a404ff17ae1d": {
+    "type": "whale",
+    "score": 10,
+    "totalVol": 32301.215674,
+    "dominantSide": "No",
+    "dominantMarket": "Will Jesus Christ return before 2027?",
+    "addedAt": "2026-03-05T03:02:01.046Z",
+    "lastSeen": "2026-03-05T03:02:01.046Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0x7e097e726b4ed75150fda8c25bc91677a331151f": {
+    "type": "whale",
+    "score": 6.570875000000001,
+    "totalVol": 10202.5,
+    "dominantSide": "No",
+    "dominantMarket": "Will Jesus Christ return before 2027?",
+    "addedAt": "2026-03-05T03:02:01.046Z",
+    "lastSeen": "2026-03-05T03:02:01.046Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0xf594b4cf00c3cff37e269b509cbe0ec6bb2dbe62": {
+    "type": "whale",
+    "score": 6.3571934865,
+    "totalVol": 9591.98139,
+    "dominantSide": "No",
+    "dominantMarket": "Will George Clooney win the 2028 Democratic presidential nomination?",
+    "addedAt": "2026-03-05T03:02:02.427Z",
+    "lastSeen": "2026-03-05T03:02:02.427Z",
+    "wins": 0,
+    "losses": 0
+  },
+  "0x22fc4803e8f29b9fa09fd5c286fc8ea86d7d7080": {
+    "type": "whale",
+    "score": 7.4049949999999995,
+    "totalVol": 12585.7,
+    "dominantSide": "No",
+    "dominantMarket": "Will George Clooney win the 2028 Democratic presidential nomination?",
+    "addedAt": "2026-03-05T03:02:02.427Z",
+    "lastSeen": "2026-03-05T03:02:02.427Z",
     "wins": 0,
     "losses": 0
   }
