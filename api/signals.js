@@ -1,70 +1,100 @@
 /**
- * /api/signals — returns persistent signal history
- * GET ?limit=50&minScore=0
+ * /api/signals — returns fresh top markets from Polymarket as tradeable signals
+ * GET ?limit=20&category=all
  */
 'use strict';
-const db = require('../lib/db');
 const https = require('https');
 
-const GH_TOKEN = process.env.GH_TOKEN || '';
-const GH_REPO  = 'al1enjesus/polyclawster';
+// Simple cache to avoid hammering Gamma API
+let _cache = null;
+let _cacheAt = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
-async function ghGet(file) {
+function httpGet(url) {
   return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.github.com',
-      path: `/repos/${GH_REPO}/contents/${file}`,
-      method: 'GET',
-      headers: { 'Authorization': 'token ' + GH_TOKEN, 'User-Agent': 'polyclawster' },
-      timeout: 7000,
+    const u = new URL(url);
+    const req = https.get({
+      hostname: u.hostname,
+      path: u.pathname + u.search,
+      headers: { 'User-Agent': 'polyclawster/2.0' },
+      timeout: 8000,
     }, res => {
-      let d = ''; res.on('data', c => d += c);
-      res.on('end', () => {
-        try { resolve(JSON.parse(Buffer.from(JSON.parse(d).content, 'base64').toString())); }
-        catch { reject(new Error('parse')); }
-      });
+      let d = '';
+      res.on('data', c => d += c);
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
     });
-    req.on('error', reject).on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
   });
+}
+
+async function fetchTopMarkets(limit = 20) {
+  const now = Date.now();
+  if (_cache && now - _cacheAt < CACHE_TTL) return _cache;
+
+  try {
+    const markets = await httpGet(
+      `https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=${Math.min(limit * 3, 60)}&order=volume&ascending=false`
+    );
+    if (!Array.isArray(markets)) return [];
+
+    const signals = markets
+      .filter(m => m.conditionId && m.question && parseFloat(m.volume || 0) > 100)
+      .sort((a, b) => parseFloat(b.volume || 0) - parseFloat(a.volume || 0))
+      .slice(0, limit)
+      .map(m => {
+        const prices = (() => {
+          try { return JSON.parse(m.outcomePrices || '[0.5,0.5]'); } catch { return [0.5, 0.5]; }
+        })();
+        const tokenIds = (() => {
+          try { return JSON.parse(m.clobTokenIds || '[]'); } catch { return []; }
+        })();
+        const pYes = parseFloat(prices[0]) || 0.5;
+        const pNo  = parseFloat(prices[1]) || (1 - pYes);
+        const vol  = parseFloat(m.volume || 0);
+
+        // Score based on volume + interesting price (not too close to 0 or 1)
+        const priceInterest = 1 - Math.abs(pYes - 0.5) * 2; // 0=boring, 1=50/50
+        const score = Math.min(10, Math.max(5, 5 + priceInterest * 3 + Math.min(2, vol / 50000)));
+
+        return {
+          type: 'market',
+          market: m.question,
+          title: m.question,
+          slug: m.slug || '',
+          conditionId: m.conditionId,
+          marketId: m.conditionId,
+          tokenIdYes: tokenIds[0] || '',
+          tokenIdNo:  tokenIds[1] || '',
+          price: pYes,
+          priceYes: pYes,
+          priceNo: pNo,
+          volume: vol,
+          score: parseFloat(score.toFixed(1)),
+          side: pYes < 0.5 ? 'YES' : 'NO', // suggest contrarian side
+          timestamp: new Date().toISOString(),
+          source: 'polymarket',
+        };
+      });
+
+    _cache = signals;
+    _cacheAt = now;
+    return signals;
+  } catch (e) {
+    console.error('[signals] fetch error:', e.message);
+    return _cache || [];
+  }
 }
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'public, max-age=120');
 
-  const url    = new URL(req.url || '/', 'http://x');
-  const limit  = parseInt(url.searchParams.get('limit') || '50');
-  const minScore = parseFloat(url.searchParams.get('minScore') || '0');
+  const url   = new URL(req.url || '/', 'http://x');
+  const limit = parseInt(url.searchParams.get('limit') || '20');
 
   try {
-    // Try Supabase signals first (live, persistent)
-    let signals = [];
-    try {
-      const sbSigs = await db.getSignals(limit, minScore);
-      if (Array.isArray(sbSigs) && sbSigs.length > 0) {
-        signals = sbSigs.map(s => ({ ...(s.raw || {}), ...s, id: undefined, raw: undefined }));
-      }
-    } catch {}
-
-    // Fallback: signals_history.json from GitHub
-    if (signals.length === 0) {
-      try {
-        signals = await ghGet('edge/db/signals_history.json');
-      } catch {
-        const data = await ghGet('data.json');
-        signals = data.signals || [];
-      }
-    }
-
-    if (!Array.isArray(signals)) signals = [];
-
-    // Filter and sort
-    signals = signals
-      .filter(s => (s.score || 0) >= minScore)
-      .sort((a, b) => (b.score || 0) - (a.score || 0))
-      .slice(0, limit);
-
+    const signals = await fetchTopMarkets(limit);
     res.json({ ok: true, count: signals.length, signals });
   } catch (e) {
     res.json({ ok: false, error: e.message, signals: [] });

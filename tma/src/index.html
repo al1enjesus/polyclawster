@@ -1974,7 +1974,7 @@ async function loadPortfolio() {
     var d = await r.json();
     if (!d.ok) throw new Error(d.error || 'api error');
     _portfolio = d.portfolio || {};
-    _portfolio._signals = d.signals || [];
+    _portfolio._signals = d.signals && d.signals.length > 0 ? d.signals : (_signals || []);
     _portfolio._tgId    = tgId;
     _portfolio._isOwner = d.isOwner;
     // Sync demo balance from server
@@ -2023,7 +2023,7 @@ async function renderPortfolio(d) {
   const isUp   = pnl >= 0;
   const pnlStr = (isUp ? '+' : '') + '$' + Math.abs(pnl).toFixed(2);
   const pctStr = (isUp ? '▲' : '▼') + ' ' + Math.abs(pct).toFixed(1) + '%';
-  const sigs      = d._signals || [];
+  const sigs      = _signals || d._signals || [];
   const positions = d.positions || [];
   console.log('[renderPortfolio] vars ok, building heroHTML');
 
@@ -2205,6 +2205,15 @@ async function renderPortfolio(d) {
       var betsData = await betsResp.json();
       // Store all bets in _portfolio for detail view
       _portfolio.bets = betsData.bets || [];
+      // Clear stale localStorage if server says no bets (fresh account)
+      if ((!betsData.bets || betsData.bets.length === 0) && localStorage.getItem('pc_demo_balance')) {
+        // Only clear if Supabase demo_balance matches (server is source of truth)
+        var serverDemo = parseFloat(_portfolio.demoBalance || 0);
+        if (serverDemo >= 0) {
+          localStorage.setItem('pc_demo_balance', serverDemo.toFixed(2));
+          window._demoBal = serverDemo;
+        }
+      }
       var activeBets = (betsData.bets || []).filter(function(b) {
         return b.status === 'open' || b.status === 'queued';
       });
@@ -2946,7 +2955,7 @@ async function loadSignals() {
   try {
     var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || new URLSearchParams(location.search).get('tgId') || '';
     window._tgId = tgId;
-    const r   = await fetch('/api/portfolio?tgId=' + encodeURIComponent(tgId) + '&_=' + Date.now());
+    const r   = await fetch('/api/signals?limit=20&_=' + Date.now());
     const raw = await r.json();
     _signals  = (raw.signals||[]).sort((a,b)=>(b.score||0)-(a.score||0));
 
