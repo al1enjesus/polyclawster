@@ -1976,18 +1976,18 @@ async function loadPortfolio() {
     _portfolio._isOwner = d.isOwner;
     // Sync demo balance from server
     var serverDemoFresh = parseFloat((_portfolio.demoBalance) || 0);
-    if (serverDemoFresh > 0) {
-      var localDemoFresh = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
-      var syncedDemo = Math.max(serverDemoFresh, localDemoFresh);
+    var localDemoFresh = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+    // Server is source of truth; use max to not lose pending demo bets
+    var syncedDemo = Math.max(serverDemoFresh, localDemoFresh);
+    if (syncedDemo > 0) {
       localStorage.setItem('pc_demo_balance', syncedDemo.toFixed(2));
-      window._demoBal = syncedDemo;
-    } else if (!window._demoBal) {
-      window._demoBal = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
     }
+    window._demoBal = syncedDemo;
     window._userWallet = (_portfolio.hasWallet && _portfolio.address) ? _portfolio.address : (window._userWallet || '');
     window._userDeposited = parseFloat(_portfolio.totalDeposited || 0);
     window._hasDeposited = window._userDeposited > 0;
-    window._userValue = parseFloat(_portfolio.totalValue || 0) || window._demoBal || 0;
+    window._userValue = parseFloat(_portfolio.totalValue || 0);
+    window._realBalance = window._userValue; // real USDC only, no demo fallback
     try {
       renderPortfolio(_portfolio);
     } catch(renderErr) {
@@ -2026,8 +2026,9 @@ async function renderPortfolio(d) {
 
   // ── Hero balance block (always shown) ──
   console.log('[renderPortfolio] building heroHTML, val=', val, 'positions=', positions.length);
-  const displayVal = val > 0 ? val : dep;
-  const displayLabel = val > 0 ? 'PORTFOLIO BALANCE' : dep > 0 ? 'TOTAL DEPOSITED' : 'PORTFOLIO BALANCE';
+  const demoHero = parseFloat(d.demoBalance || window._demoBal || localStorage.getItem('pc_demo_balance') || 0);
+  const displayVal = val > 0 ? val : dep > 0 ? dep : demoHero;
+  const displayLabel = val > 0 ? 'PORTFOLIO BALANCE' : dep > 0 ? 'TOTAL DEPOSITED' : demoHero > 0 ? 'DEMO BALANCE' : 'PORTFOLIO BALANCE';
   const heroHTML = `
     <div class="balance-hero" style="padding-bottom:16px">
       <div class="balance-amount" id="hero-balance-amount" style="font-size:clamp(32px,9vw,46px);letter-spacing:-1px;margin-bottom:2px">$${displayVal.toFixed(2)}</div>
@@ -2140,8 +2141,8 @@ async function renderPortfolio(d) {
       ? `<div class="glass-card" style="text-align:center;margin-bottom:12px;padding:20px 16px">
           <div style="font-size:32px;margin-bottom:8px">💰</div>
           <div style="font-size:15px;font-weight:700;margin-bottom:6px">Fund your wallet</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Deposit USDC on Polygon and the AI will start trading for you</div>
-          <button class="btn btn-primary" style="font-size:13px" onclick="showTab('wallet')">Deposit USDC →</button>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">Deposit USDC or POL on Polygon — the AI will start trading for you</div>
+          <button class="btn btn-primary" style="font-size:13px" onclick="showTab('wallet')">Deposit →</button>
         </div>`
       : (() => {
           var _dmBal = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
@@ -2314,7 +2315,10 @@ async function createWalletFromPortfolio() {
     const data = resp.data || resp;
     if (data && data.address) {
       window._userWallet = data.address;
-      window._userValue  = parseFloat(data.demoBalance || data.demo_balance || 1);
+      var grantedDemoVal = parseFloat(data.demoBalance || data.demo_balance || 1);
+      window._demoBal = grantedDemoVal;
+      window._realBalance = 0;
+      localStorage.setItem('pc_demo_balance', grantedDemoVal.toFixed(2));
       showToast('Кошелёк создан! 🎉');
       // Показываем красивый экран с CTA
       document.getElementById('portfolio-content').innerHTML = `<div class="content" style="text-align:center;padding:40px 20px">
@@ -2456,8 +2460,8 @@ async function placeBet(signal, side) {
   // Re-read wallet state — might have loaded after page init
   var hasWallet = !!(window._userWallet || (window._userState && window._userState.address));
   var walletAddr = window._userWallet || (window._userState && window._userState.address) || '';
-  var realBalance = parseFloat(window._userValue || 0);
-  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  var realBalance = parseFloat(window._realBalance || 0);
+  var demoBalance = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
 
   // Decision tree:
   // 1. Has real wallet + real balance → real trade
@@ -2490,7 +2494,7 @@ async function placeBet(signal, side) {
       });
       var d = await r.json();
       if (d.ok) {
-        window._userValue = Math.max(0, realBalance - amt); // optimistic update
+        window._realBalance = Math.max(0, realBalance - amt); // optimistic update
         showBetConfirm(signal, side, amt, false);
       } else {
         showToast(d.error || 'Ошибка ставки');
@@ -2505,13 +2509,7 @@ async function placeBet(signal, side) {
     return;
   }
 
-  if (hasWallet && realBalance < amt) {
-    // Has wallet but not enough — show deposit, DON'T navigate away
-    showToast('Недостаточно USDC · пополни кошелёк');
-    setTimeout(function(){ openSheet && openSheet('deposit'); }, 600);
-    return;
-  }
-
+  // Check demo balance BEFORE showing "not enough" message
   if (demoBalance >= amt) {
     // DEMO BET — save to DB + update localStorage
     haptic.success ? haptic.success() : haptic.light();
@@ -3500,7 +3498,7 @@ async function loadStats() {
       <div style="text-align:center;padding:24px 16px 8px">
         <div style="font-size:32px;margin-bottom:8px">📊</div>
         <div style="font-size:14px;font-weight:700;margin-bottom:4px">No activity yet</div>
-        <div style="font-size:12px;color:var(--muted)">Deposit USDC and the AI will start trading</div>
+        <div style="font-size:12px;color:var(--muted)">Deposit USDC or POL — AI will start trading</div>
         <button class="btn btn-primary" style="margin-top:12px;font-size:13px" onclick="showTab('wallet')">Get Started →</button>
       </div>`;
 
@@ -3625,7 +3623,7 @@ async function loadWallet() {
         var addr = resp.data.address;
         var tg = window.Telegram && window.Telegram.WebApp;
         if (tg && tg.showPopup) {
-          tg.showPopup({title:'Deposit USDC', message:'Send USDC on Polygon to:\n' + addr + '\n\nMin: $10', buttons:[{id:'copy',type:'default',text:'Copy Address'},{type:'close',text:'Close'}]}, function(btnId) {
+          tg.showPopup({title:'Deposit', message:'Send USDC or POL (Polygon) to:\n' + addr + '\n\nPOL auto-swaps to USDC', buttons:[{id:'copy',type:'default',text:'Copy Address'},{type:'close',text:'Close'}]}, function(btnId) {
             if (btnId==='copy' && navigator.clipboard) navigator.clipboard.writeText(addr);
           });
         } else {
@@ -3717,7 +3715,7 @@ function walletDataHTML(w) {
         <span style="font-size:13px;font-weight:600">Polymarket Account</span>
       </div>
       <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Address</span><span style="font-family:monospace;font-size:11px;color:var(--text2)">${addr.slice(0,12)}...${addr.slice(-6)}</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Network</span><span class="detail-row-v">Polygon · USDC.e</span></div>
+      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Network</span><span class="detail-row-v">Polygon · USDC / POL</span></div>
       <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
       <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
       <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
@@ -3807,7 +3805,7 @@ async function createWalletFlow(tgId) {
       window._userWallet   = addr;
       var grantedDemo      = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
       window._demoBal      = grantedDemo;
-      window._userValue    = grantedDemo;
+      window._realBalance  = 0;
       window._userDeposited = 0;
       window._hasDeposited = false;
       localStorage.setItem('pc_demo_balance', grantedDemo.toFixed(2));
@@ -4252,9 +4250,9 @@ function initUserState(forceRefresh) {
       } else {
         window._demoBal = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
       }
-      // _userValue: real deposited value OR demo balance for display
+      // Separate real vs demo balances — never mix
       var serverVal = parseFloat(p.totalValue || 0);
-      window._userValue = serverVal > 0 ? serverVal : window._demoBal;
+      window._realBalance = serverVal;
       // Demo balance: server wins if local not yet set
       var demoSrv   = parseFloat(p.demoBalance || 0);
       var demoLocal = parseFloat(localStorage.getItem('pc_demo_balance') || '-1');
@@ -4736,7 +4734,7 @@ function openBetSheet(sigOrStr, side) {
 
   // Determine state
   var hasWallet   = !!(window._userWallet || (window._userState && window._userState.address));
-  var realBalance = parseFloat(window._userDeposited || 0) > 0 ? parseFloat(window._userValue || 0) : 0;
+  var realBalance = parseFloat(window._realBalance || 0);
   var demoBalance = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
   var isDemo      = !window._hasDeposited && demoBalance > 0;
   var balance     = isDemo ? demoBalance : realBalance;
@@ -4754,7 +4752,7 @@ function openBetSheet(sigOrStr, side) {
       ? 'Создай кошелёк' : 'Пополни баланс';
     document.getElementById('bs-nf-text').textContent = !hasWallet
       ? 'Бесплатный AI-кошелёк — займёт 10 секунд. Получишь $1 demo'
-      : 'Пополни USDC на Polygon · минимум $1';
+      : 'Пополни USDC или POL на Polygon';
     document.getElementById('bs-nf-btn').textContent = !hasWallet
       ? '✨ Создать кошелёк →' : '💰 Пополнить →';
     _bs.action = !hasWallet ? 'create' : 'deposit';
@@ -4826,7 +4824,9 @@ function _bsPayoutUpdate() {
   if (price <= 0 || price >= 1) price = 0.5;
   var payout = amt / price;
   var profit = payout - amt;
-  var bal    = parseFloat(window._userValue || 0);
+  var realBal = parseFloat(window._realBalance || 0);
+  var demoBal = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
+  var bal = realBal > 0 ? realBal : demoBal;
   el.innerHTML = 'Выигрыш: <strong style="color:var(--green)">$' + payout.toFixed(2)
     + '</strong> (+$' + profit.toFixed(2) + ')'
     + (bal > 0 ? ' &nbsp;·&nbsp; баланс $' + bal.toFixed(2) : '');
@@ -4849,7 +4849,7 @@ async function confirmBetSheet() {
   if (amt < 1) { showToast('Минимум $1'); return; }
   var demoBalance = parseFloat(window._demoBal || localStorage.getItem('pc_demo_balance') || '0');
   var useDemo = !window._hasDeposited && demoBalance >= amt;
-  var realBalance = parseFloat(window._userValue || 0);
+  var realBalance = parseFloat(window._realBalance || 0);
   var balance = useDemo ? demoBalance : realBalance;
   if (!useDemo && amt > realBalance) {
     if (demoBalance >= amt) { useDemo = true; balance = demoBalance; }
@@ -4866,7 +4866,6 @@ async function confirmBetSheet() {
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
     window._demoBal = newBal;
-    window._userValue = newBal;
     // Update hero balance immediately
     var heroEl = document.getElementById('hero-balance-amount');
     if (heroEl) heroEl.textContent = '$' + newBal.toFixed(2);
@@ -4905,11 +4904,11 @@ async function confirmBetSheet() {
     var d = await r.json();
     if (d.ok) {
       haptic.success && haptic.success();
-      window._userValue = Math.max(0, balance - amt);
+      window._realBalance = Math.max(0, balance - amt);
       closeBetSheet();
       // Обновляем hero-balance сразу
       var heroEl = document.getElementById('hero-balance-amount');
-      if (heroEl) heroEl.textContent = '$' + window._userValue.toFixed(2);
+      if (heroEl) heroEl.textContent = '$' + window._realBalance.toFixed(2);
       // Refresh portfolio: 2s (ставка появится) + 6s (блокчейн)
       setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2000);
       setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 5000);
@@ -4932,7 +4931,7 @@ async function confirmBetSheet() {
 <div id="deposit-sheet" class="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-header">
-    <span class="sheet-title">💳 Deposit USDC</span>
+    <span class="sheet-title">💳 Deposit</span>
     <div class="sheet-close" onclick="closeSheet('deposit')">✕</div>
   </div>
   <div class="sheet-body">
@@ -4954,7 +4953,7 @@ async function confirmBetSheet() {
       </div>
     </div>
     <div class="deposit-hint">
-      Send <strong>USDC on Polygon</strong> to this address.<br>
+      Send <strong>USDC or POL</strong> (Polygon) to this address.<br>POL auto-swaps to USDC.<br>
       Funds appear automatically after 1 confirmation (~30 sec).
     </div>
   </div>

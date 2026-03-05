@@ -151,7 +151,7 @@ async function handleCreateWallet(chatId, firstName) {
     await sendMsg(chatId,
       `💼 *Кошелёк уже создан!*\n\n` +
       `📍 \`${existing.address}\`\n\n` +
-      `Отправь USDC на этот адрес (Polygon) чтобы начать торговать.`,
+      `Отправь USDC или POL на этот адрес (Polygon).\nPOL автоматически свапнётся в USDC.`,
       { reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] }}
     );
     return;
@@ -165,9 +165,9 @@ async function handleCreateWallet(chatId, firstName) {
       `✅ *Кошелёк создан!*\n\n` +
       `📍 Адрес:\n\`${address}\`\n\n` +
       `🎁 Ты получил *$1 demo-баланса*\n\n` +
-      `*Сеть:* Polygon · USDC\n\n` +
-      `Пополни кошелёк и AI начнёт торговать за тебя автоматически!\n` +
-      `_Минимум $10_`,
+      `*Сеть:* Polygon\n` +
+      `💵 Принимаем: USDC или POL (авто-своп)\n\n` +
+      `Пополни и AI начнёт торговать автоматически!`,
       { reply_markup: { inline_keyboard: [
         [{ text: '📊 Открыть Dashboard', web_app: { url: TMA_URL } }],
         [{ text: '🔗 Реферальная ссылка', callback_data: 'ref' }],

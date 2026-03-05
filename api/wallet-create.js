@@ -63,7 +63,7 @@ module.exports = async (req, res) => {
     // Notify user via Telegram
     const tgMsg = JSON.stringify({
       chat_id: tgId,
-      text: '✅ *Wallet created!*\n\n🔗 `' + address + '`\n\n_Polygon network · USDC.e_\n\nSend USDC to this address to deposit funds.',
+      text: '✅ *Wallet created!*\n\n🔗 `' + address + '`\n\n_Polygon network_\n\n💵 Отправь USDC или POL на этот адрес.\nPOL автоматически свапнётся в USDC.',
       parse_mode: 'Markdown',
     });
     await new Promise(resolve => {
