@@ -14,3 +14,7 @@ polymarket-config.json
 *.bak3
 memory/
 .github/
+users.json
+polymarket-creds.json
+.env
+.env.tokens
