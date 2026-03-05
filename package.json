@@ -1,14 +1,16 @@
 {
   "name": "polyclawster",
-  "version": "1.0.0",
-  "description": "Auto-trade Polymarket prediction markets via CLOB API",
+  "version": "1.1.0",
+  "description": "Trade on Polymarket prediction markets — search, bet, and manage wallets from the command line",
   "main": "scripts/edge.js",
   "scripts": {
-    "edge": "node scripts/edge.js --auto",
+    "search": "node scripts/search.js",
+    "trade": "node scripts/trade.js",
     "balance": "node scripts/balance.js",
-    "setup": "node scripts/setup.js"
+    "setup": "node scripts/setup.js",
+    "edge": "node scripts/edge.js --auto"
   },
-  "keywords": ["polymarket", "prediction-markets", "trading", "defi", "polygon"],
+  "keywords": ["polymarket", "prediction-markets", "trading", "defi", "polygon", "openclaw"],
   "author": "Virix Labs <general@virixlabs.com>",
   "license": "MIT",
   "dependencies": {

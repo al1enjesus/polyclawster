@@ -278,3 +278,110 @@ async function executeTrade({ privateKey, market, conditionId, slug, side, amoun
 }
 
 module.exports = { executeTrade, findValidToken, getMasterCreds, getApiCredsForWallet };
+
+// ─── CLI Interface ────────────────────────────────────────────────────────────
+if (require.main === module) {
+  const path = require('path');
+  const https = require('https');
+
+  const args = process.argv.slice(2);
+  function getArg(name) {
+    const idx = args.indexOf('--' + name);
+    return idx >= 0 && args[idx + 1] ? args[idx + 1] : null;
+  }
+
+  const marketArg = getArg('market');
+  const side = (getArg('side') || 'YES').toUpperCase();
+  const amount = parseFloat(getArg('amount') || '0');
+
+  if (!marketArg || !amount) {
+    console.log('PolyClawster Trade');
+    console.log('');
+    console.log('Usage:');
+    console.log('  node trade.js --market <slug-or-conditionId> --side YES --amount 5');
+    console.log('');
+    console.log('Options:');
+    console.log('  --market   Market slug or conditionId (required)');
+    console.log('  --side     YES or NO (default: YES)');
+    console.log('  --amount   USDC amount to bet (required)');
+    console.log('');
+    console.log('The wallet is loaded from ~/.polyclawster/config.json');
+    console.log('Run "node setup.js --auto" first to create a wallet.');
+    process.exit(1);
+  }
+
+  (async () => {
+    // Load wallet config
+    const configPath = path.join(process.env.HOME || '/root', '.polyclawster', 'config.json');
+    let config;
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch {
+      console.error('No wallet config found. Run: node setup.js --auto');
+      process.exit(1);
+    }
+
+    if (!config.wallet?.privateKey) {
+      console.error('No private key in config. Use manual setup: node setup.js --wallet 0x...');
+      process.exit(1);
+    }
+
+    // Determine if market arg is a slug or conditionId
+    const isConditionId = marketArg.startsWith('0x') && marketArg.length > 20;
+    let conditionId = isConditionId ? marketArg : null;
+    let slug = isConditionId ? null : marketArg;
+
+    // If slug, look up via Gamma API to get conditionId
+    if (slug) {
+      console.log(`Looking up market: ${slug}...`);
+      try {
+        const data = await new Promise((resolve, reject) => {
+          https.get({
+            hostname: 'gamma-api.polymarket.com',
+            path: `/markets?slug=${encodeURIComponent(slug)}&limit=1`,
+            headers: { 'User-Agent': 'polyclawster/1.0' },
+            timeout: 10000,
+          }, res => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => {
+              try { resolve(JSON.parse(d)); }
+              catch { resolve([]); }
+            });
+          }).on('error', reject);
+        });
+        if (Array.isArray(data) && data[0]?.conditionId) {
+          conditionId = data[0].conditionId;
+          console.log(`Found: ${data[0].question}`);
+          console.log(`ConditionId: ${conditionId}`);
+        }
+      } catch (e) {
+        console.warn('Gamma lookup failed:', e.message);
+      }
+    }
+
+    console.log(`\nPlacing ${side} bet of $${amount} on ${marketArg}...`);
+
+    try {
+      const result = await executeTrade({
+        privateKey: config.wallet.privateKey,
+        market: marketArg,
+        conditionId,
+        slug,
+        side,
+        amount,
+        apiCreds: config.api?.key ? config.api : undefined,
+      });
+
+      console.log('\n✅ Trade executed!');
+      console.log(`   Order ID: ${result.orderID}`);
+      console.log(`   Side:     ${result.side}`);
+      console.log(`   Amount:   $${result.amount}`);
+      console.log(`   Price:    ${result.price.toFixed(4)}`);
+      console.log(`   Token:    ${result.tokenId.slice(0, 20)}...`);
+    } catch (e) {
+      console.error('\n❌ Trade failed:', e.message);
+      process.exit(1);
+    }
+  })();
+}
