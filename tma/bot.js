@@ -8,7 +8,7 @@ const fs    = require('fs');
 const path  = require('path');
 
 const BOT_TOKEN  = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
-const TMA_URL    = 'https://polyclawster.vercel.app/tma.html';
+const TMA_URL    = 'https://polyclawster.com/tma.html';
 const USERS_PATH = '/workspace/users.json';
 const DATA_PATH  = '/workspace/data.json';
 
