@@ -7,8 +7,11 @@ const https = require('https');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 
-// Stars → USD rate (approximate, Telegram sets 1 XTR = ~$0.013)
+// Stars → USD rate (Telegram sets 1 XTR = ~$0.013)
+// We take 35% commission, user receives 65%
 const STARS_TO_USD = 0.013;
+const COMMISSION = 0.35;
+const STARS_NET = STARS_TO_USD * (1 - COMMISSION); // ~$0.00845 per star after fee
 
 function tgPost(method, body) {
   return new Promise((resolve, reject) => {
@@ -46,7 +49,7 @@ module.exports = async (req, res) => {
   try {
     const result = await tgPost('createInvoiceLink', {
       title: 'PolyClawster пополнение',
-      description: `${starsAmount} ⭐ → $${usdValue} на торговый баланс`,
+      description: `${starsAmount} ⭐ → $${usdValue} USDC на торговый баланс (комиссия 35%)`,
       payload: JSON.stringify({ tgId: String(tgId), stars: starsAmount, type: 'deposit' }),
       currency: 'XTR',
       prices: [{ label: 'Пополнение баланса', amount: starsAmount }],

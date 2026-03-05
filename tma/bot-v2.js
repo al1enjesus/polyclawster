@@ -388,6 +388,8 @@ async function sendWhaleAlert(wallet, signal) {
 let offset = 0;
 // ── STARS PAYMENT HANDLERS ────────────────────────────────────────
 const STARS_TO_USD = 0.013;
+const STARS_COMMISSION = 0.35;
+const STARS_NET = STARS_TO_USD * (1 - STARS_COMMISSION); // user receives 65%
 
 async function handlePreCheckout(q) {
   await tgPost('answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: true });
@@ -397,7 +399,7 @@ async function handleStarsPayment(msg) {
   const payment = msg.successful_payment;
   if (!payment || payment.currency !== 'XTR') return;
   const stars = payment.total_amount;
-  const usdValue = parseFloat((stars * STARS_TO_USD).toFixed(4));
+  const usdValue = parseFloat((stars * STARS_NET).toFixed(4)); // net after 35% commission
   let tgId = String(msg.chat.id);
   try {
     const payload = JSON.parse(payment.invoice_payload);
