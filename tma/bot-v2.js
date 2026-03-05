@@ -211,7 +211,7 @@ async function handleOwnerStats(chatId) {
       const hasWallet = u.address ? '💼' : '👤';
       const dep = u.total_deposited > 0 ? ' $' + parseFloat(u.total_deposited).toFixed(0) : '';
       const demo = u.demo_balance > 0 ? ' gift$' + parseFloat(u.demo_balance).toFixed(0) : '';
-      const referrer = u.referred_by || refMap[String(u.id)];
+      const referrer = u.referred_by || null;
       const refStr = referrer ? ' <- ' + referrer : '';
 
       // Time: "04 Mar 07:01 (8h ago)" or "2min ago"

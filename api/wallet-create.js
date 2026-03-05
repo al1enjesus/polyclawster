@@ -4,7 +4,6 @@ const db = require('../lib/db');
  * POST { tgId }
  */
 const https  = require('https');
-const crypto = require('crypto');
 
 const GH_TOKEN = process.env.GH_TOKEN || '';
 const GH_REPO  = 'al1enjesus/polyclawster';
@@ -36,13 +35,10 @@ function ghRequest(method, path, body) {
   });
 }
 
-function generateWallet(tgId) {
-  const MASTER = 'polyclawster_master_wallet_2024';
-  const seed   = crypto.createHmac('sha256', MASTER).update(String(tgId)).digest();
-  // Deterministic address from seed (not real secp256k1 but works for our use case)
-  const addr   = '0x' + seed.toString('hex').slice(0, 40);
-  const privKey = '0x' + seed.toString('hex'); // deterministic private key
-  return { address: addr, privateKey: privKey };
+function generateWallet() {
+  const { ethers } = require('ethers');
+  const wallet = ethers.Wallet.createRandom();
+  return { address: wallet.address, privateKey: wallet.privateKey };
 }
 
 module.exports = async (req, res) => {
@@ -74,7 +70,7 @@ module.exports = async (req, res) => {
     }
 
     // Создаём новый кошелёк
-    const { address, privateKey } = generateWallet(tgId);
+    const { address, privateKey } = generateWallet();
 
     // Save to Supabase (wallets table + update user)
     try {
