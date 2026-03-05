@@ -1,168 +1,223 @@
 # AGENTS.md — PolyClawster
 
-AI-бот для Polymarket. Telegram bot + Mini App (TMA) + edge-runner для автоставок.
+AI-бот для торговли на Polymarket. Telegram Bot + Mini App (TMA) + edge-runner + deposit-watcher.
 
 ## Архитектура
 
 ```
-Telegram ←→ bot-v2.js (polling, PM2)
-                ↕
-TMA (index.html) ←→ Vercel API routes ←→ Supabase
-                ↕
-edge-runner.js → сигналы + авто-ставки (PM2)
-deposit-watcher.js → мониторинг депозитов POL/USDC (PM2)
+┌─────────────────────────────────────────────────┐
+│                    Telegram                      │
+│  Bot (@PolyClawsterBot) ←→ TMA (Mini App)       │
+└────────────┬──────────────────┬──────────────────┘
+             │                  │
+    bot-v2.js (polling)    tma/src/index.html
+             │                  │
+             └──────┬───────────┘
+                    ▼
+         ┌──────────────────┐
+         │   Supabase DB    │   ← lib/db.js (единая точка доступа)
+         │  users, wallets, │
+         │  bets, signals   │
+         └──────────────────┘
+                    ▲
+         ┌──────────┴──────────┐
+         │                     │
+   edge-runner.js      deposit-watcher.js
+   (сигналы + авто)    (USDC/POL мониторинг)
 ```
 
-## Стек
+## Быстрый старт
 
-- **DB**: Supabase (hlcwzuggblsvcofwphza) — таблицы: users, wallets, bets, signals, referrals, payouts
-- **Фронт**: один HTML файл `tma/src/index.html` (TMA, ~5000 строк)
-- **API**: Vercel serverless functions (`api/*.js`)
-- **Бот**: Node.js polling (`tma/bot-v2.js`)
-- **Деплой фронта**: Vercel (`polyclawster.com`)
-- **Деплой бэка**: PM2 на VPS
+```bash
+# Клонировать
+git clone https://github.com/al1enjesus/polyclawster-app.git
+cd polyclawster-app && npm i
 
-## Структура файлов
+# Настроить .env
+cp .env.example .env  # заполнить BOT_TOKEN, SUPABASE_URL, SUPABASE_KEY
 
-### `tma/src/index.html` — ЕДИНСТВЕННЫЙ файл TMA
-Фронтенд Telegram Mini App. Все табы, стили, JS в одном файле.
-- **Табы**: Portfolio, Signals, Stats, Wallet, Agents, Chat
-- **Ключевые переменные**:
-  - `window._realBalance` — реальный USDC баланс (с Polymarket)
-  - `window._demoBal` — demo-баланс (из Supabase, синхронизируется в localStorage `pc_demo_balance`)
-  - `window._userWallet` — адрес кошелька
-  - `window._hasDeposited` — были ли реальные депозиты
-- **НИКОГДА** не создавай дубль `tma.html` в корне. Vercel route `/tma.html` → `tma/src/index.html`
+# Запустить
+pm2 start tma/bot-v2.js --name polyclawster-bot
+pm2 start tma/api/server.js --name polyclawster-api
+pm2 start edge-runner.js --name polyclawster-edge
+pm2 start deposit-watcher.js --name polyclawster-deposit
 
-### `tma/bot-v2.js` — Telegram бот
-- Polling mode, PM2 process `polyclawster-bot`
-- Команды: /start, /wallet, /balance, /stats, /ref
-- Авто-создание кошелька (ethers.Wallet.createRandom)
-- Реферальная система
-- **ОДИН экземпляр** — никогда не запускать второй (409 Conflict)
+# Деплой фронта
+npx vercel deploy --prod
+```
 
-### `tma/api/server.js` — локальный API сервер
-- Порт 3456, PM2 process `polyclawster-api`
-- Те же эндпоинты что на Vercel, но для локальной отладки
-- Обязательно синхронизировать с `api/*.js` на Vercel
+## Структура репозитория
 
-### `api/*.js` — Vercel serverless functions
-| Файл | Роут | Описание |
-|------|------|----------|
-| `portfolio.js` | `/api/portfolio` | Портфолио юзера: баланс, позиции, сигналы |
-| `trade.js` | `/api/trade` | Ставки (demo + real через CLOB) |
-| `wallet-create.js` | `/api/wallet/create` | Создание кошелька (ethers) |
-| `wallet.js` | `/api/wallet` | Данные кошелька |
-| `balance.js` | `/api/balance` | Баланс USDC |
-| `signals.js` | `/api/signals` | Список сигналов |
-| `feed.js` | `/api/feed` | Лента событий |
-| `demo-bonus.js` | `/api/demo-bonus` | Выдача demo-бонуса |
-| `wallet-withdraw.js` | `/api/wallet/withdraw` | Вывод USDC |
-| `wallet-stats.js` | `/api/wallet-stats` | Статистика кошелька |
-
-### `lib/db.js` — Supabase клиент
-- Чистый `https` модуль, без SDK
-- Все операции: getUser, upsertUser, getWallet, upsertWallet, insertBet, etc.
-- Используется ВЕЗДЕ: bot, API, edge, deposit-watcher
-- **Env**: `SUPABASE_URL`, `SUPABASE_KEY` (service_role)
-
-### `lib/polymarket-trade.js` — торговля через CLOB
-- Polymarket CLOB API для размещения ордеров
-- Поддержка master wallet (polymarket-creds.json) и user wallets
-
-### `lib/wallet-balance.js` — баланс кошелька
-- Polygonscan API для проверки USDC балансов
-
-### `edge-runner.js` / `edge/` — периодические задачи
-- PM2 process `polyclawster-edge`
-- Модули в `edge/modules/`:
-  - `sync-balances.js` — синхронизация балансов из блокчейна в Supabase
-  - `trade.js` — авто-торговля по сигналам
-- Конфиг: `edge/config.js`
-- Запускается каждые 30 мин
-
-### `deposit-watcher.js` — мониторинг депозитов
-- PM2 process `polyclawster-deposit`
-- Каждые 60 сек проверяет входящие USDC и POL
-- POL автоматически свапается в USDC через KyberSwap
-- Уведомляет юзера в Telegram при получении депозита
+```
+polyclawster-app/
+├── api/                    # Vercel serverless API
+│   ├── portfolio.js        #   GET /api/portfolio?tgId=...
+│   ├── trade.js            #   POST /api/trade (demo + real)
+│   ├── wallet-create.js    #   POST /api/wallet/create
+│   ├── wallet.js           #   GET /api/wallet?tgId=...
+│   ├── signals.js          #   GET /api/signals
+│   ├── feed.js             #   GET /api/feed
+│   ├── balance.js          #   GET /api/balance?tgId=...
+│   ├── demo-bonus.js       #   POST /api/demo-bonus
+│   ├── wallet-withdraw.js  #   POST /api/wallet/withdraw
+│   ├── wallet-stats.js     #   GET /api/wallet-stats
+│   ├── transactions.js     #   GET /api/transactions?tgId=...
+│   ├── snapshots.js        #   GET /api/snapshots
+│   ├── agents.js           #   GET /api/agents
+│   └── chat.js             #   POST /api/chat (AI)
+├── lib/                    # Shared библиотеки
+│   ├── db.js               #   Supabase клиент (все CRUD)
+│   ├── polymarket-trade.js  #   CLOB API торговля
+│   ├── clob-proxy.js       #   Proxy для CLOB
+│   └── wallet-balance.js   #   Polygonscan баланс
+├── tma/                    # Telegram Mini App
+│   ├── src/index.html      #   ⭐ ЕДИНСТВЕННЫЙ файл TMA (~5000 строк)
+│   ├── bot-v2.js           #   Telegram бот (polling)
+│   └── api/
+│       ├── server.js       #   Локальный API :3456
+│       └── chat.js         #   AI chat handler
+├── edge/                   # Edge runner модули
+│   ├── index.js            #   Главный runner
+│   ├── config.js           #   Конфигурация
+│   ├── cron.js             #   Расписание задач
+│   ├── portfolio.js        #   Портфолио калькуляция
+│   └── modules/
+│       ├── sync-balances.js #  Синхронизация балансов
+│       └── trade.js        #   Авто-торговля
+├── public/                 # Лендинг polyclawster.com
+│   ├── index.html          #   Главная страница
+│   ├── icons/              #   PWA иконки
+│   └── og-image.jpg        #   OG image
+├── landing/                # Доп. ассеты лендинга
+│   ├── icons/              #   Apple touch + PWA
+│   └── *.png               #   AI chat превью
+├── deposit-watcher.js      # PM2: мониторинг депозитов
+├── edge-runner.js          # PM2: сигналы + авто-ставки
+├── data.json               # Кеш сигналов/снепшотов
+├── vercel.json             # Vercel конфиг
+├── package.json
+└── AGENTS.md               # Этот файл
+```
 
 ## PM2 процессы
 
-| Name | File | Описание |
-|------|------|----------|
-| `polyclawster-bot` | `tma/bot-v2.js` | Telegram бот (polling) |
-| `polyclawster-api` | `tma/api/server.js` | Локальный API :3456 |
-| `polyclawster-edge` | `edge-runner.js` | Сигналы + авто-ставки |
-| `polyclawster-deposit` | `deposit-watcher.js` | Мониторинг депозитов |
+| Name | File | Порт | Описание |
+|------|------|------|----------|
+| `polyclawster-bot` | `tma/bot-v2.js` | — | Telegram бот (polling) |
+| `polyclawster-api` | `tma/api/server.js` | 3456 | Локальный API |
+| `polyclawster-edge` | `edge-runner.js` | — | Сигналы + авто-ставки |
+| `polyclawster-deposit` | `deposit-watcher.js` | — | Депозиты USDC/POL |
+
+## Supabase
+
+**Проект:** `hlcwzuggblsvcofwphza`
+
+| Таблица | PK | Ключевые поля |
+|---------|----|---------------|
+| `users` | `id` (tg_id) | `demo_balance`, `username`, `referred_by`, `onboarded` |
+| `wallets` | `id` | `tg_id`, `address`, `private_key_enc` |
+| `bets` | `id` | `tg_id`, `market`, `side`, `amount`, `is_demo`, `status` |
+| `signals` | `id` | `market`, `score`, `side`, `source` |
+| `referrals` | `id` | `referrer_id`, `referred_id` |
+| `payouts` | `id` | `tg_id`, `amount`, `tx_hash` |
+
+Все операции через `lib/db.js` (чистый `https`, без SDK).
+
+## Баланс: real vs demo
+
+**Критично: НЕ смешивать!**
+
+| Переменная | Источник | Описание |
+|------------|----------|----------|
+| `window._realBalance` | Polymarket CLOB | Реальный USDC |
+| `window._demoBal` | Supabase `demo_balance` | Demo-деньги |
+| `window._inBets` | `/api/transactions` | Сумма в активных ставках |
+
+- Новые юзеры получают **$1 demo** при создании кошелька
+- Hero-баланс = `free + inBets` (не только free)
+- При торговле: сначала real, потом demo
+- Demo показывается фиолетовым с меткой "DEMO BALANCE"
+
+## Депозиты
+
+Принимаем **USDC и POL** на Polygon:
+- USDC → зачисляется напрямую
+- POL → автосвап в USDC через KyberSwap (deposit-watcher.js)
+- Газ: оставляем 0.3 POL на комиссии
 
 ## Деплой
 
 ```bash
 # Vercel (фронт + API)
 cd /root/polyclawster-app
-npx vercel deploy --token $VERCEL_TOKEN --yes --prod
+npx vercel deploy --token $VERCEL_TOKEN --yes --prod --scope virixl
 
-# Бот (после изменений в bot-v2.js)
+# Бот
 pm2 restart polyclawster-bot
 
-# API (после изменений в server.js)
+# API
 pm2 restart polyclawster-api
 ```
 
-## Env vars (.env)
+## OpenClaw Skill (ClawHub)
 
-| Var | Описание |
-|-----|----------|
-| `BOT_TOKEN` | Telegram bot token |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_KEY` | Supabase service_role JWT |
-| `GH_TOKEN` | GitHub PAT (legacy, не используется) |
-| `PERPLEXITY_API_KEY` | Для AI-анализа сигналов |
+PolyClawster доступен как **OpenClaw skill** — пользователи устанавливают его через ClawHub и сразу получают агента для торговли на Polymarket.
 
-## Supabase таблицы
+### Установка скилла
 
-| Таблица | PK | Описание |
-|---------|-----|----------|
-| `users` | `id` (tg_id) | Юзеры: баланс, реферал, onboarded |
-| `wallets` | `id` | Кошельки: address, private_key_enc, tg_id |
-| `bets` | `id` | Ставки: market, side, amount, is_demo, status |
-| `signals` | `id` | Сигналы от whale tracker |
-| `referrals` | `id` | Реферальные связи |
-| `payouts` | `id` | Выплаты |
+```bash
+clawhub install polyclawster-agent
+```
 
-## Баланс — real vs demo
+### Что делает скилл
 
-**Критично: НЕ смешивать real и demo балансы!**
+- Сканирует Polymarket на сигналы с высокой вероятностью (score 8+/10)
+- Отслеживает активность китов и аномалии в ордербуке
+- Автоматически размещает ордера через CLOB API
+- Шлёт алерты в Telegram при сильных сигналах
 
-- `window._realBalance` = реальные USDC (totalValue из Polymarket CLOB)
-- `window._demoBal` = demo-доллары (из Supabase users.demo_balance)
-- При торговле: сначала проверяем real, потом demo
-- Hero-баланс: показываем real → deposited → demo (в порядке приоритета)
-- Новые юзеры получают $1 demo при создании кошелька
+### Скрипты скилла
 
-## Депозиты
+| Скрипт | Назначение |
+|--------|------------|
+| `scripts/edge.js` | Сканер сигналов |
+| `scripts/trade.js` | Размещение ордеров через CLOB |
+| `scripts/balance.js` | Проверка баланса кошелька |
+| `scripts/setup.js` | Визард начальной настройки |
 
-Принимаем **USDC и POL** на Polygon:
-- USDC зачисляется напрямую
-- POL автоматически свапается в USDC через KyberSwap (deposit-watcher.js)
-- Газ: оставляем 0.3 POL на комиссии
+### Как это работает вместе
 
-## ⚠️ Грабли
+1. Пользователь устанавливает скилл → агент получает возможность торговать
+2. Заходит в TMA (`t.me/PolyClawsterBot`) → создаёт кошелёк
+3. Пополняет USDC/POL → deposit-watcher зачисляет
+4. Агент автоматически ставит по сигналам или юзер ставит вручную через TMA
+5. Баланс отображается в дашборде (Portfolio + Wallet табы)
 
-1. **Один бот — один polling**: никогда не запускать второй экземпляр bot-v2.js
-2. **tma.html дубль**: НЕ создавать `tma.html` в корне — route в vercel.json указывает на `tma/src/index.html`
-3. **Синхронизация API**: при изменении `api/*.js` — деплоить Vercel. При изменении `tma/api/server.js` — pm2 restart
-4. **Demo balance**: `_userValue` убран, использовать `_realBalance` и `_demoBal` отдельно
-5. **Telegram кеш**: TMA кешируется агрессивно. Добавлен `?v=N` в URL и no-cache meta
-6. **polymarket-creds.json**: master wallet credentials, НЕ коммитить
+### Репозитории
 
-## Файлы которые можно удалить
+| Репо | Описание | ClawHub |
+|------|----------|---------|
+| [`polyclawster-app`](https://github.com/al1enjesus/polyclawster-app) | Бот + TMA + API + edge | — |
+| [`polyclawster`](https://github.com/al1enjesus/polyclawster) | OpenClaw skill | [`polyclawster-agent`](https://clawhub.com/skills/polyclawster-agent) |
 
-Легаси/мусор в корне (не используются, можно удалить):
-- `discord_*.js` — попытки Discord логина
-- `solve_*.js` — hcaptcha солверы
-- `bypass_qrator.js`, `real_browser.js`, `test_ac.js`
-- `tma/bot.js` — старый бот (заменён bot-v2.js)
-- `tma/src/index.html.bak*` — бэкапы
-- `users.json` — legacy (всё в Supabase)
+## ⚠️ Важные правила
+
+1. **Один бот = один polling** — никогда не запускать второй экземпляр bot-v2.js (409 Conflict)
+2. **Нет дубля tma.html** в корне — Vercel route `/tma.html` → `tma/src/index.html`
+3. **Синхронизация API** — изменил `api/*.js` → Vercel deploy; изменил `tma/api/server.js` → pm2 restart
+4. **API параметр `tgId`** (camelCase) — `tg_id` возвращает null
+5. **Приватные ключи** хранятся plain text в `wallets.private_key_enc` — TODO: шифрование
+6. **polymarket-creds.json** — НЕ коммитить (в .gitignore)
+
+## Env vars
+
+| Var | Обязательно | Описание |
+|-----|:-----------:|----------|
+| `BOT_TOKEN` | ✅ | Telegram bot token |
+| `SUPABASE_URL` | ✅ | `https://hlcwzuggblsvcofwphza.supabase.co` |
+| `SUPABASE_KEY` | ✅ | Service role JWT |
+| `POLY_WALLET_ADDRESS` | ✅ | Master Polygon wallet |
+| `POLY_PRIVATE_KEY` | ✅ | Master wallet private key |
+| `PERPLEXITY_API_KEY` | — | AI анализ сигналов |
+| `HB_PROXY_USER` | — | Residential proxy |
+| `HB_PROXY_PASS` | — | Residential proxy |
