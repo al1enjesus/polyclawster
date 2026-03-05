@@ -3637,110 +3637,116 @@ function walletOnboardHTML(tgId) {
 function walletDataHTML(w) {
   _walletAddr    = w.address || '';
   _walletBalance = +(w.totalValue || 0);
-  window._tgId   = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id || '');
-  var addr = _walletAddr;
-  var pnl = +(w.totalPnl || 0);
-  var bal = +(w.totalValue || 0);
-  var dep = +(w.totalDeposited || 0);
+  var addr    = _walletAddr;
+  var pnl     = +(w.totalPnl || 0);
+  var bal     = +(w.totalValue || 0);
+  var dep     = +(w.totalDeposited || 0);
   var demoBal = +(w.demoBalance || 0);
-  var trades = Array.isArray(w.trades) ? w.trades.length : (+(w.trades||0));
-  var pnlPos = pnl >= 0;
-  var pnlStr = (pnlPos?'+':'-') + '$' + Math.abs(pnl).toFixed(2);
-  var pnlPct = dep > 0 ? ((pnl/dep)*100) : 0;
-  // Display: real balance → deposited → demo
+  var pnlPos  = pnl >= 0;
+  var pnlPct  = dep > 0 ? ((pnl/dep)*100) : 0;
+  var isDemo  = bal === 0 && dep === 0;
+  var hasReal = dep > 0 || bal > 0;
   var displayBal = bal > 0 ? bal : dep > 0 ? dep : demoBal;
-  var displayLabel = bal > 0 ? '' : dep > 0 ? '' : demoBal > 0 ? 'DEMO BALANCE' : '';
-  var isDemo = bal === 0 && dep === 0 && demoBal > 0;
 
-  window._walletBalance = parseFloat(w.totalValue || 0);
-  return `<div class="content">
-    <div class="wallet-hero">
-      ${displayLabel ? '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(153,69,255,.7);font-weight:700;margin-bottom:4px">'+displayLabel+'</div>' : ''}
-      <div class="wallet-balance" id="wallet-portfolio-balance"${isDemo?' style="color:#b08aff"':''}>$${displayBal.toFixed(2)}</div>
-      ${isDemo ? '<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:4px">Депозитни USDC/POL чтобы торговать реально</div>' : ''}
-      ${!isDemo ? '<div style="font-size:14px;color:'+(pnlPos?'#19fb9b':'#FF4F4F')+';font-weight:600;margin-top:6px">'+pnlStr+' ('+(pnlPct>=0?'+':'')+pnlPct.toFixed(1)+'%)</div>' : ''}
-      <div class="wallet-address-short" style="margin-top:10px">${addr.slice(0,10)}...${addr.slice(-6)}</div>
-    </div>
+  window._walletBalance = bal;
+  window._tgId = window._tgId || '';
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <button id="deposit-btn" class="btn btn-primary" style="padding:13px" onclick="openDepositSheet()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16m-4-4l4 4 4-4"/></svg>
-        Deposit
-      </button>
-      <button id="withdraw-btn" class="btn btn-secondary" style="padding:13px" onclick="openWithdrawSheet()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V4m4 4l-4-4-4 4"/></svg>
-        Withdraw
-      </button>
-    </div>
+  // ── Balance hero ──────────────────────────────────
+  var heroHTML = `
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(25,251,155,.06));border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:24px 20px;text-align:center;margin-bottom:16px;position:relative">
+      ${isDemo ? `<div style="position:absolute;top:12px;right:14px;background:rgba(139,92,246,.25);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:.08em">DEMO</div>` : ''}
+      <div style="font-size:42px;font-weight:800;letter-spacing:-2px;line-height:1;color:${isDemo?'#b08aff':'#fff'}">${isDemo ? '$' + demoBal.toFixed(2) : '$' + displayBal.toFixed(2)}</div>
+      ${hasReal && pnl !== 0 ? `<div style="margin-top:6px;font-size:14px;font-weight:600;color:${pnlPos?'#19fb9b':'#FF4F4F'}">${pnlPos?'+':''}$${Math.abs(pnl).toFixed(2)} <span style="opacity:.5;font-size:12px">(${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%)</span></div>` : ''}
+      ${isDemo ? `<div style="margin-top:10px;font-size:12px;color:rgba(255,255,255,.35);line-height:1.5">Пополни — AI начнёт торговать реальными деньгами</div>` : `<div style="margin-top:8px;font-size:12px;color:rgba(255,255,255,.3);font-family:monospace">${addr.slice(0,10)}...${addr.slice(-6)}</div>`}
+    </div>`;
 
-    <!-- Polymarket Integration -->
-    <div class="glass-card" style="border-color:rgba(21,101,192,.2);margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span class="poly-badge">P</span>
-        <span style="font-size:13px;font-weight:600">Polymarket Account</span>
+  // ── Demo info banner (only when demo, no real) ────
+  var demoBanner = isDemo ? `
+    <div style="background:rgba(139,92,246,.08);border:1px dashed rgba(139,92,246,.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:20px;flex-shrink:0">🎮</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:3px">Демо-режим</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">Ставки идут с виртуального баланса. После пополнения USDC/POL на Polygon — AI будет торговать реальными.</div>
       </div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Address</span><span style="font-family:monospace;font-size:11px;color:var(--text2)">${addr.slice(0,12)}...${addr.slice(-6)}</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Network</span><span class="detail-row-v">Polygon · USDC / POL</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
-    </div>
-    <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
-      ⛽ <b>Нет газа!</b> Отправь 0.5+ POL (Polygon) на этот адрес — бот автоматически свапнет в USDC.
-    </div>
+    </div>` : '';
 
-    <div class="glass-card" style="margin-bottom:12px">
-      <div class="detail-section-title" style="margin-bottom:10px">Deposit Address</div>
-      <div style="font-family:monospace;font-size:11px;color:var(--text2);word-break:break-all;margin-bottom:12px;line-height:1.7;padding:10px;background:var(--bg-glass2);border-radius:10px;border:1px solid var(--border)">${addr}</div>
-      <button id="copy-addr-btn" data-addr="${addr}" class="btn btn-secondary" style="padding:10px">📋 Copy Address</button>
-    </div>
+  // ── Action buttons ────────────────────────────────
+  var actionsHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <button id="deposit-btn" onclick="openDepositSheet()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:14px;padding:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">↓ Пополнить</button>
+      <button id="withdraw-btn" onclick="openWithdrawSheet()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;color:rgba(255,255,255,.7);font-size:14px;font-weight:700;cursor:pointer">↑ Вывести</button>
+    </div>`;
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-      <div class="glass-card" style="text-align:center;padding:12px">
-        <div style="font-size:16px;font-weight:700;color:${pnlPos?'#19fb9b':'#FF4F4F'}">${pnlStr}</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">P&L</div>
+  // ── Balance breakdown (real only) ─────────────────
+  var breakdownHTML = hasReal ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#19fb9b" id="wallet-free-usdc">$0.00</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:3px">🔓 Свободно</div>
       </div>
-      <div class="glass-card" style="text-align:center;padding:12px">
-        <div style="font-size:16px;font-weight:700">${trades}</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">Trades</div>
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:16px;font-weight:700;color:#F7B731" id="wallet-pos-value">$0.00</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;margin-top:3px">🔒 В ставках</div>
       </div>
-      <div class="glass-card" style="text-align:center;padding:12px">
-        <div style="font-size:16px;font-weight:700;color:var(--amber)">5%</div>
-        <div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">Fee</div>
-      </div>
-    </div>
+    </div>` : '';
 
-    <div class="glass-card" style="margin-bottom:12px">
-      <div class="detail-section-title" style="margin-bottom:10px">Transaction History</div>
-      <div id="tx-history-list"><div class="loader"><div class="spinner" style="width:18px;height:18px"></div></div></div>
-    </div>
-    <!-- Referral block -->
-    <div class="glass-card" style="margin-bottom:12px;background:linear-gradient(135deg,rgba(153,69,255,.08),rgba(25,251,155,.05));border-color:rgba(153,69,255,.2)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="font-size:28px">🎁</div>
-        <div>
-          <div style="font-size:14px;font-weight:700;margin-bottom:2px">Приглашай — зарабатывай</div>
-          <div style="font-size:11px;color:var(--muted);line-height:1.5">$4 за каждого кто задепал ≥$10<br>+40% от нашей комиссии навсегда</div>
+  // ── Deposit address (collapsible) ─────────────────
+  var depositHTML = `
+    <details style="margin-bottom:16px" id="deposit-details">
+      <summary style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:rgba(255,255,255,.7)">
+        <span>📥 Адрес для пополнения</span>
+        <span style="font-size:10px;opacity:.5">▼</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 14px 14px;padding:14px 16px">
+        <div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.5);word-break:break-all;line-height:1.6;margin-bottom:12px;padding:10px;background:rgba(0,0,0,.2);border-radius:8px">${addr}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:10px">Сеть: <b style="color:rgba(255,255,255,.6)">Polygon</b> · Принимаем USDC и POL</div>
+        <button id="copy-addr-btn" data-addr="${addr}" style="width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;cursor:pointer">📋 Скопировать адрес</button>
+        <div id="wallet-pol-warn" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(255,51,102,.1);border:1px solid rgba(255,51,102,.3);border-radius:10px;font-size:11px;color:#ff8099">
+          ⛽ Нужен газ — отправь 0.5+ POL, бот автосвапнет в USDC
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:18px;font-weight:800;color:#9945FF" id="ref-count">—</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">Друзей</div>
+    </details>`;
+
+  // ── Referral (collapsible) ─────────────────────────
+  var refHTML = `
+    <details style="margin-bottom:16px">
+      <summary style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:rgba(255,255,255,.7)">
+        <span>🎁 Пригласи друга · $4 бонус</span>
+        <span style="font-size:10px;opacity:.5">▼</span>
+      </summary>
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 14px 14px;padding:14px 16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#9945FF" id="ref-count">—</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">Друзей</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#19fb9b" id="ref-earned">—</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">Заработано</div>
+          </div>
         </div>
-        <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:10px;text-align:center">
-          <div style="font-size:18px;font-weight:800;color:#19fb9b" id="ref-earned">—</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">Заработано</div>
-        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:12px;line-height:1.5">+40% от нашей комиссии навсегда с каждого реферала</div>
+        <button onclick="copyRefLink()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:10px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">📤 Поделиться ссылкой</button>
       </div>
-      <button class="btn btn-primary" style="font-size:13px;width:100%" onclick="copyRefLink()">📤 Поделиться ссылкой</button>
-    </div>
-    <div style="font-size:11px;color:var(--muted);text-align:center;padding:0 20px 8px;line-height:1.7">
-      Auto-trading active · 5% fee on profits only · Non-custodial
-    </div>
-    <div id="wallet-debug-panel" style="display:none;background:#0d0d1a;border:1px solid #ff336655;border-radius:10px;padding:10px;font-family:monospace;font-size:11px;color:#aaa;margin:0 0 12px;word-break:break-all;line-height:1.8"></div>
-    <div style="text-align:center;font-size:10px;color:var(--muted);margin-bottom:8px"><a href="#" style="color:var(--muted)" onclick="toggleWalletDebug(event)">🐛 debug</a></div>
-    <div class="virix">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div>
+    </details>`;
+
+  // ── Tx history ────────────────────────────────────
+  var txHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:10px">История</div>
+      <div id="tx-history-list"><div style="text-align:center;padding:20px;color:rgba(255,255,255,.25);font-size:13px">Загрузка...</div></div>
+    </div>`;
+
+  return `<div style="padding:16px 16px 80px">
+    ${heroHTML}
+    ${demoBanner}
+    ${actionsHTML}
+    ${breakdownHTML}
+    ${depositHTML}
+    ${refHTML}
+    ${txHTML}
+    <div id="wallet-debug-panel" style="display:none;background:#0d0d1a;border:1px solid #ff336655;border-radius:10px;padding:10px;font-family:monospace;font-size:11px;color:#aaa;margin-bottom:12px;word-break:break-all;line-height:1.8"></div>
+    <div style="text-align:center;font-size:10px;color:rgba(255,255,255,.12)"><a href="#" style="color:inherit" onclick="toggleWalletDebug(event)">debug</a></div>
   </div>`;
 }
 
