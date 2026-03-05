@@ -3639,11 +3639,18 @@ var _walletModeData = null;
 
 function switchWalletMode(isDemo) {
   if (!_walletModeData) return;
-  var balEl = document.getElementById('wallet-balance-area');
-  var lbl   = document.getElementById('wallet-mode-label');
-  var tog   = document.getElementById('wallet-mode-toggle');
+  var balEl  = document.getElementById('wallet-balance-area');
+  var lblL   = document.getElementById('wallet-lbl-demo');
+  var lblR   = document.getElementById('wallet-lbl-live');
+  var thumb  = document.getElementById('wallet-toggle-thumb');
+  var track  = document.getElementById('wallet-toggle-track');
   if (balEl) balEl.innerHTML = buildWalletBalance(_walletModeData, isDemo);
-  if (lbl)   lbl.textContent = isDemo ? 'Демо' : 'Live';
+  // Update labels opacity
+  if (lblL) lblL.style.opacity = isDemo ? '1' : '0.3';
+  if (lblR) lblR.style.opacity = isDemo ? '0.3' : '1';
+  // Animate thumb
+  if (thumb) thumb.style.transform = isDemo ? 'translateX(0)' : 'translateX(18px)';
+  if (track) track.style.background = isDemo ? 'rgba(139,92,246,.4)' : 'rgba(25,251,155,.3)';
 }
 
 function buildWalletBalance(w, isDemoMode) {
@@ -3719,16 +3726,15 @@ function walletDataHTML(w) {
 
   return '<div style="padding:16px 16px 80px">'
 
-    // Mode toggle
-    + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:4px">'
-    + '<span id="wallet-mode-label" style="font-size:11px;color:rgba(255,255,255,.4)">' + (showDemo ? 'Демо' : 'Live') + '</span>'
-    + '<label style="position:relative;display:inline-block;width:42px;height:24px;cursor:pointer">'
-    + '<input type="checkbox" id="wallet-mode-toggle" ' + (!showDemo ? 'checked' : '') + ' onchange="switchWalletMode(!this.checked)"'
-    + '  style="opacity:0;width:0;height:0;position:absolute">'
-    + '<span style="position:absolute;inset:0;background:rgba(139,92,246,.35);border-radius:12px;display:flex;align-items:center;padding:2px">'
-    + '<span style="width:20px;height:20px;background:#fff;border-radius:50%;transition:.2s;transform:' + (showDemo ? 'translateX(0)' : 'translateX(18px)') + '"></span>'
-    + '</span></label>'
-    + '<span style="font-size:11px;color:rgba(255,255,255,.4)">' + (showDemo ? 'Live' : 'Демо') + '</span>'
+    // Mode toggle — Демо (left) | slider | Live (right)
+    + '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">'
+    + '<span id="wallet-lbl-demo" style="font-size:12px;font-weight:600;color:#a78bfa;opacity:' + (showDemo ? '1' : '0.3') + ';cursor:pointer" onclick="switchWalletMode(true)">Демо</span>'
+    + '<div id="wallet-toggle-track" onclick="var _t=document.getElementById(\"wallet-mode-toggle\");_t.checked=!_t.checked;switchWalletMode(!_t.checked)" '
+    + '  style="position:relative;width:44px;height:26px;background:' + (showDemo ? 'rgba(139,92,246,.4)' : 'rgba(25,251,155,.3)') + ';border-radius:13px;cursor:pointer;transition:background .2s;padding:3px">'
+    + '<input type="checkbox" id="wallet-mode-toggle" ' + (!showDemo ? 'checked' : '') + ' onchange="switchWalletMode(!this.checked)" style="display:none">'
+    + '<div id="wallet-toggle-thumb" style="width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;transform:' + (showDemo ? 'translateX(0)' : 'translateX(18px)') + '"></div>'
+    + '</div>'
+    + '<span id="wallet-lbl-live" style="font-size:12px;font-weight:600;color:#19fb9b;opacity:' + (showDemo ? '0.3' : '1') + ';cursor:pointer" onclick="switchWalletMode(false)">Live</span>'
     + '</div>'
 
     // Balance area
@@ -3736,17 +3742,17 @@ function walletDataHTML(w) {
 
     // Actions
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">'
-    + '<button onclick="openDepositSheet()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:14px;padding:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">↓ Пополнить</button>'
-    + '<button onclick="openWithdrawSheet()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;color:rgba(255,255,255,.6);font-size:14px;font-weight:700;cursor:pointer">↑ Вывести</button>'
+    + '<button onclick="openDepositSheet()" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:14px;padding:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Пополнить</button>'
+    + '<button onclick="openWithdrawSheet()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;color:rgba(255,255,255,.6);font-size:14px;font-weight:700;cursor:pointer">Вывести</button>'
     + '</div>'
 
     // Deposit address collapsible
     + '<details style="margin-bottom:12px">'
     + '<summary style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between">'
-    + '<span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.7)">📥 Пополнить через POL</span>'
+    + '<span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.7)">📥 Адрес для пополнения</span>'
     + '<span style="font-size:10px;color:rgba(255,255,255,.3)">▼</span></summary>'
     + '<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-top:none;border-radius:0 0 14px 14px;padding:14px 16px">'
-    + '<div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;margin-bottom:12px">Отправь <b style="color:#a78bfa">POL</b> на этот адрес (сеть Polygon).<br>Бот автоматически конвертирует в USDC.</div>'
+    + '<div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.6;margin-bottom:12px">Отправь <b style="color:#a78bfa">POL</b> на адрес ниже (сеть Polygon). Бот автоматически обменяет на USDC и зачислит на баланс.</div>'
     + '<div style="font-family:monospace;font-size:11px;color:rgba(255,255,255,.5);word-break:break-all;padding:10px 12px;background:rgba(0,0,0,.25);border-radius:10px;margin-bottom:10px;line-height:1.6">' + addr + '</div>'
     + '<button id="copy-addr-btn" data-addr="' + addr + '" onclick="var a=this.dataset.addr;navigator.clipboard&&navigator.clipboard.writeText(a).then(function(){var b=document.getElementById(\'copy-addr-btn\');if(b){b.textContent=\'✅ Скопировано!\';setTimeout(function(){b.textContent=\'📋 Скопировать адрес\'},1500)}})"'
     + '  style="width:100%;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:10px;padding:10px;color:#a78bfa;font-size:12px;font-weight:600;cursor:pointer">📋 Скопировать адрес</button>'
@@ -3763,7 +3769,7 @@ function walletDataHTML(w) {
     + '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#9945FF" id="ref-count">—</div><div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">Друзей</div></div>'
     + '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#19fb9b" id="ref-earned">—</div><div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">Заработано</div></div>'
     + '</div>'
-    + '<div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:12px">$4 за каждого кто задепал ≥$10 · +40% от комиссии навсегда</div>'
+    + '<div style="font-size:11px;color:rgba(255,255,255,.35);margin-bottom:12px">+$4 за каждого друга с депозитом от $10 · и 40% от нашей комиссии с его сделок — навсегда</div>'
     + '<button onclick="copyRefLink()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border:none;border-radius:10px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">📤 Поделиться ссылкой</button>'
     + '</div></details>'
 
@@ -3772,7 +3778,7 @@ function walletDataHTML(w) {
     + '<div id="tx-history-list"><div style="text-align:center;padding:16px;color:rgba(255,255,255,.2);font-size:12px">Загрузка...</div></div>'
 
     + '<div id="wallet-debug-panel" style="display:none;margin-top:12px;background:#0d0d1a;border:1px solid #ff336655;border-radius:10px;padding:10px;font-family:monospace;font-size:11px;color:#aaa;word-break:break-all;line-height:1.8"></div>'
-    + '<div style="text-align:center;margin-top:16px;font-size:10px;color:rgba(255,255,255,.1)"><a href="#" style="color:inherit" onclick="toggleWalletDebug(event)">debug</a></div>'
+    + '<div style="height:8px"></div>'
     + '</div>';
 }
 
