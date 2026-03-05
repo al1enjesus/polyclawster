@@ -66,12 +66,13 @@ async function fetchTopMarkets(limit = 20) {
           marketId: m.conditionId,
           tokenIdYes: tokenIds[0] || '',
           tokenIdNo:  tokenIds[1] || '',
+          icon: m.image || m.icon || '',
           price: pYes,
           priceYes: pYes,
           priceNo: pNo,
           volume: vol,
           score: parseFloat(score.toFixed(1)),
-          side: pYes < 0.5 ? 'YES' : 'NO', // suggest contrarian side
+          side: pYes < 0.5 ? 'YES' : 'NO',
           timestamp: new Date().toISOString(),
           source: 'polymarket',
         };
