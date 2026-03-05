@@ -2030,8 +2030,10 @@ async function renderPortfolio(d) {
   // ── Hero balance block (always shown) ──
   console.log('[renderPortfolio] building heroHTML, val=', val, 'positions=', positions.length);
   const demoHero = parseFloat(d.demoBalance || window._demoBal || localStorage.getItem('pc_demo_balance') || 0);
-  const displayVal = val > 0 ? val : dep > 0 ? dep : demoHero;
-  const displayLabel = val > 0 ? 'PORTFOLIO BALANCE' : dep > 0 ? 'TOTAL DEPOSITED' : demoHero > 0 ? 'DEMO BALANCE' : 'PORTFOLIO BALANCE';
+  const inBetsVal = window._inBets || 0;
+  const demoTotal = demoHero + inBetsVal;
+  const displayVal = val > 0 ? val : dep > 0 ? dep : demoTotal > 0 ? demoTotal : 0;
+  const displayLabel = val > 0 ? 'PORTFOLIO BALANCE' : dep > 0 ? 'TOTAL DEPOSITED' : demoTotal > 0 ? 'DEMO BALANCE' : 'PORTFOLIO BALANCE';
   const heroHTML = `
     <div class="balance-hero" style="padding-bottom:16px">
       <div class="balance-amount" id="hero-balance-amount" style="font-size:clamp(32px,9vw,46px);letter-spacing:-1px;margin-bottom:2px">$${displayVal.toFixed(2)}</div>
@@ -2201,29 +2203,52 @@ async function renderPortfolio(d) {
     if (tgIdForBets) {
       var betsResp = await fetch('/api/transactions?tgId=' + tgIdForBets);
       var betsData = await betsResp.json();
+      // Store all bets in _portfolio for detail view
+      _portfolio.bets = betsData.bets || [];
       var activeBets = (betsData.bets || []).filter(function(b) {
         return b.status === 'open' || b.status === 'queued';
       });
       // Sort: demo last
       activeBets.sort(function(a,b){ return (a.is_demo?1:0)-(b.is_demo?1:0); });
+      // Compute totals for balance breakdown
+      var totalInBets = activeBets.reduce(function(s,b){ return s + parseFloat(b.amount||0); }, 0);
+      window._inBets = totalInBets;
       if (activeBets.length > 0) {
-        var betCards = activeBets.slice(0, 5).map(function(b) {
-          var sideClr = b.side === 'YES' ? '#00E87A' : '#FF3D5A';
-          var statusTxt = b.status === 'queued' ? '⏳ В очереди' : '🟢 Открыта';
-          var demoTag = b.is_demo ? ' <span style="background:rgba(153,69,255,.15);color:#a78bfa;font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700">DEMO</span>' : '';
-          return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)">'
+        var betCards = activeBets.slice(0, 5).map(function(b, idx) {
+          var sideClr = b.side === 'YES' ? '#19fb9b' : '#FF4F4F';
+          var sideBg  = b.side === 'YES' ? 'rgba(25,251,155,.12)' : 'rgba(255,79,79,.12)';
+          var demoTag = b.is_demo ? '<span style="background:rgba(153,69,255,.15);color:#a78bfa;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:700;margin-left:6px">DEMO</span>' : '';
+          var age = b.created_at ? timeSince(new Date(b.created_at)) : '';
+          var potPayout = b.price > 0 ? '$' + (parseFloat(b.amount||0) / b.price).toFixed(2) : '—';
+          return '<div onclick="openBetDetail(' + (b.id||idx) + ')" style="cursor:pointer;background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px;margin-bottom:8px;transition:transform .1s" ontouchstart="this.style.transform=\'scale(.97)\'" ontouchend="this.style.transform=\'\'">'
+            + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+            + '<div style="width:36px;height:36px;border-radius:10px;background:' + sideBg + ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:' + sideClr + '">' + b.side.charAt(0) + '</div>'
             + '<div style="flex:1;min-width:0">'
-            + '<div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
-            + (b.market || 'Unknown market').slice(0, 45) + demoTag + '</div>'
-            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + statusTxt + ' · ' + (b.created_at ? new Date(b.created_at).toLocaleDateString('ru',{month:'short',day:'numeric'}) : '') + '</div>'
+            + '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (b.market||'Unknown').slice(0,42) + demoTag + '</div>'
+            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + age + '</div>'
             + '</div>'
-            + '<div style="text-align:right;flex-shrink:0">'
-            + '<div style="font-size:13px;font-weight:700;color:' + sideClr + '">' + b.side + '</div>'
-            + '<div style="font-size:12px;color:var(--text2)">$' + parseFloat(b.amount||0).toFixed(2) + '</div>'
+            + '<div style="text-align:right">'
+            + '<div style="font-size:15px;font-weight:700">$' + parseFloat(b.amount||0).toFixed(2) + '</div>'
+            + '<div style="font-size:10px;color:var(--muted)">→ ' + potPayout + '</div>'
+            + '</div>'
+            + '</div>'
+            + '<div style="display:flex;gap:6px">'
+            + '<span style="background:' + sideBg + ';color:' + sideClr + ';font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px">' + b.side + '</span>'
+            + '<span style="background:rgba(255,255,255,.05);color:var(--muted);font-size:10px;padding:3px 8px;border-radius:6px">' + (b.status==='queued'?'⏳ Очередь':'🟢 Открыта') + '</span>'
             + '</div></div>';
         }).join('');
-        betsHTML = '<div class="glass-card" style="margin-bottom:12px">'
-          + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">📋 Активные ставки</div>'
+        // Balance breakdown: in bets + free
+        var freeBal = parseFloat(window._demoBal || 0);
+        var breakdownHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+          + '<div style="background:var(--bg-glass2);border-radius:10px;padding:10px;text-align:center">'
+          + '<div style="font-size:16px;font-weight:800;color:#F7B731">$' + totalInBets.toFixed(2) + '</div>'
+          + '<div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">В ставках</div></div>'
+          + '<div style="background:var(--bg-glass2);border-radius:10px;padding:10px;text-align:center">'
+          + '<div style="font-size:16px;font-weight:800;color:#19fb9b">$' + freeBal.toFixed(2) + '</div>'
+          + '<div style="font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase">Свободно</div></div></div>';
+        betsHTML = breakdownHTML
+          + '<div style="margin-bottom:12px">'
+          + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">📋 Активные ставки (' + activeBets.length + ')</div>'
           + betCards
           + '</div>';
       }
@@ -2340,11 +2365,15 @@ async function createWalletFromPortfolio() {
 async function loadSparkline(tgId) {
   const el = document.getElementById('hero-sparkline');
   if (!el) return;
+  // Hide the chart container by default, show only if data exists
+  var wrap = el.parentElement;
+  if (wrap) wrap.style.display = 'none';
 
   try {
     const r = await fetch('/api/snapshots?tgId=' + encodeURIComponent(tgId || '') + '&hours=24&_=' + Date.now());
     const d = await r.json();
     if (!d.ok || !d.snapshots || d.snapshots.length < 2) return;
+    if (wrap) wrap.style.display = '';
     drawSparkline(d.snapshots, d.synthetic);
   } catch(e) {
     // Fail silently — sparkline is optional
@@ -2661,7 +2690,6 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + '</button>'
     + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
     + '</div>'
-    + '<button onclick="openExternal(\'https://polymarket.com/event/\' + encodeURIComponent(slug(signal.market||signal.title||\'\')))" style="width:100%;height:44px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:13px;cursor:pointer;margin-top:8px">🔗 Поставить на Polymarket</button>'
     + '</div>'
   );
   overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
@@ -2971,8 +2999,10 @@ function timeAgoClient(isoOrTs) {
   const sec = Math.floor((Date.now()-ts)/1000);
   if (sec<60) return sec+'s ago';
   if (sec<3600) return Math.floor(sec/60)+'m ago';
-  return Math.floor(sec/3600)+'h ago';
+  if (sec<86400) return Math.floor(sec/3600)+'h ago';
+  return Math.floor(sec/86400)+'d ago';
 }
+function timeSince(d) { return timeAgoClient(d); }
 
 function renderSignals(sigs) {
   if (!sigs||!sigs.length) {
@@ -4805,6 +4835,59 @@ function closeBetSheet() {
   document.body.style.overflow = '';
 }
 
+// ── Bet detail overlay ────────────────────────────────────────
+function openBetDetail(betId) {
+  // Find bet in portfolio data
+  var bets = (_portfolio && _portfolio.bets) || [];
+  var bet = bets.find(function(b){ return b.id === betId; });
+  if (!bet) { showToast('Ставка не найдена'); return; }
+
+  var sideClr = bet.side === 'YES' ? '#19fb9b' : '#FF4F4F';
+  var sideBg  = bet.side === 'YES' ? 'rgba(25,251,155,.12)' : 'rgba(255,79,79,.12)';
+  var amt = parseFloat(bet.amount || 0);
+  var potPayout = bet.price > 0 ? (amt / bet.price) : amt * 2;
+  var potProfit = potPayout - amt;
+  var created = bet.created_at ? new Date(bet.created_at) : null;
+  var createdStr = created ? created.toLocaleString('ru', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  var statusMap = {open:'🟢 Открыта',queued:'⏳ В очереди',won:'🏆 Выиграна',lost:'❌ Проиграна',cancelled:'🚫 Отменена'};
+  var statusTxt = statusMap[bet.status] || bet.status;
+  var isDemo = bet.is_demo;
+
+  var overlay = document.createElement('div');
+  overlay.id = 'bet-detail-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,.88);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s';
+  overlay.innerHTML = '<div style="width:100%;max-width:480px;background:#111118;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:85vh;overflow-y:auto">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+    + '<div style="font-size:16px;font-weight:800">Детали ставки</div>'
+    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:16px;cursor:pointer">✕</button>'
+    + '</div>'
+    // Market title
+    + '<div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.5;margin-bottom:16px">' + (bet.market||'Unknown market') + '</div>'
+    // Side + amount hero
+    + '<div style="display:flex;gap:12px;margin-bottom:16px">'
+    + '<div style="flex:1;background:' + sideBg + ';border:1px solid ' + sideClr + '33;border-radius:14px;padding:16px;text-align:center">'
+    + '<div style="font-size:28px;font-weight:800;color:' + sideClr + '">' + bet.side + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:4px">Ставка</div></div>'
+    + '<div style="flex:1;background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;text-align:center">'
+    + '<div style="font-size:28px;font-weight:800">$' + amt.toFixed(2) + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:4px">Сумма</div></div>'
+    + '</div>'
+    // Stats grid
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-bottom:16px">'
+    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Статус</span><span style="font-size:12px;font-weight:600">' + statusTxt + '</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Потенциальная выплата</span><span style="font-size:12px;font-weight:700;color:#19fb9b">$' + potPayout.toFixed(2) + '</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Потенциальный профит</span><span style="font-size:12px;font-weight:700;color:#19fb9b">+$' + potProfit.toFixed(2) + '</span></div>'
+    + (bet.signal_score ? '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">AI Score</span><span style="font-size:12px;font-weight:700;color:#F7B731">' + parseFloat(bet.signal_score).toFixed(1) + '/10</span></div>' : '')
+    + '<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:12px;color:var(--muted)">Дата</span><span style="font-size:12px">' + createdStr + '</span></div>'
+    + '</div>'
+    + (isDemo ? '<div style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:12px;padding:12px;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px;text-align:center">🎁 Demo-ставка · бесплатная тренировка</div>' : '')
+    + '<button class="btn btn-secondary" style="width:100%;font-size:13px" onclick="document.getElementById(\'bet-detail-overlay\').remove()">Закрыть</button>'
+    + '</div>';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  haptic.light && haptic.light();
+}
+
 function _bsSetSide(side, silent) {
   _bs.side = side;
   var y = document.getElementById('bs-btn-yes');
@@ -4876,9 +4959,11 @@ async function confirmBetSheet() {
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
     window._demoBal = newBal;
-    // Update hero balance immediately
+    window._inBets = (window._inBets || 0) + amt;
+    // Update hero balance — show total (free + in bets)
     var heroEl = document.getElementById('hero-balance-amount');
-    if (heroEl) heroEl.textContent = '$' + newBal.toFixed(2);
+    var totalDisplay = newBal + (window._inBets || 0);
+    if (heroEl) heroEl.textContent = '$' + totalDisplay.toFixed(2);
     // Save demo bet to server (best-effort)
     var sig2 = _bs.sig;
     fetch('/api/trade', {
