@@ -22,7 +22,7 @@ const cfg  = require('../config');
 const CREDS_FILE = '/workspace/polymarket-creds.json';
 const CREDS  = JSON.parse(fs.readFileSync(CREDS_FILE));
 const PK     = CREDS.wallet?.privateKey || CREDS.private_key ||
-               'REMOVED_KEY';
+               process.env.POLYMARKET_PRIVATE_KEY;
 
 const MAX_BET    = 60;
 const MIN_BET    = 15;

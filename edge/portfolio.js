@@ -30,7 +30,7 @@ const SNAPSHOT   = '/tmp/portfolio_snapshot.json';
 async function main() {
   const creds = JSON.parse(fs.readFileSync(CREDS_FILE));
   const addr  = creds.wallet.address;
-  const pk    = creds.wallet.privateKey || 'REMOVED_KEY';
+  const pk    = creds.wallet.privateKey || process.env.POLYMARKET_PRIVATE_KEY;
 
   const { getWalletBalance } = require('../lib/wallet-balance');
   const bal = await getWalletBalance(addr, pk, creds.api);

@@ -11,7 +11,7 @@ const { load, save } = require('./state');
 const cfg = require('../config');
 const fs = require('fs');
 
-const PK    = 'REMOVED_KEY';
+const PK    = process.env.POLYMARKET_PRIVATE_KEY;
 const CREDS = JSON.parse(fs.readFileSync('/workspace/polymarket-creds.json'));
 
 const TAKE_PROFIT_PRICE = 0.92;   // sell when price >= 92¢

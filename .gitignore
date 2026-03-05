@@ -18,3 +18,8 @@ users.json
 polymarket-creds.json
 .env
 .env.tokens
+.browser-profiles/
+edge/db/
+drafts/
+*.sqlite
+*.sqlite-journal
