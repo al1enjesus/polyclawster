@@ -3645,32 +3645,36 @@ async function loadWallet() {
 }
 
 function walletOnboardHTML(tgId) {
-  return `<div class="content">
-    <div class="wallet-hero">
-      <div class="wallet-label">Get Started</div>
-      <div style="font-size:52px;margin:8px 0">🎰</div>
-      <div style="font-size:20px;font-weight:800;margin-bottom:8px">Your AI Wallet</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">AI trades Polymarket for you.<br>5% fee on profits only.</div>
-    </div>
-    <div class="glass-card" style="border-color:rgba(25,251,155,.15);margin-bottom:12px">
-      <div class="sec-title" style="margin-top:0">📊 AI Performance (live)</div>
-      <div class="detail-row"><span class="detail-row-k">P&L (2 days)</span><span class="detail-row-v up">+$137</span></div>
-      <div class="detail-row" style="border:none"><span class="detail-row-k">ROI</span><span class="detail-row-v up">+29%</span></div>
-    </div>
+  // Minimal no-scroll screen — fits in viewport without scrolling
+  return `<div style="display:flex;flex-direction:column;height:100%;padding:0 20px;justify-content:center;align-items:center;text-align:center;gap:0">
+    <!-- Icon -->
+    <div style="width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,rgba(153,69,255,.25),rgba(25,251,155,.1));border:1px solid rgba(153,69,255,.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;flex-shrink:0">💼</div>
 
-    <!-- Polymarket Integration Block -->
-    <div class="glass-card" style="border-color:rgba(21,101,192,.2);margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <span class="poly-badge">P</span>
-        <span style="font-size:13px;font-weight:600">Polymarket Account</span>
+    <!-- Title -->
+    <div style="font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px;flex-shrink:0">Создай AI-кошелёк</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:24px;max-width:280px;flex-shrink:0">AI торгует на Polymarket за тебя.<br>Комиссия 5% — только с прибыли.</div>
+
+    <!-- Benefits row -->
+    <div style="display:flex;gap:10px;margin-bottom:28px;flex-shrink:0">
+      <div style="background:var(--bg-glass2);border:1px solid var(--border);border-radius:14px;padding:12px 10px;flex:1;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:#19fb9b">$1</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Demo сразу</div>
       </div>
-      <div style="font-size:12px;color:var(--muted)">Auto-trading on Polymarket prediction markets</div>
-      <div style="font-size:11px;color:var(--green);margin-top:6px">✓ Polygon · USDC.e · Supported</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">On-chain USDC: <span id="wallet-onchain-balance" style="color:var(--text2)">loading...</span></div>
+      <div style="background:var(--bg-glass2);border:1px solid var(--border);border-radius:14px;padding:12px 10px;flex:1;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--accent)">5%</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">С прибыли</div>
+      </div>
+      <div style="background:var(--bg-glass2);border:1px solid var(--border);border-radius:14px;padding:12px 10px;flex:1;text-align:center">
+        <div style="font-size:18px;font-weight:800;color:var(--amber)">24/7</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Авто-торговля</div>
+      </div>
     </div>
 
-    <button id="create-wallet-btn" class="btn btn-primary">✨ Create Wallet — Free</button>
-    <div style="text-align:center;font-size:11px;color:var(--muted);margin-top:10px">Auto-created on Polygon · Non-custodial</div>
+    <!-- CTA button -->
+    <button id="create-wallet-btn" class="btn btn-primary" style="width:100%;max-width:340px;height:56px;font-size:17px;font-weight:800;border-radius:16px;box-shadow:0 8px 32px rgba(153,69,255,.4);flex-shrink:0">
+      ✨ Создать кошелёк — бесплатно
+    </button>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;flex-shrink:0">Polygon · Non-custodial · 2 секунды</div>
   </div>`;
 }
 
@@ -3719,14 +3723,7 @@ function walletDataHTML(w) {
       <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
     </div>
     <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
-      ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
-    </div>
-    <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
-    </div>
-    <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
-      ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
+      ⛽ <b>Нет газа!</b> Отправь 0.5+ POL (Polygon) на этот адрес — бот автоматически свапнет в USDC.
     </div>
 
     <div class="glass-card" style="margin-bottom:12px">
@@ -4469,9 +4466,9 @@ loadSignals();
       ob.classList.add('hidden');
       setTimeout(function() {
         ob.style.display = 'none';
-        // After onboarding → go to Signals tab to see live signals
-        if (typeof showTab === 'function') showTab('signals');
-        else if (typeof switchTab === 'function') switchTab('signals');
+        // After onboarding → go to Wallet tab to create wallet
+        if (typeof showTab === 'function') showTab('wallet');
+        else if (typeof switchTab === 'function') switchTab('wallet');
       }, 400);
     }
     var tgw = window.Telegram && window.Telegram.WebApp;
