@@ -3687,16 +3687,23 @@ function walletDataHTML(w) {
   var pnl = +(w.totalPnl || 0);
   var bal = +(w.totalValue || 0);
   var dep = +(w.totalDeposited || 0);
+  var demoBal = +(w.demoBalance || 0);
   var trades = Array.isArray(w.trades) ? w.trades.length : (+(w.trades||0));
   var pnlPos = pnl >= 0;
   var pnlStr = (pnlPos?'+':'-') + '$' + Math.abs(pnl).toFixed(2);
   var pnlPct = dep > 0 ? ((pnl/dep)*100) : 0;
+  // Display: real balance → deposited → demo
+  var displayBal = bal > 0 ? bal : dep > 0 ? dep : demoBal;
+  var displayLabel = bal > 0 ? '' : dep > 0 ? '' : demoBal > 0 ? 'DEMO BALANCE' : '';
+  var isDemo = bal === 0 && dep === 0 && demoBal > 0;
 
   window._walletBalance = parseFloat(w.totalValue || 0);
   return `<div class="content">
     <div class="wallet-hero">
-      <div class="wallet-balance" id="wallet-portfolio-balance">$${bal.toFixed(2)}</div>
-      <div style="font-size:14px;color:${pnlPos?'#19fb9b':'#FF4F4F'};font-weight:600;margin-top:6px">${pnlStr} (${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%)</div>
+      ${displayLabel ? '<div style="font-size:10px;letter-spacing:1.5px;color:rgba(153,69,255,.7);font-weight:700;margin-bottom:4px">'+displayLabel+'</div>' : ''}
+      <div class="wallet-balance" id="wallet-portfolio-balance"${isDemo?' style="color:#b08aff"':''}>$${displayBal.toFixed(2)}</div>
+      ${isDemo ? '<div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:4px">Депозитни USDC/POL чтобы торговать реально</div>' : ''}
+      ${!isDemo ? '<div style="font-size:14px;color:'+(pnlPos?'#19fb9b':'#FF4F4F')+';font-weight:600;margin-top:6px">'+pnlStr+' ('+(pnlPct>=0?'+':'')+pnlPct.toFixed(1)+'%)</div>' : ''}
       <div class="wallet-address-short" style="margin-top:10px">${addr.slice(0,10)}...${addr.slice(-6)}</div>
     </div>
 
