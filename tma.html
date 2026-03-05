@@ -3594,7 +3594,25 @@ async function loadWallet() {
               var posEl = document.getElementById('wallet-pos-value');
               if (posEl) posEl.textContent = '$' + (d.positionsValue||0).toFixed(2);
               var polWarn = document.getElementById('wallet-pol-warn');
-              if (polWarn) polWarn.style.display = (d.polBalance||0) < 0.1 ? 'block' : 'none';
+              if (polWarn) polWarn.style.display = (+(d.polBalance||0)) < 0.1 ? 'block' : 'none';
+              // Update main balance with real-time data (overrides stale Supabase value)
+              var mainBal = document.getElementById('wallet-portfolio-balance');
+              var onchain = +(d.usdcOnChain||0);
+              var free = +(d.freeUsdc||0);
+              var pos = +(d.positionsValue||0);
+              var realTotal = Math.max(onchain, free + pos);
+              if (mainBal && realTotal > 0) mainBal.textContent = '$' + realTotal.toFixed(2);
+              // PnL sub-line
+              var pnlEl = document.querySelector('#wallet-content .wallet-change');
+              if (pnlEl) {
+                if (onchain > 0 && free === 0) {
+                  pnlEl.innerHTML = '<span style="color:#F7B731">$' + onchain.toFixed(2) + ' on-chain · tap Deposit</span>';
+                } else {
+                  var pnl = +(d.totalPnl||0);
+                  pnlEl.textContent = (pnl>=0?'+':'-') + '$' + Math.abs(pnl).toFixed(2) + ' P&L';
+                  pnlEl.style.color = pnl>=0?'#19fb9b':'#FF4F4F';
+                }
+              }
               // Debug panel
               var dbgEl = document.getElementById('wallet-debug-panel');
               if (dbgEl && _debugMode) {
@@ -3691,7 +3709,7 @@ function walletDataHTML(w) {
   return `<div class="content">
     <div class="wallet-hero">
       <div class="wallet-balance" id="wallet-portfolio-balance">$${bal.toFixed(2)}</div>
-      <div style="font-size:14px;color:${pnlPos?'#19fb9b':'#FF4F4F'};font-weight:600;margin-top:6px">${pnlStr} (${pnlPct>=0?'+':''}${pnlPct.toFixed(1)}%)</div>
+      <div style="font-size:14px;color:#aaa;font-weight:500;margin-top:6px" id="wallet-balance-sub">loading real-time...</div>
       <div class="wallet-address-short" style="margin-top:10px">${addr.slice(0,10)}...${addr.slice(-6)}</div>
     </div>
 
@@ -3720,10 +3738,6 @@ function walletDataHTML(w) {
     </div>
     <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
       ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
-    </div>
-    <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">Free USDC</span><span class="detail-row-v" id="wallet-free-usdc" style="color:#19fb9b">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0"><span class="detail-row-k">In Positions</span><span class="detail-row-v" id="wallet-pos-value">loading...</span></div>
-      <div class="detail-row" style="padding:8px 0;border:none"><span class="detail-row-k">Gas (POL)</span><span class="detail-row-v" id="wallet-pol-balance">loading...</span></div>
     </div>
     <div id="wallet-pol-warn" style="display:none;background:#ff336622;border:1px solid #ff3366;border-radius:10px;padding:10px;font-size:12px;color:#ff8099;margin-bottom:12px">
       ⛽ <b>No gas!</b> Send 0.5+ POL (Polygon network) to this address — bot will auto-swap to USDC.
