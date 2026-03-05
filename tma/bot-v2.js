@@ -12,7 +12,7 @@ const fs  = require('fs');
 const db  = require('../lib/db');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
-const TMA_URL   = 'https://polyclawster.com/tma.html';
+const TMA_URL   = 'https://polyclawster.com/tma.html?v=6';
 const OWNER_ID  = '399089761';
 const FEE_PCT   = 0.05;
 

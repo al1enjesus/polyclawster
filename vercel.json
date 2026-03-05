@@ -26,10 +26,7 @@
       "src": "index.html",
       "use": "@vercel/static"
     },
-    {
-      "src": "tma.html",
-      "use": "@vercel/static"
-    },
+
     {
       "src": "app.html",
       "use": "@vercel/static"
@@ -139,6 +136,10 @@
     {
       "src": "/",
       "dest": "/public/index.html"
+    },
+    {
+      "src": "/tma.html",
+      "dest": "/tma/src/index.html"
     },
     {
       "src": "/skill",
