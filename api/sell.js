@@ -41,12 +41,12 @@ module.exports = async (req, res) => {
       const curDemo = parseFloat(user.demo_balance || 0);
       const newDemo = Math.max(0, curDemo + returnAmount);
 
-      await db.updateBet(betId, { status: 'sold', payout: returnAmount, resolved_at: new Date().toISOString() });
+      await db.updateBet(betId, { status: 'cancelled', payout: returnAmount, resolved_at: new Date().toISOString() });
       await db.updateUser(tgId, { demo_balance: +newDemo.toFixed(2) });
 
       return res.json({
         ok: true,
-        status: 'sold',
+        status: 'cancelled',
         returnAmount: +returnAmount.toFixed(2),
         newDemoBalance: +newDemo.toFixed(2),
         pnl: +(returnAmount - parseFloat(bet.amount || 0)).toFixed(2),
