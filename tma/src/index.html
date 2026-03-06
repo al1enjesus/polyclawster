@@ -5082,68 +5082,28 @@ async function confirmBetSheet() {
 
     <!-- Stars tab -->
     <div id="dep-stars-tab" style="display:none">
-      <!-- Header -->
-      <div style="text-align:center;margin-bottom:16px">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.2);border-radius:20px;padding:5px 14px;margin-bottom:10px">
-          <span style="font-size:11px;color:#FFD700;font-weight:600">Комиссия 35% · Мгновенно</span>
-        </div>
-        <div style="font-size:11px;color:rgba(255,255,255,.3);line-height:1.5">
-          Выбери пакет ниже — получишь USDC на баланс.<br>
-          <span style="color:rgba(255,215,0,.5)">1 ⭐ = $0.013 · после комиссии → $0.0085</span>
+
+      <!-- Subtitle -->
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:12px;color:rgba(255,255,255,.35);line-height:1.5">
+          Выбери пакет — получишь USDC на баланс и эквивалент в POL
         </div>
       </div>
 
-      <!-- Packages grid -->
+      <!-- Packages -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-        <button onclick="buyStars(50)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 50</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$0.42</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 1 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$0.65 стоимость</div>
-          </button>
-<button onclick="buyStars(100)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 100</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$0.84</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 2 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$1.30 стоимость</div>
-          </button>
-<button onclick="buyStars(250)" style="position:relative;background:rgba(255,215,0,.12);border:2px solid rgba(255,215,0,.6);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#FFD700;color:#000;font-size:9px;font-weight:800;border-radius:8px;padding:2px 8px;white-space:nowrap">ПОПУЛЯРНО</div>
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 250</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$2.11</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 6 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$3.25 стоимость</div>
-          </button>
-<button onclick="buyStars(500)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 500</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$4.22</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 12 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$6.50 стоимость</div>
-          </button>
-<button onclick="buyStars(1000)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 1K</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$8.45</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 24 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$13.00 стоимость</div>
-          </button>
-<button onclick="buyStars(2500)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''">
-            
-            <div style="font-size:15px;font-weight:800;color:#FFD700;margin-bottom:4px">⭐ 2K</div>
-            <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:3px">$21.12</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">≈ 60 POL</div>
-            <div style="font-size:9px;color:rgba(255,255,255,.2);margin-top:2px">$32.50 стоимость</div>
-          </button>
+        <button onclick="buyStars(50)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 50</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$0.42</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 1 POL</div></button>
+        <button onclick="buyStars(100)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 100</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$0.84</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 2 POL</div></button>
+        <button onclick="buyStars(250)" style="position:relative;background:rgba(255,215,0,.1);border:2px solid rgba(255,215,0,.6);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#FFD700;color:#000;font-size:9px;font-weight:800;border-radius:8px;padding:2px 8px;white-space:nowrap">лучший выбор</div><div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 250</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$2.11</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 6 POL</div></button>
+        <button onclick="buyStars(500)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 500</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$4.22</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 12 POL</div></button>
+        <button onclick="buyStars(1000)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 1K</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$8.45</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 24 POL</div></button>
+        <button onclick="buyStars(2500)" style="position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,215,0,.15);border-radius:14px;padding:14px 8px;cursor:pointer;transition:transform .1s;text-align:center" ontouchstart="this.style.transform='scale(.96)'" ontouchend="this.style.transform=''"> <div style="font-size:22px;font-weight:800;color:#FFD700;margin-bottom:5px">⭐ 2K</div><div style="font-size:17px;font-weight:800;color:#fff;line-height:1">$21.12</div><div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">≈ 60 POL</div></button>
       </div>
 
       <!-- Fine print -->
       <div style="background:rgba(255,255,255,.03);border-radius:12px;padding:10px 14px;margin-bottom:8px">
-        <div style="font-size:10px;color:rgba(255,255,255,.3);line-height:1.7">
-          💡 USDC зачисляется на торговый баланс сразу после оплаты.<br>
-          Вывод в POL доступен в любой момент.
+        <div style="font-size:10px;color:rgba(255,255,255,.25);line-height:1.7;text-align:center">
+          USDC зачисляется мгновенно после оплаты.
         </div>
       </div>
 
