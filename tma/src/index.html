@@ -2183,7 +2183,12 @@ async function loadPortfolio() {
     _portfolio._isOwner = d.isOwner;
     // Sync onboarded status from server — source of truth
     if (typeof d.portfolio !== 'undefined') {
-      window._serverOnboarded = d.portfolio.onboarded === true;
+      var serverOnboarded = d.portfolio.onboarded === true;
+      window._serverOnboarded = serverOnboarded;
+      // Trigger onboarding check — this is the authoritative moment
+      if (typeof window._onPortfolioOnboardingCheck === 'function') {
+        window._onPortfolioOnboardingCheck(serverOnboarded);
+      }
     }
     // Sync demo balance from server
     var serverDemoFresh = parseFloat((_portfolio.demoBalance) || 0);
@@ -5205,19 +5210,25 @@ loadSignals();
   }
   window._checkServerOnboarding = checkServerOnboarding;
 
+  // Called from loadPortfolio() after server responds
+  window._onPortfolioOnboardingCheck = function(serverOnboarded) {
+    if (serverOnboarded === false) {
+      // Server says not onboarded — force show regardless of localStorage
+      var el = document.getElementById('onboarding');
+      if (el) {
+        el.style.display = 'flex';
+        el.classList.remove('hidden');
+      }
+      try { localStorage.removeItem('pc_ob_done_v6'); } catch(e) {}
+    }
+  };
+
   function initOB() {
     if (alreadySeen()) {
+      // localStorage says done — but wait for server confirmation
+      // The actual check happens in _onPortfolioOnboardingCheck()
       var el = document.getElementById('onboarding');
       if (el) el.style.display = 'none';
-      // Still — after portfolio loads, double-check server says onboarded too
-      // (handles case where user was deleted from DB)
-      setTimeout(function() {
-        if (window._serverOnboarded === false) {
-          if (el) el.style.display = 'flex';
-          if (el) el.classList.remove('hidden');
-          try { localStorage.removeItem('pc_ob_done_v6'); } catch(e) {}
-        }
-      }, 1500); // wait for portfolio to load
       return;
     }
     var el = document.getElementById('onboarding');

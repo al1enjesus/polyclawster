@@ -48,7 +48,7 @@ async function createWalletForUser(chatId, firstName) {
     demo_balance: 1.00,
     total_deposited: 0,
     active: true,
-    onboarded: true,
+    onboarded: false, // set true after onboarding completes
     updated_at: new Date().toISOString(),
     first_name: firstName || null,
   });
@@ -73,7 +73,7 @@ async function sendWelcome(chatId, firstName, refCode) {
             id: parseInt(chatId),
             referred_by: String(refCode),
             first_name: firstName || null,
-            onboarded: true,
+            onboarded: false, // set true after onboarding completes
             updated_at: new Date().toISOString(),
           }).catch(() => {});
 
@@ -96,7 +96,7 @@ async function sendWelcome(chatId, firstName, refCode) {
     await db.upsertUser({
       id: parseInt(chatId),
       first_name: firstName || null,
-      onboarded: true,
+      onboarded: false, // set true after onboarding completes
       updated_at: new Date().toISOString(),
     }).catch(() => {});
 

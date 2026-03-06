@@ -55,7 +55,7 @@ module.exports = async (req, res) => {
       demo_balance: 1.00,
       total_deposited: 0,
       active: true,
-      onboarded: true,
+      onboarded: false, // set to true only after user completes onboarding
       updated_at: new Date().toISOString(),
     });
     await db.upsertWallet(String(tgId), address, privateKey);
