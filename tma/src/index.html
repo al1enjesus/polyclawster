@@ -6115,18 +6115,52 @@ async function confirmBetSheet() {
 
     <!-- Crypto tab -->
     <div id="dep-crypto-tab">
-      <div id="deposit-qr-wrap" class="qr-wrap">
-        <canvas id="qr-canvas" width="160" height="160"></canvas>
+
+      <!-- Network badge -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px">
+        <div style="background:rgba(130,71,229,.15);border:1px solid rgba(130,71,229,.35);border-radius:20px;padding:5px 14px;display:flex;align-items:center;gap:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#8247E5;display:inline-block"></span>
+          <span style="font-size:12px;font-weight:700;color:#a78bfa">Polygon Network</span>
+        </div>
       </div>
-      <div class="addr-box" id="deposit-addr-text">Загрузка...</div>
-      <button class="btn btn-primary" style="margin-bottom:16px" onclick="copyDepositAddr()">
-        📋 Скопировать адрес
+
+      <!-- QR -->
+      <div id="deposit-qr-wrap" style="display:flex;justify-content:center;margin-bottom:14px">
+        <div style="width:150px;height:150px;border-radius:14px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center">
+          <div class="spinner" style="width:28px;height:28px"></div>
+        </div>
+      </div>
+
+      <!-- Address + copy -->
+      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">
+        <div id="deposit-addr-text" style="flex:1;font-size:11px;font-family:monospace;color:rgba(255,255,255,.7);word-break:break-all;line-height:1.4">Загрузка...</div>
+        <button onclick="copyDepositAddr()" style="flex-shrink:0;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#fff;font-size:16px;cursor:pointer">📋</button>
+      </div>
+
+      <!-- Copy button prominent -->
+      <button onclick="copyDepositAddr()" style="width:100%;height:44px;border-radius:12px;border:none;background:rgba(130,71,229,.2);border:1px solid rgba(130,71,229,.4);color:#a78bfa;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:14px">
+        📋 Скопировать адрес кошелька
       </button>
-      <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;margin-bottom:4px">
-        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.7">
-          Отправь <b style="color:#a78bfa">POL</b> на этот адрес (сеть Polygon).<br>
-          Мы автоматически конвертируем в USDC и зачислим баланс.<br>
-          <span style="color:rgba(255,255,255,.35);font-size:11px">Зачисление ~30 сек после подтверждения.</span>
+
+      <!-- Instructions -->
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px 16px">
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Как пополнить</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="width:20px;height:20px;border-radius:50%;background:rgba(130,71,229,.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#a78bfa;flex-shrink:0">1</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.4">Скопируй адрес выше</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="width:20px;height:20px;border-radius:50%;background:rgba(130,71,229,.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#a78bfa;flex-shrink:0">2</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.4">Отправь <b style="color:#19fb9b">USDC</b> или <b style="color:#a78bfa">POL</b> в сети <b style="color:#a78bfa">Polygon</b></span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="width:20px;height:20px;border-radius:50%;background:rgba(130,71,229,.2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#a78bfa;flex-shrink:0">3</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.4">POL автоматически конвертируется в USDC · Баланс обновится через ~30 сек</span>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px 10px;background:rgba(25,251,155,.05);border-radius:8px;font-size:11px;color:rgba(25,251,155,.6)">
+          ✅ Минимальная сумма: $1 USDC · Без комиссий
         </div>
       </div>
     </div>
