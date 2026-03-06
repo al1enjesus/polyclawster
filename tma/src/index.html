@@ -1925,6 +1925,9 @@ function showTab(tab) {
   _tab = tab;
   _history = [tab];
   haptic.select();
+  // Clean up signal detail sticky button when switching tabs
+  var sdSticky = document.getElementById('sd-sticky-cta');
+  if (sdSticky) sdSticky.remove();
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   var _nbEl = document.getElementById('nb-'+tab); if(_nbEl) _nbEl.classList.add('active');
   showScreen(tab, false);
@@ -2325,8 +2328,8 @@ async function renderPortfolio(d) {
         // Market info from API
         const mi = mktInfo[b.market_id] || {};
         const sigMatch = (window._signals||[]).find(s => s.conditionId===b.market_id);
-        const img = mi.image || sigMatch?.icon || '';
-        const curPrice = b.side==='YES' ? (mi.priceYes || sigMatch?.priceYes || null) : (mi.priceNo || sigMatch?.priceNo || null);
+        const img = mi.image || sigMatch && sigMatch.icon || '';
+        const curPrice = b.side==='YES' ? (mi.priceYes || sigMatch && sigMatch.priceYes || null) : (mi.priceNo || sigMatch && sigMatch.priceNo || null);
         const buyPrice = parseFloat(b.price) || 0.5;
         const amt = parseFloat(b.amount||0);
         const pnlVal = curPrice !== null ? +((curPrice - buyPrice) * amt).toFixed(2) : null;
@@ -2426,7 +2429,7 @@ async function renderPortfolio(d) {
 
   // ─── Empty CTA ───────────────────────────────────
   let ctaHTML = '';
-  if (!activeBets.length && !d.positions?.length) {
+  if (!activeBets.length && !d.positions && d.positions.length) {
     if (!d.hasWallet) {
       ctaHTML = `<div style="margin:0 16px 20px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.18);border-radius:16px;padding:20px;text-align:center">
         <div style="font-size:13px;font-weight:600;margin-bottom:5px">Создай кошелёк</div>
@@ -3859,128 +3862,142 @@ function renderSignalDetail(s) {
 
   const sideRecommended = s.side || 'YES';
 
-  const betSection = (
-    '<div id="bet-block" style="margin-top:4px;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)">'
 
-    // Header: odds cards
-    + '<div style="padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.06)">'
-    + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">\u0421\u0434\u0435\u043b\u0430\u0442\u044c \u0441\u0442\u0430\u0432\u043a\u0443</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
 
-    + '<div style="background:rgba(25,251,155,.05);border:1px solid rgba(25,251,155,' + (sideRecommended==='YES'?'.28':'.1') + ');border-radius:10px;padding:8px 10px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
-    + '<span style="font-size:12px;font-weight:800;color:#19fb9b">YES</span>'
-    + (sideRecommended==='YES' ? '<span style="font-size:8px;background:rgba(25,251,155,.12);color:#19fb9b;border-radius:4px;padding:1px 5px;font-weight:800">AI \u2191</span>' : '')
-    + '</div>'
-    + '<div style="font-size:20px;font-weight:900;color:var(--text);line-height:1">' + centsYes + '<span style="\u00a2font-size:12px;color:rgba(255,255,255,.4)">\u00a2</span></div>'
-    + '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">\u0437\u0430 $' + exAmt + ' \u2192 <span id="yes-payout-ex" style="color:rgba(25,251,155,.7);font-weight:700">$' + payoutYes + '</span></div>'
-    + '</div>'
+  // ── Fetch market image ──
+  var marketImg = s.icon || s.image || '';
 
-    + '<div style="background:rgba(255,79,79,.05);border:1px solid rgba(255,79,79,' + (sideRecommended==='NO'?'.28':'.1') + ');border-radius:10px;padding:8px 10px">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">'
-    + '<span style="font-size:12px;font-weight:800;color:#FF4F4F">NO</span>'
-    + (sideRecommended==='NO' ? '<span style="font-size:8px;background:rgba(255,79,79,.12);color:#FF4F4F;border-radius:4px;padding:1px 5px;font-weight:800">AI \u2191</span>' : '')
-    + '</div>'
-    + '<div style="font-size:20px;font-weight:900;color:var(--text);line-height:1">' + centsNo + '<span style="font-size:12px;color:rgba(255,255,255,.4)">\u00a2</span></div>'
-    + '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">\u0437\u0430 $' + exAmt + ' \u2192 <span id="no-payout-ex" style="color:rgba(255,100,100,.7);font-weight:700">$' + payoutNo + '</span></div>'
-    + '</div>'
-
-    + '</div>'
-    + '</div>'
-
-    // Amount input
-    + '<div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06)">'
-    + '<div style="display:flex;gap:5px;margin-bottom:10px">'
-    + [1,5,10,25].map(function(a) {
-        var disabled = hasDemo && !hasRealWallet && a > demoBalance;
-        return '<button onclick="setTradeAmt(' + a + ');updatePayoutPreview(parseFloat(' + a + '),' + priceYes + ',' + priceNo + ')" style="'
-          + 'flex:1;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,' + (disabled?'.04':'.08') + ');'
-          + 'background:transparent;color:' + (disabled?'rgba(255,255,255,.18)':'rgba(255,255,255,.65)') + ';'
-          + 'font-size:12px;font-weight:700;cursor:' + (disabled?'not-allowed':'pointer') + '"'
-          + (disabled?' disabled':'') + '>$' + a + '</button>';
-      }).join('')
-    + '</div>'
-    + '<div style="position:relative">'
-    + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:rgba(255,255,255,.2);pointer-events:none">$</span>'
-    + '<input id="trade-amount-inp" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="0.00" '
-    + 'oninput="updatePayoutPreview(parseFloat(this.value)||0,' + priceYes + ',' + priceNo + ')" '
-    + 'style="width:100%;box-sizing:border-box;height:44px;padding:0 56px 0 28px;'
-    + 'background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;'
-    + 'color:var(--text);font-size:17px;font-weight:700;outline:none;letter-spacing:-.3px"/>'
-    + '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;color:rgba(255,255,255,.25)">USDC</span>'
-    + '</div>'
-    // Payout preview
-    + '<div id="payout-preview" style="margin-top:8px;min-height:18px;font-size:12px;color:rgba(255,255,255,.35);transition:all .15s"></div>'
-    + '</div>'
-
-    // Demo badge
-    + (hasDemo && !hasRealWallet
-        ? '<div style="padding:6px 14px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.18);border-radius:20px;padding:3px 10px;font-size:10px;color:#b08aff;font-weight:600">\uD83C\uDF81 Demo: $' + demoBalance.toFixed(2) + '</span></div>'
-        : '')
-
-    // YES / NO buttons
-    + '<div style="padding:10px 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-
-    + '<button onclick="placeBet(' + sEncoded + ',\'YES\')" style="height:54px;border-radius:12px;cursor:pointer;position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(25,251,155,.14),rgba(16,180,100,.04));border:1.5px solid rgba(25,251,155,' + (sideRecommended==='YES'?'.35':'.15') + ');display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .08s,opacity .08s" ontouchstart="this.style.transform=\'scale(.95)\';this.style.opacity=\'.75\'" ontouchend="this.style.transform=\'\';this.style.opacity=\'\'">'
-    + (sideRecommended==='YES' ? '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#19fb9b,transparent)"></div>' : '')
-    + '<span style="font-size:15px;font-weight:900;color:#19fb9b;letter-spacing:.5px">YES</span>'
-    + '<span id="btn-yes-sub" style="font-size:9px;color:rgba(25,251,155,.45);margin-top:1px">' + centsYes + '\u00a2 \u00b7 \u0432\u044b\u0438\u0433\u0440\u044b\u0448 $' + payoutYes + '</span>'
-    + (sideRecommended==='YES' ? '<span style="position:absolute;top:5px;right:6px;font-size:8px;background:rgba(25,251,155,.12);color:#19fb9b;border-radius:3px;padding:1px 4px;font-weight:800">AI</span>' : '')
-    + '</button>'
-
-    + '<button onclick="placeBet(' + sEncoded + ',\'NO\')" style="height:54px;border-radius:12px;cursor:pointer;position:relative;overflow:hidden;background:linear-gradient(160deg,rgba(255,79,79,.14),rgba(180,30,30,.04));border:1.5px solid rgba(255,79,79,' + (sideRecommended==='NO'?'.35':'.15') + ');display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .08s,opacity .08s" ontouchstart="this.style.transform=\'scale(.95)\';this.style.opacity=\'.75\'" ontouchend="this.style.transform=\'\';this.style.opacity=\'\'">'
-    + (sideRecommended==='NO' ? '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#FF4F4F,transparent)"></div>' : '')
-    + '<span style="font-size:15px;font-weight:900;color:#FF4F4F;letter-spacing:.5px">NO</span>'
-    + '<span id="btn-no-sub" style="font-size:9px;color:rgba(255,79,79,.45);margin-top:1px">' + centsNo + '\u00a2 \u00b7 \u0432\u044b\u0438\u0433\u0440\u044b\u0448 $' + payoutNo + '</span>'
-    + (sideRecommended==='NO' ? '<span style="position:absolute;top:5px;right:6px;font-size:8px;background:rgba(255,79,79,.12);color:#FF4F4F;border-radius:3px;padding:1px 4px;font-weight:800">AI</span>' : '')
-    + '</button>'
-
-    + '</div>'
-    + '</div>'
-  );
-;
+  // ── Simple sticky buy CTA ──
+  const sEncoded2 = JSON.stringify(s).replace(/"/g,'&quot;');
+  const sideLabel = sideRecommended === 'YES' ? 'YES' : 'NO';
 
   document.getElementById('sig-detail-content').innerHTML = (
-    '<div class="detail-hero">'
-    + '<div class="detail-icon signal-icon-wrap ' + lvl + '" style="border-radius:16px;font-size:22px">' + icon + '</div>'
-    + '<div>'
-    + '<div class="detail-title">' + typeLabel + '</div>'
-    + '<div class="detail-sub">Score: ' + score.toFixed(1) + '/10 · ' + (isStrong?'Strong':'Medium') + ' signal</div>'
+    // ── 1. Event header: image + title ──
+    '<div style="position:relative;border-radius:18px;overflow:hidden;margin-bottom:14px;min-height:110px;background:rgba(255,255,255,.04)">'
+    + (marketImg
+        ? '<img id="sd-market-img" src="' + marketImg + '" style="width:100%;height:140px;object-fit:cover;display:block" onerror="this.style.display=\'none\'">'
+        : '<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:44px">' + icon + '</div>')
+    + '<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.88));padding:12px 14px 14px">'
+    + '<div style="font-size:15px;font-weight:800;line-height:1.3;color:#fff">' + (s.market||s.title||'') + '</div>'
+    + '<div style="display:flex;gap:6px;margin-top:5px;align-items:center">'
+    + '<span style="background:rgba(247,183,49,.15);border:1px solid rgba(247,183,49,.3);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:800;color:#F7B731">' + score.toFixed(1) + '/10</span>'
+    + '<span style="font-size:11px;color:rgba(255,255,255,.45)">' + typeLabel + '</span>'
     + '</div>'
-    + '</div>'
-
-    + '<div class="detail-section">'
-    + '<div class="detail-section-title">Рынок</div>'
-    + '<div style="font-size:14px;line-height:1.5;color:var(--text)">' + (s.market||s.title||'') + '</div>'
-    + (s.newsContext ? '<div style="margin-top:10px;padding:10px 12px;background:var(--bg-glass2);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.5;border:1px solid var(--border)">📰 ' + s.newsContext + '</div>' : '')
-    + '</div>'
-
-    + '<div class="detail-section">'
-    + '<div class="detail-section-title">🧠 Почему AI ставит на это</div>'
-    + '<div style="font-size:13px;color:var(--text2);line-height:1.6;padding:12px;background:rgba(153,69,255,.06);border:1px solid rgba(153,69,255,.15);border-radius:12px">' + aiReason + '</div>'
-    + '</div>'
-
-    + '<div class="detail-section">'
-    + '<div class="detail-section-title">Данные сигнала</div>'
-    + (detailRows || '<div style="color:var(--muted);font-size:13px">No additional data</div>')
-    + '<div style="margin-top:12px;display:flex;align-items:center;gap:10px">'
-    + '<div style="font-size:11px;color:var(--muted);flex-shrink:0">Уверенность</div>'
-    + '<div class="score-bar" style="flex:1;height:5px;border-radius:4px">'
-    + '<div class="score-fill" style="width:' + pct + '%;background:' + barColor + ';border-radius:4px;transition:width 1s ease"></div>'
-    + '</div>'
-    + '<span style="font-size:15px;font-weight:800;color:' + barColor + ';letter-spacing:-.5px;flex-shrink:0">' + score.toFixed(1) + '</span>'
     + '</div>'
     + '</div>'
 
-    + betSection
+    // ── 2. Price + Chart ──
+    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    + '<div><span style="font-size:22px;font-weight:800">' + centsYes + '¢</span>'
+    + '<span id="sd-chart-change" style="font-size:12px;font-weight:600;margin-left:8px;color:var(--muted)"></span></div>'
+    + '<div class="chart-tabs" style="display:flex;gap:4px">'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'15m\')">15M</button>'
+    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1d\')">1H</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1w\')">1W</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1m\')">1M</button>'
+    + '</div></div>'
+    + '<div id="sd-price-chart" style="min-height:160px"><div style="text-align:center;padding:30px"><div class="spinner" style="width:18px;height:18px;margin:0 auto"></div></div></div>'
+    + '</div>'
 
-    + '<div class="btn-row">'
-    + '<button class="btn btn-secondary" onclick="openExternal(\'' + polyLink + '\')">'
-    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
-    + 'Открыть на Polymarket'
+    // ── 3. AI reasoning ──
+    + '<div style="background:rgba(153,69,255,.06);border:1px solid rgba(153,69,255,.15);border-radius:16px;padding:14px;margin-bottom:14px">'
+    + '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(153,69,255,.7);margin-bottom:8px">🧠 Почему AI ставит на это</div>'
+    + '<div style="font-size:13px;color:rgba(255,255,255,.8);line-height:1.6">' + aiReason + '</div>'
+    + (s.newsContext ? '<div style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:rgba(255,255,255,.45);line-height:1.5">📰 ' + s.newsContext + '</div>' : '')
+    + '</div>'
+
+    // ── 4. Stats: 3 key numbers ──
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">'
+    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center">'
+    + '<div style="font-size:15px;font-weight:800;color:' + (sideRecommended==='YES'?'#19fb9b':'#FF4F4F') + '">' + sideLabel + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Сторона AI</div></div>'
+    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center">'
+    + '<div style="font-size:15px;font-weight:800">' + centsYes + '¢</div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Цена YES</div></div>'
+    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center">'
+    + '<div style="font-size:15px;font-weight:800;color:' + barColor + '">' + score.toFixed(1) + '</div>'
+    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">AI Score</div></div>'
+    + '</div>'
+
+    // Confidence bar
+    + '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;margin-bottom:14px">'
+    + '<div style="font-size:11px;color:var(--muted);width:74px;flex-shrink:0">Уверенность</div>'
+    + '<div style="flex:1;height:5px;border-radius:4px;background:rgba(255,255,255,.08)">'
+    + '<div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:4px;transition:width 1s ease"></div>'
+    + '</div>'
+    + '<span style="font-size:14px;font-weight:800;color:' + barColor + ';flex-shrink:0">' + score.toFixed(1) + '</span>'
+    + '</div>'
+
+    // Extra data
+    + (detailRows ? '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:12px;padding:2px 14px;margin-bottom:14px">' + detailRows + '</div>' : '')
+
+    // Polymarket link + bottom padding for sticky button
+    + '<div style="margin-bottom:84px">'
+    + '<button onclick="openExternal(\'' + polyLink + '\')" style="width:100%;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:transparent;color:rgba(255,255,255,.35);font-size:12px;cursor:pointer">Открыть на Polymarket ↗</button>'
+    + '</div>'
+  );
+
+  // ── Sticky YES/NO buy buttons ──
+  var existingSticky = document.getElementById('sd-sticky-cta');
+  if (existingSticky) existingSticky.remove();
+  var sticky = document.createElement('div');
+  sticky.id = 'sd-sticky-cta';
+  sticky.style.cssText = 'position:fixed;bottom:56px;left:0;right:0;z-index:200;padding:8px 16px 12px;background:linear-gradient(transparent,rgba(13,8,32,.97) 25%)';
+  sticky.innerHTML = (
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:480px;margin:0 auto">'
+    + '<button onclick="placeBet(' + sEncoded2 + ',\'NO\')" style="height:52px;border-radius:14px;border:1px solid rgba(255,79,79,.3);background:rgba(255,79,79,.08);color:#FF4F4F;font-size:15px;font-weight:800;cursor:pointer">NO · ' + centsNo + '¢</button>'
+    + '<button onclick="placeBet(' + sEncoded2 + ',\'YES\')" style="height:52px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
+    + (sideRecommended==='YES' ? '<span>⚡</span>' : '')
+    + 'YES · ' + centsYes + '¢'
+    + (sideRecommended==='YES' ? '<span style="font-size:9px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">AI</span>' : '')
     + '</button>'
     + '</div>'
   );
+  // Add to detail panel
+  var detailPanel = document.querySelector('.detail-panel.sig-detail') || document.querySelector('#sig-detail-content') && document.querySelector('#sig-detail-content').closest('.detail-panel') || document.querySelector('.detail-panel');
+  if (detailPanel) {
+    // remove old sticky when panel closes
+    var origClose = detailPanel._closeSticky;
+    detailPanel.appendChild(sticky);
+  } else {
+    document.body.appendChild(sticky);
+  }
+
+  // Remove sticky when user navigates away
+  window._sdStickyCleanup = function() {
+    var el = document.getElementById('sd-sticky-cta');
+    if (el) el.remove();
+  };
+
+  // ── Load chart ──
+  var chartTokenId = s.tokenYes || s.clobTokenId || '';
+  var marketKey = s.marketId || s.conditionId || s.market_id || '';
+  if (!chartTokenId && marketKey) {
+    fetch('/api/market-info?ids=' + encodeURIComponent(marketKey) + '&_=' + Date.now())
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var mk = (d.markets||{})[marketKey] || {};
+        var tid = mk.tokenYes || mk.clobTokenId || '';
+        if (mk.image) {
+          var imgEl = document.getElementById('sd-market-img');
+          if (imgEl) imgEl.src = mk.image;
+        }
+        if (tid) {
+          window._chartTokenId = tid;
+          fetchPriceHistory(tid, '1d').then(function(history){
+            renderPriceChart('sd-price-chart', history, 160, { buyPrice: null, changeElId: 'sd-chart-change' });
+            _updateChartChange(history, 'sd-chart-change');
+          });
+        }
+      }).catch(function(){});
+  } else if (chartTokenId) {
+    window._chartTokenId = chartTokenId;
+    fetchPriceHistory(chartTokenId, '1d').then(function(history){
+      renderPriceChart('sd-price-chart', history, 160, { buyPrice: null, changeElId: 'sd-chart-change' });
+      _updateChartChange(history, 'sd-chart-change');
+    });
+  }
 }
 
 function renderWalletDetail(s) {
