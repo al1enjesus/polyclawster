@@ -4911,25 +4911,44 @@ loadSignals();
         </div>
       </div>
 
-      <!-- Slide 5: Live signal preview (was slide 2) -->
+      <!-- Slide 5: What AI analyzes -->
       <div class="ob-slide" id="ob-s5">
-        <div class="ob-visual ob-visual-2">
-          <span class="ob-emoji">⚡</span>
+        <div class="ob-visual ob-visual-2" style="width:180px;height:180px;border-radius:32px;margin-bottom:20px">
+          <span class="ob-emoji" style="font-size:60px">🧠</span>
         </div>
-        <div class="ob-title">Вот что AI<br>нашёл <span style="color:#F7B731">прямо сейчас</span></div>
-        <div class="ob-desc" style="margin-bottom:16px">Реальный сигнал от умных денег. Такие появляются каждые несколько часов.</div>
-        <div id="ob-signal-preview" style="width:100%;max-width:300px;background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.25);border-radius:16px;padding:14px 16px;text-align:left">
-          <div style="font-size:10px;font-weight:700;color:#FF6B35;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔴 Загрузка сигнала...</div>
-          <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9);line-height:1.4" id="ob-sig-title">Polymarket · Live</div>
-          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-            <span style="font-size:11px;background:rgba(255,255,255,.08);border-radius:6px;padding:3px 8px;color:rgba(255,255,255,.6)" id="ob-sig-side">—</span>
-            <span style="font-size:11px;color:rgba(255,255,255,.4)">·</span>
-            <span style="font-size:11px;color:#F7B731;font-weight:700" id="ob-sig-score">0.0/10</span>
-            <div style="flex:1"></div>
-            <span style="font-size:12px;font-weight:800;color:#19fb9b" id="ob-sig-amount">$0</span>
+        <div class="ob-title">AI сканирует рынок<br><span style="color:#F7B731">24/7</span></div>
+        <div class="ob-desc" style="margin-bottom:16px">Находит возможности, которые не видно глазом.</div>
+        <div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:8px">
+          <!-- Signal type cards -->
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px">
+            <span style="font-size:22px">🐋</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9)">Киты</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.3">Крупные ставки от $10K+. Кто-то знает больше.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px">
+            <span style="font-size:22px">📊</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9)">Ордербук</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.3">Перекос спроса и предложения. Цена скоро двинется.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px">
+            <span style="font-size:22px">📰</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9)">Новости</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.3">Парсинг новостей и соцсетей. Реагирует быстрее рынка.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 14px">
+            <span style="font-size:22px">🧠</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9)">Smart Money</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.3">Трекинг кошельков с историей винрейта 70%+.</div>
+            </div>
           </div>
         </div>
-        <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.3)">Обновляется каждые 20 минут</div>
       </div>
 
       <!-- Slide 6: Demo $1 offer (was slide 3) -->
@@ -4990,7 +5009,7 @@ loadSignals();
       .then(function(d) {
         _obSignals = (d.signals || []).sort(function(a,b){ return (b.score||0)-(a.score||0); });
         renderObSlide1(d);
-        renderObSlide2();
+        // renderObSlide2 removed — slide 5 is now static
       })
       .catch(function(){});
   }
