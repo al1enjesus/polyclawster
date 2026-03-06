@@ -5093,7 +5093,10 @@ loadSignals();
 <script>
 // ══ ONBOARDING ══════════════════════════════════════════════════
 (function() {
-  var OB_KEY = 'pc_ob_done_v6';
+  // OB_KEY is tgId-specific: if user is deleted + recreated, old key is gone
+  // We also keep a fallback for pre-tgId sessions
+  var _obTgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && String(window.Telegram.WebApp.initDataUnsafe.user.id)) || '';
+  var OB_KEY = _obTgId ? ('pc_ob_v6_' + _obTgId) : 'pc_ob_done_v6';
   var cur = 0, total = 6;
   var _obSignals = [];
 
@@ -5212,25 +5215,29 @@ loadSignals();
 
   // Called from loadPortfolio() after server responds
   window._onPortfolioOnboardingCheck = function(serverOnboarded) {
-    if (serverOnboarded === false) {
-      // Server says not onboarded — force show regardless of localStorage
+    // Show onboarding if server says not done OR localStorage has no flag
+    // This handles: user deleted from DB, user created via bot (bot may set onboarded:true)
+    var localDone = alreadySeen();
+    if (serverOnboarded === false || !localDone) {
       var el = document.getElementById('onboarding');
       if (el) {
         el.style.display = 'flex';
         el.classList.remove('hidden');
       }
-      try { localStorage.removeItem('pc_ob_done_v6'); } catch(e) {}
+      try { localStorage.removeItem(OB_KEY); localStorage.removeItem('pc_ob_done_v6'); } catch(e) {}
     }
   };
 
   function initOB() {
+    // Initial render: hide onboarding if localStorage says done
+    // Final decision is made in _onPortfolioOnboardingCheck after server responds
     if (alreadySeen()) {
-      // localStorage says done — but wait for server confirmation
-      // The actual check happens in _onPortfolioOnboardingCheck()
       var el = document.getElementById('onboarding');
       if (el) el.style.display = 'none';
+      // _onPortfolioOnboardingCheck will override this if server says otherwise
       return;
     }
+    // No localStorage flag — show immediately, don't wait for server
     var el = document.getElementById('onboarding');
     if (el) el.style.display = 'flex';
 
