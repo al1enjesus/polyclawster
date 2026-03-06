@@ -2979,62 +2979,42 @@ function timeSince(d) { return timeAgoClient(d); }
 function renderSignals(sigs) {
   if (!sigs||!sigs.length) {
     document.getElementById('signals-content').innerHTML=
-      '<div class="empty"><div class="empty-icon">📡</div>No signals right now.<br>Scanner runs every 30 min.</div>';
+      '<div class="empty"><div class="empty-icon">📡</div>Нет сигналов</div>';
     return;
   }
-  const icons={ob_imbalance:'⚖️',whale_order:'🐋',price_drift:'📈',vol_spike:'⚡',news_edge:'📰',cross_market:'🔗',smartwallet:'🧠'};
-  const typeLabels={ob_imbalance:'Order Imbalance',whale_order:'Whale Order',price_drift:'Price Drift',vol_spike:'Volume Spike',news_edge:'News Edge',cross_market:'Cross-Market',smartwallet:'Smart Wallet'};
 
-  const cards = sigs.slice(0,15).map((s,i) => {
-    const score=s.score||0, isStrong=score>=8, isMed=score>=5;
-    const lvl=isStrong?'strong':isMed?'medium':'weak';
-    const barClr=isStrong?'#FF3366':isMed?'#F7B731':'#45AAF2';
-    const icon=icons[s.type]||'📡';
-    const typeLabel=typeLabels[s.type]||s.type;
-    const hasWallet=s.type==='smartwallet'&&s.addr;
-    const ago = s.timestamp ? timeAgoClient(s.timestamp) : s.ago || '';
-    const isNew = s.timestamp && (Date.now()-new Date(s.timestamp).getTime()) < 10*60*1000;
-    const autoTrade = isStrong ? '<span class="sig-auto">AUTO</span>' : '';
-    const newBadge  = isNew ? '<span class="sig-new-badge">NEW</span>' : '';
-    var _sideHtml = s.side ? '<div class="signal-sub">Side: '+s.side+(s.amount?' · $'+s.amount:'')+'</div>' : '';
-    var _agoHtml = ago ? '<div class="sig-timer">'+ago+'</div>' : '';
-    var _walletStr = hasWallet ? ' · '+s.addr.slice(0,8)+'...' : '';
-    var _titleStr = (s.market||s.title||'').slice(0,70);
-    // Normalize price for card display
-    var _rawP = parseFloat(s.price||0);
-    var _pYes = _rawP > 100 ? _rawP/10000 : _rawP > 1 ? _rawP/100 : _rawP;
-    var _cYes = Math.round(_pYes*100);
-    var _cNo  = Math.max(1, 100 - _cYes);
-    var _sEnc = JSON.stringify(s).replace(/"/g,'&quot;');
-    // Quick bet row — show on strong/medium only
-    var _betRow = (isStrong || isMed) ?
-      '<div class="sig-bet-row" onclick="event.stopPropagation()">'
-      + (_cYes > 0 ? '<span style="font-size:10px;color:rgba(255,255,255,.35)">YES '+_cYes+'¢ · NO '+_cNo+'¢</span>' : '')
-      + '<div class="sig-bet-btns">'
-      + '<button class="sig-bet-btn sig-bet-yes" onclick="event.stopPropagation();quickBet(_sEnc,\'YES\')">YES</button>'
-      + '<button class="sig-bet-btn sig-bet-no"  onclick="event.stopPropagation();quickBet(_sEnc,\'NO\')">NO</button>'
+  const cards = sigs.slice(0,20).map((s,i) => {
+    const score = +(s.score||0);
+    const sClr = score>=8?'#19fb9b':score>=6?'#F7B731':'#45AAF2';
+    const pYes = Math.round((s.priceYes||s.price||0.5)*100);
+    const pNo = Math.max(1, 100-pYes);
+    const title = (s.market||s.title||'').slice(0,55);
+    const imgUrl = s.icon||'';
+    const imgHtml = imgUrl
+      ? '<img src="'+imgUrl+'" style="width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div style=\\\'width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0\\\'>📊</div>\'">'
+      : '<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📊</div>';
+    const sEnc = encodeURIComponent(JSON.stringify(s));
+
+    return '<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:12px;margin:0 12px 8px;cursor:pointer" onclick="openSignal('+i+')">'
+      + imgHtml
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+title+'</div>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<span style="font-size:10px;color:rgba(255,255,255,.3)">YES '+pYes+'¢ · NO '+pNo+'¢</span>'
       + '</div>'
       + '</div>'
-      : '';
-    return '<div class="signal-card '+lvl+'" onclick="openSignal('+i+')" style="animation-delay:'+i*40+'ms;animation-fill-mode:both">'
-      +'<div class="signal-icon-wrap '+lvl+'">'+icon+'</div>'
-      +'<div class="signal-body">'
-      +'<div class="signal-type">'+typeLabel+_walletStr+newBadge+autoTrade+'</div>'
-      +'<div class="signal-title">'+_titleStr+'</div>'
-      +_sideHtml+_agoHtml
-      +'<div class="score-bar-bg"><div class="score-bar-fill" style="width:'+Math.round(score/10*100)+'%;background:'+barClr+'"></div></div>'
-      +_betRow
-      +'</div>'
-      +'<div class="signal-score">'+score.toFixed(1)+'</div>'
-      +'<svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>'
-      +'</div>';
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'
+      + '<div style="font-size:18px;font-weight:800;color:'+sClr+'">'+score.toFixed(1)+'</div>'
+      + '<div style="display:flex;gap:4px">'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'YES\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(25,251,155,.12);color:#19fb9b;font-size:10px;font-weight:700;cursor:pointer">YES</button>'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'NO\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(255,79,79,.1);color:#FF4F4F;font-size:10px;font-weight:700;cursor:pointer">NO</button>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
   }).join('');
 
   document.getElementById('signals-content').innerHTML=
-    '<div class="content" style="padding-top:8px">'
-    +cards
-    +'<div class="virix">by <a href="https://virixlabs.com" target="_blank">Virix Labs</a></div>'
-    +'</div>';
+    '<div style="padding:8px 0 20px">'+cards+'</div>';
 }
 
 // ── Whales render ──────────────────────────────────────────────
