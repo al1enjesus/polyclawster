@@ -5882,15 +5882,21 @@ async function sellBet(betId) {
   if (!tgId) { showToast("Не авторизован"); return; }
   
   if (bet.is_demo) {
-    // Demo sell: close bet, return amount +/- PnL to demo_balance
+    // Demo sell: close bet, return current value to demo_balance
     try {
       showToast("Продаю...", 2000);
       var mi = (window._mktInfoCache || {})[bet.market_id] || {};
-      var curPrice = bet.side === "YES" ? (mi.priceYes || 0.5) : (mi.priceNo || 0.5);
-      var buyPrice = parseFloat(bet.price) || 0.5;
+      var curPrice = bet.side === "YES" ? (mi.priceYes || null) : (mi.priceNo || null);
       var amt = parseFloat(bet.amount || 0);
-      var pnl = (curPrice - buyPrice) * amt;
-      var returnAmt = Math.max(0, amt + pnl);
+      // buyPrice: saved price, if 0 fall back to curPrice (no change)
+      var buyPrice = parseFloat(bet.price) || 0;
+      if (buyPrice <= 0) buyPrice = curPrice || 0.22;
+      // CORRECT: shares model
+      // shares = amt / buyPrice; currentValue = shares * curPrice
+      var shares = buyPrice > 0 ? amt / buyPrice : 0;
+      var currentValue = (curPrice !== null && shares > 0) ? shares * curPrice : amt;
+      var pnl = currentValue - amt;
+      var returnAmt = Math.max(0, currentValue);
       
       var r = await fetch("/api/sell", {
         method: "POST",
