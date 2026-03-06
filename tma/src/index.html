@@ -2802,38 +2802,108 @@ function showNoBetSheet(amt, signal, side) {
   window._noBetCtx = { amt: amt, signal: signal, side: side };
   var existing = document.getElementById('no-bet-sheet-overlay');
   if (existing) existing.remove();
-  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
+  var demoBalance = parseFloat(localStorage.getItem('pc_demo_balance') || window._demoBal || '0');
+  var hasDemo = demoBalance >= amt;
+
+  // Calculate potential payout for this signal (hook the user!)
+  var price = parseFloat(signal.price || signal.curPrice || 0.22);
+  var shares = price > 0 ? (amt / price).toFixed(0) : (amt * 4).toFixed(0);
+  var potPayout = price > 0 ? (amt / price).toFixed(2) : (amt * 4).toFixed(2);
+  var multiplier = price > 0 ? (1 / price).toFixed(1) : '4.5';
+  var signalScore = parseFloat(signal.score || 0);
+
   var overlay = document.createElement('div');
   overlay.id = 'no-bet-sheet-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center';
+
   overlay.innerHTML = (
-    '<div style="width:100%;max-width:480px;background:#1a1030;border-radius:24px 24px 0 0;padding:24px 20px 36px">'
-    + '<div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 20px"></div>'
-    + '<div style="font-size:18px;font-weight:800;margin-bottom:6px">Как хочешь поставить?</div>'
-    + '<div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Выбери способ для ставки $' + amt.toFixed(2) + '</div>'
-        // Option 1: Demo if has balance
-    + (demoBalance > 0
-        ? '<div onclick="_noBetDemoClick()" style="display:flex;align-items:center;gap:14px;background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">'
-          + '<div style="font-size:28px">\uD83C\uDF81</div>'
-          + '<div><div style="font-size:14px;font-weight:700">Demo-\u0431\u0430\u043b\u0430\u043d\u0441 \u00b7 $' + demoBalance.toFixed(2) + '</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">\u041f\u043e\u0441\u0442\u0430\u0432\u0438\u0442\u044c \u0431\u0435\u0437 \u0440\u0438\u0441\u043a\u0430</div></div>'
-          + '</div>'
-        : '')
-    // Option 2: Deposit
-    + '<div onclick="_noBetDepositClick()" style="display:flex;align-items:center;gap:14px;background:rgba(25,251,155,.06);border:1px solid rgba(25,251,155,.15);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">'
-    + '<div style="font-size:28px">\uD83D\uDCB0</div>'
-    + '<div><div style="font-size:14px;font-weight:700">\u041f\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u044c USDC</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">\u041c\u0438\u043d\u0438\u043c\u0443\u043c $1 \u00b7 Polygon</div></div>'
+    '<div style="width:100%;max-width:480px;background:linear-gradient(180deg,#1a0f30 0%,#0d0820 100%);border-radius:24px 24px 0 0;padding:0 0 36px;overflow:hidden">'
+
+    // ── Hero: что ты теряешь ──
+    + '<div style="background:linear-gradient(135deg,rgba(153,69,255,.15),rgba(25,251,155,.05));padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.06);position:relative">'
+    + '<div style="width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 18px"></div>'
+
+    // Signal name + score badge
+    + '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px">'
+    + '<div style="flex:1;font-size:14px;font-weight:700;line-height:1.4;color:rgba(255,255,255,.9)">' + (signal.market || signal.title || 'Сигнал').slice(0, 55) + (((signal.market || signal.title || '').length > 55) ? '…' : '') + '</div>'
+    + (signalScore >= 7 ? '<div style="flex-shrink:0;background:rgba(247,183,49,.15);border:1px solid rgba(247,183,49,.3);border-radius:8px;padding:4px 8px;font-size:11px;font-weight:800;color:#F7B731">' + signalScore.toFixed(1) + '/10</div>' : '')
     + '</div>'
-    // Option 3: Trade on Polymarket directly
-    + '<div onclick="_noBetPolyClick()" style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer">'
-    + '<div style="font-size:28px">🔗</div>'
-    + '<div><div style="font-size:14px;font-weight:700">Открыть на Polymarket</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Ставить напрямую в браузере</div></div>'
+
+    // Profit preview
+    + '<div style="background:rgba(25,251,155,.06);border:1px solid rgba(25,251,155,.15);border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">'
+    + '<div>'
+    + '<div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:3px">Ставка $' + amt.toFixed(2) + ' на ' + side + '</div>'
+    + '<div style="font-size:13px;color:rgba(255,255,255,.7)">Потенциал: ' + shares + ' акций × $1</div>'
     + '</div>'
-    // Option 4: Cancel
-    + '<button onclick="_noBetCancel()" style="width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-size:14px;cursor:pointer;margin-top:4px">\u041e\u0442\u043c\u0435\u043d\u0430</button>'
+    + '<div style="text-align:right">'
+    + '<div style="font-size:22px;font-weight:900;color:#19fb9b">$' + potPayout + '</div>'
+    + '<div style="font-size:10px;color:rgba(25,251,155,.6)">×' + multiplier + ' к ставке</div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+
+    // ── Варианты ──
+    + '<div style="padding:16px 20px 0">'
+
+    // Option 1: Stars (fastest, Telegram-native)
+    + '<div onclick="showPaywallStars(' + amt + ')" style="display:flex;align-items:center;gap:14px;background:rgba(255,215,0,.07);border:1.5px solid rgba(255,215,0,.25);border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;position:relative;transition:opacity .15s" ontouchstart="this.style.opacity=\'.7\'" ontouchend="this.style.opacity=\'1\'">'
+    + '<div style="width:44px;height:44px;border-radius:12px;background:rgba(255,215,0,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⭐</div>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:14px;font-weight:800">Telegram Stars</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Мгновенно · Оплата в 2 клика</div>'
+    + '</div>'
+    + '<div style="font-size:11px;font-weight:700;color:#FFD700;background:rgba(255,215,0,.1);border-radius:8px;padding:4px 8px">Быстро</div>'
+    + '</div>'
+
+    // Option 2: Demo (if available)
+    + (hasDemo
+      ? '<div onclick="_noBetDemoClick()" style="display:flex;align-items:center;gap:14px;background:rgba(153,69,255,.07);border:1.5px solid rgba(153,69,255,.2);border-radius:16px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:opacity .15s" ontouchstart="this.style.opacity=\'.7\'" ontouchend="this.style.opacity=\'1\'">'
+      + '<div style="width:44px;height:44px;border-radius:12px;background:rgba(153,69,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🎮</div>'
+      + '<div style="flex:1">'
+      + '<div style="font-size:14px;font-weight:800">Demo-баланс · $' + demoBalance.toFixed(2) + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">Без реальных денег · тренируйся</div>'
+      + '</div>'
+      + '<div style="font-size:20px;color:rgba(153,69,255,.8)">›</div>'
+      + '</div>'
+      : '')
+
+    // Option 3: Crypto deposit (Polygon USDC)
+    + '<div onclick="_noBetDepositClick()" style="display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 16px;margin-bottom:16px;cursor:pointer;transition:opacity .15s" ontouchstart="this.style.opacity=\'.7\'" ontouchend="this.style.opacity=\'1\'">'
+    + '<div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔷</div>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:14px;font-weight:700">Пополнить криптой</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:2px">USDC / POL · Polygon · от $1</div>'
+    + '</div>'
+    + '<div style="font-size:20px;color:rgba(255,255,255,.3)">›</div>'
+    + '</div>'
+
+    // Cancel
+    + '<button onclick="_noBetCancel()" style="width:100%;height:44px;border-radius:12px;border:none;background:transparent;color:rgba(255,255,255,.25);font-size:13px;cursor:pointer">Не сейчас</button>'
+    + '</div>'
     + '</div>'
   );
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+
+// Quick Stars payment directly from paywall
+function showPaywallStars(amt) {
+  // Map amount to nearest Stars package
+  var packages = [
+    { usd: 1,   stars: 120 },
+    { usd: 5,   stars: 600 },
+    { usd: 10,  stars: 1200 },
+    { usd: 25,  stars: 3000 },
+    { usd: 50,  stars: 6000 },
+    { usd: 100, stars: 12000 },
+  ];
+  // Find smallest package >= amt
+  var pkg = packages.find(function(p) { return p.usd >= amt; }) || packages[packages.length - 1];
+
+  // Close paywall and open deposit sheet on Stars tab
+  _noBetCancel();
+  openSheet('deposit');
+  setTimeout(function() { showDepositTab('stars'); }, 200);
 }
 
 function showBetConfirm(signal, side, amt, isDemo) {
