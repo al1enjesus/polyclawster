@@ -3732,7 +3732,7 @@ function walletDataHTML(w) {
     + '<div id="wallet-toggle-track" onclick="var _t=document.getElementById(\"wallet-mode-toggle\");_t.checked=!_t.checked;switchWalletMode(!_t.checked)" '
     + '  style="position:relative;width:44px;height:26px;background:' + (showDemo ? 'rgba(139,92,246,.4)' : 'rgba(25,251,155,.3)') + ';border-radius:13px;cursor:pointer;transition:background .2s;padding:3px">'
     + '<input type="checkbox" id="wallet-mode-toggle" ' + (!showDemo ? 'checked' : '') + ' onchange="switchWalletMode(!this.checked)" style="display:none">'
-    + '<div id="wallet-toggle-thumb" style="width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;transform:' + (showDemo ? 'translateX(0)' : 'translateX(18px)') + '"></div>'
+    + '<div id="wallet-toggle-thumb" style="width:20px;height:20px;background:#fff;border-radius:50%;pointer-events:none;transition:transform .2s;transform:' + (showDemo ? 'translateX(0)' : 'translateX(18px)') + '"></div>'
     + '</div>'
     + '<span id="wallet-lbl-live" style="font-size:12px;font-weight:600;color:#19fb9b;opacity:' + (showDemo ? '0.3' : '1') + ';cursor:pointer" onclick="switchWalletMode(false)">Live</span>'
     + '</div>'
