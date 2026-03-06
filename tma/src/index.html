@@ -5402,7 +5402,18 @@ async function openDepositSheet() {
       if (el) el.textContent = addr;
       var wrap = document.getElementById('deposit-qr-wrap');
       if (wrap) {
-        wrap.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(addr) + '" style="width:140px;height:140px;border-radius:12px;background:#fff;padding:6px">';
+        // Show spinner while QR loads
+        wrap.innerHTML = '<div style="width:140px;height:140px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center"><div class="spinner" style="width:28px;height:28px"></div></div>';
+        var img = new Image();
+        img.onload = function() {
+          wrap.innerHTML = '';
+          img.style.cssText = 'width:140px;height:140px;border-radius:12px;background:#fff;padding:6px;display:block';
+          wrap.appendChild(img);
+        };
+        img.onerror = function() {
+          wrap.innerHTML = '<div style="width:140px;height:140px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.3)">QR недоступен</div>';
+        };
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(addr);
       }
     } else {
       if (el) el.textContent = 'Create wallet first';
