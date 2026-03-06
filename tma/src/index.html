@@ -1402,6 +1402,26 @@ body {
 .psig-n{border:1px solid rgba(255,61,90,.4);background:rgba(255,61,90,.07);color:#FF3D5A}
 .psig-y:active{background:rgba(0,232,122,.22)}
 .psig-n:active{background:rgba(255,61,90,.22)}
+
+/* Chart tabs */
+.chart-tab {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.chart-tab.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.chart-tab:active {
+  transform: scale(0.95);
+}
 </style>
 
 </head>
@@ -2917,6 +2937,110 @@ function openPosition(idx) {
   showScreen('pos-detail');
 }
 
+
+// ══ PRICE CHART FUNCTIONS ══════════════════════════════════════
+window._priceCache = window._priceCache || {};
+window._chartTokenId = null;
+
+async function fetchPriceHistory(tokenId, interval) {
+  var cacheKey = tokenId + '_' + interval;
+  var cached = window._priceCache[cacheKey];
+  if (cached && Date.now() - cached.ts < 300000) return cached.data;
+  
+  var fidelity = interval === '1d' ? 1 : interval === '1w' ? 10 : 60;
+  try {
+    var url = 'https://clob.polymarket.com/prices-history?market=' + tokenId + '&interval=' + interval + '&fidelity=' + fidelity;
+    var r = await fetch(url);
+    var d = await r.json();
+    var history = d.history || [];
+    window._priceCache[cacheKey] = { data: history, ts: Date.now() };
+    return history;
+  } catch(e) {
+    console.warn('[chart] price fetch error:', e);
+    return cached ? cached.data : [];
+  }
+}
+
+function renderPriceChart(containerId, history, height) {
+  var el = document.getElementById(containerId);
+  if (!el || !history.length) {
+    if (el) el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No price data</div>';
+    return;
+  }
+  
+  var W = el.offsetWidth || 320;
+  var H = height || 140;
+  var PAD_L = 0, PAD_R = 0, PAD_T = 10, PAD_B = 10;
+  var chartW = W - PAD_L - PAD_R;
+  var chartH = H - PAD_T - PAD_B;
+  
+  var prices = history.map(function(h) { return h.p; });
+  var minP = Math.min.apply(null, prices);
+  var maxP = Math.max.apply(null, prices);
+  var range = maxP - minP || 0.01;
+  
+  minP -= range * 0.05;
+  maxP += range * 0.05;
+  range = maxP - minP;
+  
+  var firstP = prices[0];
+  var lastP = prices[prices.length - 1];
+  var isUp = lastP >= firstP;
+  var lineColor = isUp ? '#19fb9b' : '#FF4F4F';
+  var fillTop = isUp ? 'rgba(25,251,155,0.15)' : 'rgba(255,79,79,0.15)';
+  var fillBot = 'rgba(0,0,0,0)';
+  
+  var points = history.map(function(h, i) {
+    var x = PAD_L + (i / (history.length - 1)) * chartW;
+    var y = PAD_T + (1 - (h.p - minP) / range) * chartH;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  });
+  
+  var polyline = points.join(' ');
+  var fillPoly = points.join(' ') + ' ' + (PAD_L + chartW).toFixed(1) + ',' + (PAD_T + chartH) + ' ' + PAD_L + ',' + (PAD_T + chartH);
+  
+  var gradId = 'pg_' + containerId;
+  
+  el.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
+    + '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0%" stop-color="' + fillTop + '"/>'
+    + '<stop offset="100%" stop-color="' + fillBot + '"/>'
+    + '</linearGradient></defs>'
+    + '<polygon points="' + fillPoly + '" fill="url(#' + gradId + ')"/>'
+    + '<polyline points="' + polyline + '" fill="none" stroke="' + lineColor + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'
+    + '<circle cx="' + points[points.length-1].split(',')[0] + '" cy="' + points[points.length-1].split(',')[1] + '" r="3" fill="' + lineColor + '" stroke="' + lineColor + '" stroke-width="1"/>'
+    + '<circle cx="' + points[points.length-1].split(',')[0] + '" cy="' + points[points.length-1].split(',')[1] + '" r="6" fill="' + lineColor + '" opacity="0.2"/>'
+    + '</svg>';
+}
+
+function switchChartInterval(btn, interval) {
+  var tabs = btn.parentElement.querySelectorAll('.chart-tab');
+  tabs.forEach(function(t) { t.classList.remove('active'); });
+  btn.classList.add('active');
+  
+  if (!window._chartTokenId) return;
+  
+  var chartEl = document.getElementById('detail-price-chart') || document.getElementById('bet-detail-chart');
+  var changeEl = document.getElementById('chart-change') || document.getElementById('bet-chart-change');
+  var chartId = chartEl ? chartEl.id : 'detail-price-chart';
+  
+  if (chartEl) chartEl.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>';
+  
+  fetchPriceHistory(window._chartTokenId, interval).then(function(history) {
+    renderPriceChart(chartId, history, 140);
+    
+    if (history.length > 1) {
+      var first = history[0].p;
+      var last = history[history.length-1].p;
+      var change = ((last - first) / first * 100);
+      if (changeEl) {
+        changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
+        changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+      }
+    }
+  });
+}
+
 function renderPositionDetail(p) {
   const ppnl = p.cashPnl||0, pr = (p.curPrice||0)*100;
   const pCls = ppnl>0?'up':ppnl<0?'down':'neu';
@@ -2927,90 +3051,149 @@ function renderPositionDetail(p) {
   const polyLink = 'https://polymarket.com/event/' + (p.slug || slug(p.title||''));
   const icon = pr>=80?'🟢':pr>=50?'🟡':'🔴';
 
-  // ── Status detection (same logic as list view) ──
+  // Status detection
   const now = Date.now();
   const endTs = p.endDate ? new Date(p.endDate).getTime() : 0;
   const isPast = endTs > 0 && endTs < now;
   let statusLabel = 'Active';
   let statusColor = 'var(--muted)';
-  let isClaim = false;
-  let isResolving = false;
-  if (p.redeemable) {
-    statusLabel = '💰 Ready to Claim'; statusColor = '#19fb9b'; isClaim = true;
-  } else if (isPast && pr >= 95) {
-    statusLabel = '🕐 Resolving'; statusColor = 'var(--amber)'; isResolving = true;
-  } else if (isPast && pr <= 5) {
-    statusLabel = '✗ Closed (Loss)'; statusColor = '#FF4F4F';
-  } else if (isPast) {
-    statusLabel = 'Ended'; statusColor = 'var(--muted)';
-  }
+  let isClaim = false, isResolving = false;
+  if (p.redeemable) { statusLabel = '💰 Ready to Claim'; statusColor = '#19fb9b'; isClaim = true; }
+  else if (isPast && pr >= 95) { statusLabel = '🕐 Resolving'; statusColor = 'var(--amber)'; isResolving = true; }
+  else if (isPast && pr <= 5) { statusLabel = '✗ Closed (Loss)'; statusColor = '#FF4F4F'; }
+  else if (isPast) { statusLabel = 'Ended'; statusColor = 'var(--muted)'; }
 
   const detailImg = p.icon
-    ? `<img src="${p.icon}" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" onerror="this.style.display='none'">`
-    : `<span style="font-size:26px">${icon}</span>`;
+    ? '<img src="' + p.icon + '" style="width:100%;height:100%;object-fit:cover;border-radius:16px;" onerror="this.style.display=\'none\'">'
+    : '<span style="font-size:26px">' + icon + '</span>';
 
-  document.getElementById('pos-detail-content').innerHTML = `
-    <div class="detail-hero">
-      <div class="detail-icon">${detailImg}</div>
-      <div>
-        <div class="detail-title">${p.title||''}</div>
-        <div class="detail-sub">
-          <span class="outcome-badge outcome-${tagCls}">${p.outcome}</span>
-          &nbsp;·&nbsp;<span class="poly-badge">Polymarket</span>
-          &nbsp;·&nbsp;<span style="color:${statusColor};font-weight:600">${statusLabel}</span>
-        </div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Position Overview</div>
-      <div class="detail-stats">
-        <div class="detail-stat">
-          <div class="detail-stat-v">${Math.round(pr)}¢</div>
-          <div class="detail-stat-k">Current Price</div>
-        </div>
-        <div class="detail-stat">
-          <div class="detail-stat-v ${pCls}">${fmt(ppnl)}</div>
-          <div class="detail-stat-k">P&amp;L</div>
-        </div>
-        <div class="detail-stat">
-          <div class="detail-stat-v">$${p.currentValue.toFixed(2)}</div>
-          <div class="detail-stat-k">Market Value</div>
-        </div>
-        <div class="detail-stat">
-          <div class="detail-stat-v ${parseFloat(pnlPct)>=0?'up':'down'}">${pnlPct}%</div>
-          <div class="detail-stat-k">ROI</div>
-        </div>
-      </div>
-    </div>
-    <div class="detail-section">
-      <div class="detail-section-title">Details</div>
-      <div class="detail-row"><span class="detail-row-k">Outcome</span><span class="outcome-badge outcome-${tagCls}">${p.outcome}</span></div>
-      <div class="detail-row"><span class="detail-row-k">Shares held</span><span class="detail-row-v">${(p.size||0).toFixed(1)}</span></div>
-      <div class="detail-row"><span class="detail-row-k">Avg buy price</span><span class="detail-row-v">${cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—'}</span></div>
-      <div class="detail-row"><span class="detail-row-k">Cost basis</span><span class="detail-row-v">$${cost.toFixed(2)}</span></div>
-      <div class="detail-row"><span class="detail-row-k">Potential payout</span><span class="detail-row-v up">$${(p.size||0).toFixed(2)}</span></div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-secondary" onclick="openExternal('${polyLink}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        Open on Polymarket
-      </button>
-    </div>
-    ${isClaim ?
-      '<div class="glass-card" style="background:rgba(25,251,155,.08);border-color:rgba(25,251,155,.25);margin-top:12px;text-align:center">'
-      +'<div style="font-size:20px;margin-bottom:6px">💰</div>'
-      +'<div style="font-size:14px;font-weight:700;color:#19fb9b;margin-bottom:4px">Market Resolved — You Won!</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Your winnings are ready to collect on Polymarket</div>'
-      +'<button class="btn btn-primary" style="background:linear-gradient(135deg,#19fb9b,#00c97d);color:#000;font-weight:700;width:100%" onclick="openExternal(\'' + polyLink + '\')">💰 Claim Winnings on Polymarket</button>'
-      +'</div>'
-    : isResolving ?
-      '<div class="glass-card" style="background:rgba(247,183,49,.06);border-color:rgba(247,183,49,.2);margin-top:12px;text-align:center">'
-      +'<div style="font-size:20px;margin-bottom:6px">🕐</div>'
-      +'<div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px">Awaiting Resolution</div>'
-      +'<div style="font-size:12px;color:var(--muted)">Market ended — awaiting official resolution. Usually 24–48h after close.</div>'
-      +'</div>'
-    : ''}
-    </div>`;
+  // Get token ID for chart
+  var tokenId = p.clobTokenId || p.asset || p.tokenId || '';
+  window._chartTokenId = tokenId;
+
+  var escapedTitle = (p.title||'').replace(/'/g, "\\'");
+  var escapedIcon = (p.icon||'').replace(/'/g, "\\'");
+
+  document.getElementById('pos-detail-content').innerHTML = ''
+    // Header
+    + '<div class="detail-hero">'
+    + '<div class="detail-icon">' + detailImg + '</div>'
+    + '<div>'
+    + '<div class="detail-title">' + (p.title||'') + '</div>'
+    + '<div class="detail-sub">'
+    + '<span class="outcome-badge outcome-' + tagCls + '">' + p.outcome + '</span>'
+    + '&nbsp;·&nbsp;<span class="poly-badge">Polymarket</span>'
+    + '&nbsp;·&nbsp;<span style="color:' + statusColor + ';font-weight:600">' + statusLabel + '</span>'
+    + '</div></div></div>'
+
+    // Action buttons - RIGHT AFTER HEADER
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<button class="btn" onclick="openExternal(\'' + polyLink + '\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔻 Продать</button>'
+    + '<button class="btn" onclick="openBetSheet&&openBetSheet({conditionId:\'' + (p.conditionId||'') + '\',market:\'' + escapedTitle + '\',icon:\'' + escapedIcon + '\'},\'' + (p.outcome||'YES') + '\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔺 Докупить</button>'
+    + '</div>'
+
+    // Claim/Resolving banners
+    + (isClaim
+      ? '<div class="glass-card" style="background:rgba(25,251,155,.08);border-color:rgba(25,251,155,.25);margin-bottom:12px;text-align:center">'
+        +'<div style="font-size:20px;margin-bottom:6px">💰</div>'
+        +'<div style="font-size:14px;font-weight:700;color:#19fb9b;margin-bottom:4px">Market Resolved — You Won!</div>'
+        +'<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Your winnings are ready to collect on Polymarket</div>'
+        +'<button class="btn btn-primary" style="background:linear-gradient(135deg,#19fb9b,#00c97d);color:#000;font-weight:700;width:100%" onclick="openExternal(\'' + polyLink + '\')">💰 Claim Winnings</button>'
+        +'</div>'
+      : isResolving
+        ? '<div class="glass-card" style="background:rgba(247,183,49,.06);border-color:rgba(247,183,49,.2);margin-bottom:12px;text-align:center">'
+          +'<div style="font-size:20px;margin-bottom:6px">🕐</div>'
+          +'<div style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px">Awaiting Resolution</div>'
+          +'<div style="font-size:12px;color:var(--muted)">Market ended — usually 24–48h for resolution.</div>'
+          +'</div>'
+        : '')
+
+    // Price Chart
+    + '<div class="detail-section" style="padding:14px;background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;margin-bottom:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    + '<div><span style="font-size:22px;font-weight:800">' + Math.round(pr) + '¢</span>'
+    + '<span id="chart-change" style="font-size:12px;font-weight:600;margin-left:6px;color:var(--muted)"></span></div>'
+    + '<div class="chart-tabs" style="display:flex;gap:4px">'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1d\')">1D</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1w\')">1W</button>'
+    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
+    + '</div></div>'
+    + '<div id="detail-price-chart" style="width:100%;min-height:140px">'
+    + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
+    + '</div></div>'
+
+    // Position Overview
+    + '<div class="detail-section">'
+    + '<div class="detail-section-title">Position Overview</div>'
+    + '<div class="detail-stats">'
+    + '<div class="detail-stat"><div class="detail-stat-v">' + Math.round(pr) + '¢</div><div class="detail-stat-k">Current Price</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v ' + pCls + '">' + fmt(ppnl) + '</div><div class="detail-stat-k">P&amp;L</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v">$' + p.currentValue.toFixed(2) + '</div><div class="detail-stat-k">Market Value</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v ' + (parseFloat(pnlPct)>=0?'up':'down') + '">' + pnlPct + '%</div><div class="detail-stat-k">ROI</div></div>'
+    + '</div></div>'
+
+    // Details
+    + '<div class="detail-section">'
+    + '<div class="detail-section-title">Details</div>'
+    + '<div class="detail-row"><span class="detail-row-k">Outcome</span><span class="outcome-badge outcome-' + tagCls + '">' + p.outcome + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Shares held</span><span class="detail-row-v">' + (p.size||0).toFixed(1) + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Avg buy price</span><span class="detail-row-v">' + (cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—') + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Cost basis</span><span class="detail-row-v">$' + cost.toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Potential payout</span><span class="detail-row-v up">$' + (p.size||0).toFixed(2) + '</span></div>'
+    + '</div>'
+
+    // Polymarket link
+    + '<div class="btn-row">'
+    + '<button class="btn btn-secondary" onclick="openExternal(\'' + polyLink + '\')">'
+    + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+    + ' Open on Polymarket</button></div>';
+
+  // Load chart
+  if (tokenId) {
+    fetchPriceHistory(tokenId, '1m').then(function(history) {
+      renderPriceChart('detail-price-chart', history, 140);
+      if (history.length > 1) {
+        var first = history[0].p, last = history[history.length-1].p;
+        var change = ((last - first) / first * 100);
+        var changeEl = document.getElementById('chart-change');
+        if (changeEl) {
+          changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
+          changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+        }
+      }
+    });
+  } else {
+    var marketSlug = p.slug || '';
+    if (marketSlug) {
+      fetch('https://gamma-api.polymarket.com/markets?slug=' + marketSlug)
+        .then(function(r) { return r.json(); })
+        .then(function(markets) {
+          if (markets && markets[0] && markets[0].clobTokenIds) {
+            var idx = (p.outcome||'').toLowerCase() === 'no' ? 1 : 0;
+            var tid = markets[0].clobTokenIds[idx] || markets[0].clobTokenIds[0];
+            window._chartTokenId = tid;
+            return fetchPriceHistory(tid, '1m');
+          }
+          return [];
+        })
+        .then(function(history) {
+          if (history && history.length) {
+            renderPriceChart('detail-price-chart', history, 140);
+            if (history.length > 1) {
+              var first = history[0].p, last = history[history.length-1].p;
+              var change = ((last - first) / first * 100);
+              var changeEl = document.getElementById('chart-change');
+              if (changeEl) {
+                changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
+                changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+              }
+            }
+          }
+        })
+        .catch(function() {});
+    }
+  }
 }
 
 // ══ SIGNALS ══════════════════════════════════════════════════════ ══════════════════════════════════════════════════════
@@ -5052,15 +5235,16 @@ async function openBetDetail(betId) {
 
   var liqStr = mi.liquidity ? '$' + (mi.liquidity > 1000 ? (mi.liquidity/1000).toFixed(1)+'k' : mi.liquidity.toFixed(0)) : '—';
   var vol24Str = mi.volume24h ? '$' + (mi.volume24h > 1000 ? (mi.volume24h/1000).toFixed(1)+'k' : mi.volume24h.toFixed(0)) : '—';
+  var curPriceDisplay = curPrice !== null ? Math.round(curPrice*100) : 0;
 
-  // Build detail HTML
+  // Build detail HTML — redesigned layout
   var inner = '<div style="width:100%;max-width:480px;background:#111118;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:90vh;overflow-y:auto">'
     // Header
     + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
     + '<div style="font-size:16px;font-weight:800">Детали ставки</div>'
     + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:16px;cursor:pointer">✕</button></div>'
     // Market card with image
-    + '<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:20px">'
+    + '<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">'
     + imgHtml
     + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;line-height:1.4;margin-bottom:6px">' + (bet.market||'Unknown') + '</div>'
     + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
@@ -5068,15 +5252,34 @@ async function openBetDetail(betId) {
     + (isDemo?'<span style="background:rgba(139,92,246,.15);color:#a78bfa;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700">ДЕМО</span>':'')
     + '<span style="font-size:10px;color:var(--muted)">'+statusTxt+'</span>'
     + '</div></div></div>'
-    
+
+    // Action buttons - MOVED UP right after header
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<button onclick="sellBet('+betId+')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔻 Продать</button>'
+    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove();openBetSheet({conditionId:\''+bet.market_id+'\',market:\''+(bet.market||'').replace(/'/g,"\\'")+'\',icon:\''+imgUrl+'\'},\''+(bet.side==='YES'?'YES':'NO')+'\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔺 Докупить</button>'
+    + '</div>'
+
+    // Price Chart - NEW
+    + '<div style="padding:14px;background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;margin-bottom:14px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    + '<div><span style="font-size:22px;font-weight:800">' + (curPrice !== null ? curPriceDisplay+'¢' : '—') + '</span>'
+    + '<span id="bet-chart-change" style="font-size:12px;font-weight:600;margin-left:6px;color:var(--muted)"></span></div>'
+    + '<div class="chart-tabs" style="display:flex;gap:4px">'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1d\')">1D</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1w\')">1W</button>'
+    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
+    + '</div></div>'
+    + '<div id="bet-detail-chart" style="width:100%;min-height:140px">'
+    + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
+    + '</div></div>'
+
     // Price & PnL hero
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-    // Current price
     + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
     + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Текущая цена</div>'
     + '<div style="font-size:28px;font-weight:800;color:'+sideClr+'">' + (curPrice !== null ? Math.round(curPrice*100)+'¢' : '—') + '</div>'
     + '</div>'
-    // PnL
     + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
     + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Прибыль / Убыток</div>'
     + '<div style="font-size:28px;font-weight:800;color:'+pnlClr+'">' + (pnlVal !== null ? (pnlVal>=0?'+':'') + '$'+Math.abs(pnlVal).toFixed(2) : '—') + '</div>'
@@ -5094,12 +5297,6 @@ async function openBetDetail(betId) {
     + (bet.signal_score ? '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">AI Score</span><span style="font-size:12px;font-weight:700;color:#F7B731">'+parseFloat(bet.signal_score).toFixed(1)+'/10</span></div>' : '')
     + '<div style="display:flex;justify-content:space-between;padding:10px 0"><span style="font-size:12px;color:var(--muted)">Создана</span><span style="font-size:12px">'+createdStr+'</span></div>'
     + '</div>'
-    
-    // Action buttons
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
-    + '<button onclick="sellBet('+betId+')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer">🔻 Продать</button>'
-    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove();openBetSheet({conditionId:\''+bet.market_id+'\',market:\''+(bet.market||'').replace(/'/g,"\\'")+'\',icon:\''+imgUrl+'\'},\''+(bet.side==='YES'?'YES':'NO')+'\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer">🔺 Докупить</button>'
-    + '</div>'
 
     // Polymarket link
     + (mi.slug ? '<a href="https://polymarket.com/event/'+mi.slug+'" target="_blank" style="display:block;text-align:center;font-size:11px;color:var(--muted);text-decoration:none;padding:8px">Открыть на Polymarket ↗</a>' : '')
@@ -5107,6 +5304,39 @@ async function openBetDetail(betId) {
 
   overlay.innerHTML = inner;
   haptic.light && haptic.light();
+
+  // Load price chart for bet detail
+  (function() {
+    var cId = bet.market_id || bet.condition_id || '';
+    if (!cId) return;
+    
+    fetch('https://gamma-api.polymarket.com/markets?condition_id=' + cId)
+      .then(function(r) { return r.json(); })
+      .then(function(markets) {
+        if (markets && markets[0] && markets[0].clobTokenIds) {
+          var idx = (bet.side||'').toUpperCase() === 'NO' ? 1 : 0;
+          var tid = markets[0].clobTokenIds[idx] || markets[0].clobTokenIds[0];
+          window._chartTokenId = tid;
+          return fetchPriceHistory(tid, '1m');
+        }
+        return [];
+      })
+      .then(function(history) {
+        if (history && history.length) {
+          renderPriceChart('bet-detail-chart', history, 140);
+          if (history.length > 1) {
+            var first = history[0].p, last = history[history.length-1].p;
+            var change = ((last - first) / first * 100);
+            var changeEl = document.getElementById('bet-chart-change');
+            if (changeEl) {
+              changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
+              changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+            }
+          }
+        }
+      })
+      .catch(function(e) { console.warn('[chart] bet detail:', e); });
+  })();
 }
 
 
