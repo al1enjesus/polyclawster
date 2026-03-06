@@ -3118,13 +3118,37 @@ async function fetchPriceHistory(tokenId, interval) {
   var cacheKey = tokenId + '_' + interval;
   var cached = window._priceCache[cacheKey];
   if (cached && Date.now() - cached.ts < 300000) return cached.data;
-  
-  var fidelity = interval === '1d' ? 1 : interval === '1w' ? 10 : 60;
+
+  // 15M and 1H: fetch 1d data (1-min fidelity) then slice
+  var apiInterval = interval;
+  var fidelity;
+  if (interval === '15m' || interval === '1h') {
+    apiInterval = '1d';
+    fidelity = 1;
+  } else {
+    fidelity = interval === '1d' ? 1 : interval === '1w' ? 10 : 60;
+  }
+
   try {
-    var url = '/api/price-history?market=' + tokenId + '&interval=' + interval + '&fidelity=' + fidelity;
+    var url = '/api/price-history?market=' + tokenId + '&interval=' + apiInterval + '&fidelity=' + fidelity;
     var r = await fetch(url);
     var d = await r.json();
     var history = d.history || [];
+
+    // Slice to requested period
+    if (history.length > 0) {
+      var now = Date.now() / 1000;
+      if (interval === '15m') {
+        history = history.filter(function(p) { return p.t >= now - 900; });
+      } else if (interval === '1h') {
+        history = history.filter(function(p) { return p.t >= now - 3600; });
+      }
+      // If 1h/15m returned too few points, show 1d data instead
+      if ((interval === '15m' || interval === '1h') && history.length < 3) {
+        history = d.history || [];
+      }
+    }
+
     window._priceCache[cacheKey] = { data: history, ts: Date.now() };
     return history;
   } catch(e) {
@@ -3183,7 +3207,7 @@ function renderPriceChart(containerId, history, height, opts) {
   
   // ── X-axis labels (time ticks) ──
   var tMin = times[0], tMax = times[times.length - 1];
-  var xTickCount = interval === '1d' ? 4 : interval === '1w' ? 5 : 5;
+  var xTickCount = (interval === '15m' || interval === '1h') ? 4 : interval === '1d' ? 4 : interval === '1w' ? 5 : 5;
   var xLabels = '';
   for (var xi = 0; xi < xTickCount; xi++) {
     var tVal = tMin + (tMax - tMin) * (xi / (xTickCount - 1));
@@ -3283,7 +3307,7 @@ function _calcYTicks(minP, maxP, count) {
 // ── Chart helper: X-axis time labels ──
 function _formatTimeLabel(ts, interval) {
   var d = new Date(ts * 1000);
-  if (interval === '1d') {
+  if (interval === '15m' || interval === '1h' || interval === '1d') {
     return d.getHours().toString().padStart(2,'0') + ':00';
   } else if (interval === '1w') {
     var days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
@@ -3400,9 +3424,10 @@ function renderPositionDetail(p) {
     + '<div><span style="font-size:22px;font-weight:800">' + Math.round(pr) + '¢</span>'
     + '<span id="chart-change" style="font-size:12px;font-weight:600;margin-left:6px;color:var(--muted)"></span></div>'
     + '<div class="chart-tabs" style="display:flex;gap:4px">'
-    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1d\')">1D</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'15m\')">15M</button>'
+    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1d\')">1H</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'1w\')">1W</button>'
-    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1m\')">1M</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
     + '</div></div>'
     + '<div id="detail-price-chart" style="width:100%;min-height:200px">'
@@ -3453,7 +3478,7 @@ function renderPositionDetail(p) {
 
   // Load chart — use tokenId if available, otherwise fetch from our market-info API
   if (tokenId) {
-    fetchPriceHistory(tokenId, '1m').then(function(history) {
+    fetchPriceHistory(tokenId, '1d').then(function(history) {
       renderPriceChart('detail-price-chart', history, 200, {
         buyPrice: cost > 0 && p.size > 0 ? cost / p.size : null,
         buyTime: p.createdAt ? Math.floor(new Date(p.createdAt).getTime() / 1000) : null,
@@ -5671,11 +5696,21 @@ async function openBetDetail(betId) {
   }
 
   var curPrice = bet.side === 'YES' ? (mi.priceYes || null) : (mi.priceNo || null);
-  var buyPrice = parseFloat(bet.price) || 0.5;
-  var pnlVal = curPrice !== null ? +((curPrice - buyPrice) * amt).toFixed(2) : null;
-  var pnlPct = curPrice !== null && buyPrice > 0 ? +(((curPrice - buyPrice) / buyPrice) * 100).toFixed(1) : null;
+  // buyPrice: use saved price, but if 0 (old bets) try to infer from market or use curPrice as fallback
+  var buyPrice = parseFloat(bet.price) || 0;
+  if (buyPrice <= 0) {
+    // Old bet saved with price:0 — use current price as buy price (shows 0% change)
+    // Better than showing fake 50¢ which causes -87% immediately
+    buyPrice = curPrice || 0.22; // 22¢ reasonable default for YES outcomes
+  }
+  // CORRECT P&L: shares = amt / buyPrice; currentValue = shares * curPrice; pnl = currentValue - amt
+  var shares = buyPrice > 0 ? amt / buyPrice : 0;
+  var currentValue = curPrice !== null ? shares * curPrice : null;
+  var pnlVal = currentValue !== null ? +(currentValue - amt).toFixed(2) : null;
+  var pnlPct = currentValue !== null && amt > 0 ? +((pnlVal / amt) * 100).toFixed(1) : null;
   var pnlClr = pnlVal > 0 ? '#19fb9b' : pnlVal < 0 ? '#FF4F4F' : 'rgba(255,255,255,.5)';
-  var potPayout = curPrice > 0 ? amt / curPrice : amt * 2;
+  // potPayout: if outcome wins, each share pays $1
+  var potPayout = shares; // shares * $1
   var potProfit = potPayout - amt;
   
   var endDate = mi.endDate ? new Date(mi.endDate) : null;
@@ -5726,9 +5761,10 @@ async function openBetDetail(betId) {
     + '<div><span style="font-size:22px;font-weight:800">' + (curPrice !== null ? curPriceDisplay+'¢' : '—') + '</span>'
     + '<span id="bet-chart-change" style="font-size:12px;font-weight:600;margin-left:6px;color:var(--muted)"></span></div>'
     + '<div class="chart-tabs" style="display:flex;gap:4px">'
-    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1d\')">1D</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'15m\')">15M</button>'
+    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1d\')">1H</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'1w\')">1W</button>'
-    + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
+    + '<button class="chart-tab" onclick="switchChartInterval(this,\'1m\')">1M</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
     + '</div></div>'
     + '<div id="bet-detail-chart" style="width:100%;min-height:200px">'
