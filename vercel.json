@@ -105,6 +105,10 @@
     {
       "src": "og-image.jpg",
       "use": "@vercel/static"
+    },
+    {
+      "src": "api/price-history.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -211,6 +215,10 @@
     {
       "src": "/api/sell",
       "dest": "/api/sell.js"
+    },
+    {
+      "src": "/api/price-history",
+      "dest": "/api/price-history.js"
     }
   ]
 }

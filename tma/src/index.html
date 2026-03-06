@@ -2942,6 +2942,18 @@ function openPosition(idx) {
 window._priceCache = window._priceCache || {};
 window._chartTokenId = null;
 
+function _updateChartChange(history, elId) {
+  if (history.length > 1) {
+    var first = history[0].p, last = history[history.length-1].p;
+    var change = ((last - first) / first * 100);
+    var changeEl = document.getElementById(elId);
+    if (changeEl) {
+      changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
+      changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+    }
+  }
+}
+
 async function fetchPriceHistory(tokenId, interval) {
   var cacheKey = tokenId + '_' + interval;
   var cached = window._priceCache[cacheKey];
@@ -2949,7 +2961,7 @@ async function fetchPriceHistory(tokenId, interval) {
   
   var fidelity = interval === '1d' ? 1 : interval === '1w' ? 10 : 60;
   try {
-    var url = 'https://clob.polymarket.com/prices-history?market=' + tokenId + '&interval=' + interval + '&fidelity=' + fidelity;
+    var url = '/api/price-history?market=' + tokenId + '&interval=' + interval + '&fidelity=' + fidelity;
     var r = await fetch(url);
     var d = await r.json();
     var history = d.history || [];
@@ -3149,29 +3161,25 @@ function renderPositionDetail(p) {
     + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
     + ' Open on Polymarket</button></div>';
 
-  // Load chart
+  // Load chart — use tokenId if available, otherwise fetch from our market-info API
   if (tokenId) {
     fetchPriceHistory(tokenId, '1m').then(function(history) {
       renderPriceChart('detail-price-chart', history, 140);
-      if (history.length > 1) {
-        var first = history[0].p, last = history[history.length-1].p;
-        var change = ((last - first) / first * 100);
-        var changeEl = document.getElementById('chart-change');
-        if (changeEl) {
-          changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
-          changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
-        }
-      }
+      _updateChartChange(history, 'chart-change');
     });
   } else {
+    // Fallback: fetch token ID from our market-info proxy (no CORS issues)
+    var condId = p.conditionId || '';
     var marketSlug = p.slug || '';
-    if (marketSlug) {
-      fetch('https://gamma-api.polymarket.com/markets?slug=' + marketSlug)
+    var fetchUrl = condId ? '/api/market-info?ids=' + condId + '&_=' + Date.now() : '';
+    if (fetchUrl) {
+      fetch(fetchUrl)
         .then(function(r) { return r.json(); })
-        .then(function(markets) {
-          if (markets && markets[0] && markets[0].clobTokenIds) {
-            var idx = (p.outcome||'').toLowerCase() === 'no' ? 1 : 0;
-            var tid = markets[0].clobTokenIds[idx] || markets[0].clobTokenIds[0];
+        .then(function(d) {
+          var info = (d.markets || {})[condId] || {};
+          var oc2 = (p.outcome||'').toLowerCase();
+          var tid = oc2 === 'no' ? (info.tokenNo || info.tokenYes || '') : (info.tokenYes || info.tokenNo || '');
+          if (tid) {
             window._chartTokenId = tid;
             return fetchPriceHistory(tid, '1m');
           }
@@ -3180,15 +3188,10 @@ function renderPositionDetail(p) {
         .then(function(history) {
           if (history && history.length) {
             renderPriceChart('detail-price-chart', history, 140);
-            if (history.length > 1) {
-              var first = history[0].p, last = history[history.length-1].p;
-              var change = ((last - first) / first * 100);
-              var changeEl = document.getElementById('chart-change');
-              if (changeEl) {
-                changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
-                changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
-              }
-            }
+            _updateChartChange(history, 'chart-change');
+          } else {
+            var ce = document.getElementById('detail-price-chart');
+            if (ce) ce.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Chart unavailable</div>';
           }
         })
         .catch(function() {});
@@ -5305,37 +5308,45 @@ async function openBetDetail(betId) {
   overlay.innerHTML = inner;
   haptic.light && haptic.light();
 
-  // Load price chart for bet detail
+  // Load price chart for bet detail — use tokenYes/tokenNo from market-info (already fetched, no CORS issue)
   (function() {
-    var cId = bet.market_id || bet.condition_id || '';
-    if (!cId) return;
-    
-    fetch('https://gamma-api.polymarket.com/markets?condition_id=' + cId)
-      .then(function(r) { return r.json(); })
-      .then(function(markets) {
-        if (markets && markets[0] && markets[0].clobTokenIds) {
-          var idx = (bet.side||'').toUpperCase() === 'NO' ? 1 : 0;
-          var tid = markets[0].clobTokenIds[idx] || markets[0].clobTokenIds[0];
-          window._chartTokenId = tid;
-          return fetchPriceHistory(tid, '1m');
-        }
-        return [];
-      })
-      .then(function(history) {
-        if (history && history.length) {
-          renderPriceChart('bet-detail-chart', history, 140);
-          if (history.length > 1) {
-            var first = history[0].p, last = history[history.length-1].p;
-            var change = ((last - first) / first * 100);
-            var changeEl = document.getElementById('bet-chart-change');
-            if (changeEl) {
-              changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
-              changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
+    var tid = (bet.side||'').toUpperCase() === 'NO' ? (mi.tokenNo || mi.tokenYes || '') : (mi.tokenYes || mi.tokenNo || '');
+    if (!tid) {
+      // Fallback: if mi didn't have tokens, fetch market-info for them
+      var cId = bet.market_id || '';
+      if (cId) {
+        fetch('/api/market-info?ids=' + cId + '&_=' + Date.now())
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            var info = (d.markets || {})[cId] || {};
+            var tkn = (bet.side||'').toUpperCase() === 'NO' ? (info.tokenNo || info.tokenYes || '') : (info.tokenYes || info.tokenNo || '');
+            if (tkn) {
+              window._chartTokenId = tkn;
+              fetchPriceHistory(tkn, '1m').then(function(history) {
+                if (history && history.length) {
+                  renderPriceChart('bet-detail-chart', history, 140);
+                  _updateChartChange(history, 'bet-chart-change');
+                }
+              });
+            } else {
+              var ce = document.getElementById('bet-detail-chart');
+              if (ce) ce.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Chart unavailable</div>';
             }
-          }
-        }
-      })
-      .catch(function(e) { console.warn('[chart] bet detail:', e); });
+          })
+          .catch(function() {});
+      }
+      return;
+    }
+    window._chartTokenId = tid;
+    fetchPriceHistory(tid, '1m').then(function(history) {
+      if (history && history.length) {
+        renderPriceChart('bet-detail-chart', history, 140);
+        _updateChartChange(history, 'bet-chart-change');
+      } else {
+        var ce = document.getElementById('bet-detail-chart');
+        if (ce) ce.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Chart unavailable</div>';
+      }
+    });
   })();
 }
 
