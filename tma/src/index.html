@@ -3638,6 +3638,7 @@ function walletOnboardHTML(tgId) {
 var _walletModeData = null;
 
 function switchWalletMode(isDemo) {
+  window._walletIsDemo = isDemo;
   if (!_walletModeData) return;
   var balEl  = document.getElementById('wallet-balance-area');
   var lblL   = document.getElementById('wallet-lbl-demo');
@@ -3722,6 +3723,7 @@ function walletDataHTML(w) {
   window._hasDeposited  = hasDeposit;
 
   var showDemo = !hasDeposit;
+  window._walletIsDemo = showDemo;
   var initialBalance = buildWalletBalance(w, showDemo);
 
   return '<div style="padding:16px 16px 80px">'
@@ -3729,7 +3731,7 @@ function walletDataHTML(w) {
     // Mode toggle — Демо (left) | slider | Live (right)
     + '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">'
     + '<span id="wallet-lbl-demo" style="font-size:12px;font-weight:600;color:#a78bfa;opacity:' + (showDemo ? '1' : '0.3') + ';cursor:pointer" onclick="switchWalletMode(true)">Демо</span>'
-    + '<div id="wallet-toggle-track" onclick="var _t=document.getElementById(\"wallet-mode-toggle\");_t.checked=!_t.checked;switchWalletMode(!_t.checked)" '
+    + '<div id="wallet-toggle-track" onclick="switchWalletMode(!window._walletIsDemo)" '
     + '  style="position:relative;width:44px;height:26px;background:' + (showDemo ? 'rgba(139,92,246,.4)' : 'rgba(25,251,155,.3)') + ';border-radius:13px;cursor:pointer;transition:background .2s;padding:3px">'
     + '<input type="checkbox" id="wallet-mode-toggle" ' + (!showDemo ? 'checked' : '') + ' onchange="switchWalletMode(!this.checked)" style="display:none">'
     + '<div id="wallet-toggle-thumb" style="width:20px;height:20px;background:#fff;border-radius:50%;pointer-events:none;transition:transform .2s;transform:' + (showDemo ? 'translateX(0)' : 'translateX(18px)') + '"></div>'
