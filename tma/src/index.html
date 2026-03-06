@@ -177,7 +177,7 @@ body::after {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px 12px;
-  padding-top: calc(14px + var(--tg-content-safe-area-inset-top, 0px));
+  padding-top: calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));
   position: sticky;
   top: 0;
   z-index: 40;
@@ -1337,7 +1337,7 @@ body::after {
 <!-- ═══ SCREEN: PORTFOLIO ═══ -->
 <div id="s-portfolio" class="screen active">
   <!-- ═══ LIVE TICKER ═══ -->
-  <div id="live-ticker-wrap" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));background:var(--bg)">
+  <div id="live-ticker-wrap" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));background:var(--bg)">
     <div id="live-ticker" class="live-ticker">
       <div class="ticker-chip"><span class="tc-icon">📡</span><span class="tc-text" style="color:var(--muted)">Connecting to live data...</span></div>
     </div>
@@ -1365,7 +1365,7 @@ body::after {
 <!-- ═══ SCREEN: SIGNALS ═══ -->
 <div id="s-signals" class="screen">
   <!-- Tabs -->
-  <div class="live-tabs" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
+  <div class="live-tabs" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div class="live-tab active" id="ltab-signals" onclick="switchLiveTab('signals')">
       🎯 Signals <span class="live-tab-count" id="ltab-signals-count">—</span>
     </div>
@@ -1432,7 +1432,7 @@ body::after {
 
 <!-- ═══ SCREEN: STATS ═══ -->
 <div id="s-agents" class="screen">
-  <div style="overflow-y:auto;height:calc(100vh - 110px);padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-bottom:30px">
+  <div style="overflow-y:auto;height:calc(100vh - 110px);padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-bottom:30px">
 
   <div style="margin:12px 16px 0;background:linear-gradient(135deg,rgba(153,69,255,.15),rgba(6,182,212,.06));border:1px solid rgba(153,69,255,.3);border-radius:20px;padding:18px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -1561,7 +1561,7 @@ body::after {
 </div>
 
 <div id="s-stats" class="screen">
-  <div class="scroll-area" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
+  <div class="scroll-area" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="stats-content">
       <div class="loader"><div class="spinner"></div>Loading...</div>
     </div>
@@ -1570,7 +1570,7 @@ body::after {
 
 <!-- ═══ SCREEN: WALLET ═══ -->
 <div id="s-wallet" class="screen">
-  <div class="scroll-area" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
+  <div class="scroll-area" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="wallet-content">
       <div class="loader"><div class="spinner"></div></div>
     </div>
@@ -1579,7 +1579,7 @@ body::after {
 
 <!-- ═══ SCREEN: AI CHAT ═══ -->
 <div id="s-chat" class="screen">
-  <div id="chat-messages" style="flex:1;overflow-y:auto;padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-left:14px;padding-right:14px;padding-bottom:8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth"></div>
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-left:14px;padding-right:14px;padding-bottom:8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth"></div>
   <div style="padding:10px 12px 12px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0))">
     <div style="display:flex;gap:8px;align-items:flex-end">
       <textarea id="chat-input" rows="1"
