@@ -1961,6 +1961,30 @@ const openExternal = (url) => {
 };
 
 // ══ PORTFOLIO ════════════════════════════════════════════════════
+
+// ── Global refresh — call after any state change (bet, sell, deposit) ──
+function refreshAll(delayMs) {
+  var delay = delayMs || 0;
+  setTimeout(function() {
+    // Clear caches
+    _portfolio = null;
+    window._mktInfoCache = null;
+    
+    // Reload portfolio (bets + balances)
+    if (typeof loadPortfolio === 'function') loadPortfolio();
+    
+    // Reload wallet tab data
+    if (typeof loadWallet === 'function') loadWallet();
+    
+    // Update demo balance display
+    var heroEl = document.getElementById('hero-balance-amount');
+    if (heroEl && window._demoBal !== undefined) {
+      var total = (parseFloat(window._demoBal)||0) + (parseFloat(window._inBets)||0);
+      heroEl.textContent = '$' + total.toFixed(2);
+    }
+  }, delay);
+}
+
 async function loadPortfolio() {
   const el = document.getElementById('portfolio-content');
   if (!el) { alert('FATAL: portfolio-content element not found'); return; }
@@ -2659,7 +2683,7 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet(\'' + market.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + amt + ',\'' + side + '\')">'
     + '📤 Поделиться'
     + '</button>'
-    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');loadPortfolio&&loadPortfolio()">📊 Смотреть портфель</button>'
+    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');refreshAll(100)">📊 Смотреть портфель</button>'
     + '</div>'
     + '</div>'
   );
@@ -4629,7 +4653,7 @@ async function buyStars(stars) {
       tg.openInvoice(d.link, function(status) {
         if (status === 'paid') {
           showToast('⭐ Звёзды зачислены! Баланс обновится через секунду.');
-          setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2000);
+          refreshAll(500);
           closeSheet('deposit');
         } else if (status === 'cancelled') {
           if (statusEl) statusEl.textContent = 'Оплата отменена';
@@ -5027,7 +5051,7 @@ async function sellBet(betId) {
       if (d.ok) {
         showToast("✅ Продано! " + (pnl >= 0 ? "+" : "") + "$" + pnl.toFixed(2), 3000);
         document.getElementById("bet-detail-overlay")?.remove();
-        _portfolio = null; loadPortfolio && loadPortfolio();
+        refreshAll(300);
       } else { showToast("❌ " + (d.error || "Ошибка"), 3000); }
     } catch(e) { showToast("❌ Ошибка: " + e.message, 3000); }
   } else {
@@ -5125,7 +5149,7 @@ async function confirmBetSheet() {
     closeBetSheet();
     setTimeout(function() { showBetConfirm(sig2, _bs.side, amt, true); }, 340);
     // Reload portfolio to show demo bet in active bets
-    setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2500);
+    refreshAll(800);
     return;
   }
 
@@ -5152,7 +5176,7 @@ async function confirmBetSheet() {
       var heroEl = document.getElementById('hero-balance-amount');
       if (heroEl) heroEl.textContent = '$' + window._realBalance.toFixed(2);
       // Refresh portfolio: 2s (ставка появится) + 6s (блокчейн)
-      setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 2000);
+      refreshAll(500);
       setTimeout(function() { _portfolio = null; loadPortfolio && loadPortfolio(); }, 5000);
       setTimeout(function() { showBetConfirm(sig, _bs.side, amt, false); }, 340);
     } else {
