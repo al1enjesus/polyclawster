@@ -13,6 +13,7 @@ const db  = require('../lib/db');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 const TMA_URL   = 'https://polyclawster.com/tma.html?v=6';
+const TMA_LINK  = (source) => `https://t.me/PolyClawsterBot/app${source ? '?startapp=' + source : ''}`;
 const OWNER_ID  = '399089761';
 const FEE_PCT   = 0.05;
 
@@ -121,7 +122,7 @@ async function sendWelcome(chatId, firstName, refCode) {
       `${demo}📊 AI отслеживает сигналы каждые 30 мин\n\n` +
       `_Комиссия 5% только с прибыли_`,
       { reply_markup: { inline_keyboard: [
-        [{ text: '📊 Dashboard', web_app: { url: TMA_URL } }],
+        [{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('welcome') }],
         [{ text: '🔗 Реферальная ссылка', callback_data: 'ref' }],
       ]}}
     );
@@ -137,7 +138,7 @@ async function sendWelcome(chatId, firstName, refCode) {
       `*Никаких подписок. 5% только с выигрышей.*`,
       { reply_markup: { inline_keyboard: [
         [{ text: '✨ Создать кошелёк', callback_data: 'create_wallet' }],
-        [{ text: '📊 Смотреть Dashboard', web_app: { url: TMA_URL } }],
+        [{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('onboard') }],
       ]}}
     );
   }
@@ -152,7 +153,7 @@ async function handleCreateWallet(chatId, firstName) {
       `💼 *Кошелёк уже создан!*\n\n` +
       `📍 \`${existing.address}\`\n\n` +
       `Отправь USDC или POL на этот адрес (Polygon).\nPOL автоматически свапнётся в USDC.`,
-      { reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] }}
+      { reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('wallet') }]] }}
     );
     return;
   }
@@ -169,7 +170,7 @@ async function handleCreateWallet(chatId, firstName) {
       `💵 Принимаем: USDC или POL (авто-своп)\n\n` +
       `Пополни и AI начнёт торговать автоматически!`,
       { reply_markup: { inline_keyboard: [
-        [{ text: '📊 Открыть Dashboard', web_app: { url: TMA_URL } }],
+        [{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('wallet_created') }],
         [{ text: '🔗 Реферальная ссылка', callback_data: 'ref' }],
       ]}}
     );
@@ -234,7 +235,10 @@ async function handleStats(chatId) {
     if (!addr) {
       await sendMsg(chatId,
         '📊 Кошелёк не создан.\n\nНажми кнопку ниже чтобы создать:',
-        { reply_markup: { inline_keyboard: [[{ text: '✨ Создать кошелёк', callback_data: 'create_wallet' }]] }}
+        { reply_markup: { inline_keyboard: [
+          [{ text: '✨ Создать кошелёк', callback_data: 'create_wallet' }],
+          [{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stats') }],
+        ] }}
       );
       return;
     }
@@ -254,7 +258,7 @@ async function handleStats(chatId) {
       `💰 P&L: $${pnl.toFixed(2)}\n` +
       (demo > 0 ? `🎁 Demo-баланс: $${demo.toFixed(2)}\n` : '') +
       `\n_Комиссия: 5% только с прибыли_`,
-      { reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] }}
+      { reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stats') }]] }}
     );
   } catch(e) {
     await sendMsg(chatId, '❌ ' + e.message);
@@ -310,7 +314,7 @@ async function handleCommand(msg) {
         return `${icon} *${(s.market||s.title||'').slice(0,55)}*\nScore: ${(s.score||0).toFixed(1)}/10 · ${s.side||'YES'}`;
       }).join('\n\n');
       await sendMsg(chatId, `📡 *Топ сигналы сейчас*\n\n${lines}`,
-        { reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] }}
+        { reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('signals') }]] }}
       );
     } catch { await sendMsg(chatId, '⚠️ Загружаю сигналы... попробуй через минуту.'); }
     return;
@@ -322,7 +326,7 @@ async function handleCommand(msg) {
       `/stats — Твоя торговая статистика\n` +
       `/signals — Топ сигналы прямо сейчас\n` +
       `/ref — Реферальная ссылка\n`,
-      { reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] }}
+      { reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('help') }]] }}
     );
   }
 }
@@ -378,7 +382,7 @@ async function sendWhaleAlert(wallet, signal) {
   for (const tid of targets) {
     await tgPost('sendMessage', {
       chat_id: tid, text, parse_mode: 'Markdown',
-      reply_markup: { inline_keyboard: [[{ text: '📊 Dashboard', web_app: { url: TMA_URL } }]] },
+      reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('whale') }]] },
     });
     await new Promise(r => setTimeout(r, 200));
   }
@@ -426,7 +430,7 @@ async function handleStarsPayment(msg) {
 
 💰 Зачислено *$${usdValue}* на баланс.
 
-Открой приложение и начинай ставить 🚀`, { parse_mode: 'Markdown' });
+Открой приложение и начинай ставить 🚀`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stars_payment') }]] } });
   } catch (e) { console.error('[stars] error:', e.message); }
 }
 
