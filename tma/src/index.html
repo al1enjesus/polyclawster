@@ -1336,17 +1336,8 @@ body::after {
 
 <!-- ═══ SCREEN: PORTFOLIO ═══ -->
 <div id="s-portfolio" class="screen active">
-  <div class="header">
-    <div class="header-logo">
-      <div class="header-logo-mark"><img src="/favicon.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;display:block;" onerror="this.style.display='none'"></div>
-      <div class="header-logo-text">
-        <span class="header-logo-name">PolyClawster</span>
-        <span class="header-logo-sub">@PolyClawsterBot</span>
-      </div>
-    </div>
-  </div>
   <!-- ═══ LIVE TICKER ═══ -->
-  <div id="live-ticker-wrap" style="padding-top:8px;background:var(--bg)">
+  <div id="live-ticker-wrap" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));background:var(--bg)">
     <div id="live-ticker" class="live-ticker">
       <div class="ticker-chip"><span class="tc-icon">📡</span><span class="tc-text" style="color:var(--muted)">Connecting to live data...</span></div>
     </div>
@@ -1373,18 +1364,8 @@ body::after {
 
 <!-- ═══ SCREEN: SIGNALS ═══ -->
 <div id="s-signals" class="screen">
-  <div class="header">
-    <div class="header-logo">
-      <div class="header-logo-mark"><img src="/favicon.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;display:block;" onerror="this.style.display='none'"></div>
-      <div class="header-logo-text">
-        <span class="header-logo-name">Live</span>
-        <span class="header-logo-sub"><span class="live-dot"></span>Real-time data</span>
-      </div>
-    </div>
-    <div id="live-refresh-time" class="auto-refresh-pill"><span class="arp-dot"></span><span id="live-refresh-label">Now</span></div>
-  </div>
   <!-- Tabs -->
-  <div class="live-tabs">
+  <div class="live-tabs" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div class="live-tab active" id="ltab-signals" onclick="switchLiveTab('signals')">
       🎯 Signals <span class="live-tab-count" id="ltab-signals-count">—</span>
     </div>
@@ -1451,22 +1432,7 @@ body::after {
 
 <!-- ═══ SCREEN: STATS ═══ -->
 <div id="s-agents" class="screen">
-  <div class="header">
-    <div class="header-logo">
-      <img src="/logo.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
-      <div class="header-logo-text" style="margin-left:8px">
-        <span class="header-logo-name">AI Agent Hub</span>
-        <span class="header-logo-sub"><span class="live-dot"></span>Connect &amp; Compete</span>
-      </div>
-    </div>
-    <a href="https://polyclawster.com" target="_blank"
-      style="font-size:10px;font-weight:700;color:var(--accent);background:rgba(153,69,255,.1);border:1px solid rgba(153,69,255,.25);border-radius:20px;padding:4px 10px;text-decoration:none;white-space:nowrap">
-      polyclawster.com ↗
-    </a>
-  </div>
-
-  <!-- Skill hero card -->
-  <div style="overflow-y:auto;height:calc(100vh - 110px);padding-bottom:30px">
+  <div style="overflow-y:auto;height:calc(100vh - 110px);padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-bottom:30px">
 
   <div style="margin:12px 16px 0;background:linear-gradient(135deg,rgba(153,69,255,.15),rgba(6,182,212,.06));border:1px solid rgba(153,69,255,.3);border-radius:20px;padding:18px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -1595,16 +1561,7 @@ body::after {
 </div>
 
 <div id="s-stats" class="screen">
-  <div class="header">
-    <div class="header-logo">
-      <div class="header-logo-mark"><img src="/favicon.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;display:block;" onerror="this.style.display='none'"></div>
-      <div class="header-logo-text">
-        <span class="header-logo-name">Statistics</span>
-        <span class="header-logo-sub">@PolyClawsterBot</span>
-      </div>
-    </div>
-  </div>
-  <div class="scroll-area">
+  <div class="scroll-area" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="stats-content">
       <div class="loader"><div class="spinner"></div>Loading...</div>
     </div>
@@ -1613,17 +1570,7 @@ body::after {
 
 <!-- ═══ SCREEN: WALLET ═══ -->
 <div id="s-wallet" class="screen">
-  <div class="header">
-    <div class="header-logo">
-      <div class="header-logo-mark"><img src="/favicon.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;display:block;" onerror="this.style.display='none'"></div>
-      <div class="header-logo-text">
-        <span class="header-logo-name">Wallet</span>
-        <span class="header-logo-sub">@PolyClawsterBot</span>
-      </div>
-    </div>
-    <div style="font-size:10px;font-weight:600;color:var(--green);background:var(--green-dim);padding:4px 10px;border-radius:20px;border:1px solid rgba(25,251,155,0.2)">Polygon</div>
-  </div>
-  <div class="scroll-area">
+  <div class="scroll-area" style="padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="wallet-content">
       <div class="loader"><div class="spinner"></div></div>
     </div>
@@ -1632,16 +1579,7 @@ body::after {
 
 <!-- ═══ SCREEN: AI CHAT ═══ -->
 <div id="s-chat" class="screen">
-  <div class="header">
-    <div class="header-logo">
-      <div class="header-logo-mark"><img src="/favicon.png" style="width:32px;height:32px;border-radius:10px;object-fit:cover;display:block;" onerror="this.style.display='none'"></div>
-      <div class="header-logo-text">
-        <span class="header-logo-name">AI Chat</span>
-        <span class="header-logo-sub" id="chat-status">🟢 Online · Perplexity sonar</span>
-      </div>
-    </div>
-  </div>
-  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px 14px 8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth"></div>
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding-top:calc(12px + var(--tg-content-safe-area-inset-top, 0px) + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)));padding-left:14px;padding-right:14px;padding-bottom:8px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth"></div>
   <div style="padding:10px 12px 12px;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0))">
     <div style="display:flex;gap:8px;align-items:flex-end">
       <textarea id="chat-input" rows="1"
