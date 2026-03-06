@@ -59,11 +59,17 @@ async function getMarketInfo(conditionId) {
       } catch {}
     }
 
+    // CLOB is authoritative for market identity; Gamma may return wrong market
+    const clobQuestion = c?.question || '';
+    const gammaQuestion = g?.question || '';
+    // Only use Gamma data if it matches CLOB (or CLOB unavailable)
+    const gammaMatch = !clobQuestion || gammaQuestion.slice(0,20) === clobQuestion.slice(0,20);
+    
     const data = {
       conditionId,
-      question: g?.question || c?.question || '',
-      image: g?.image || g?.icon || '',
-      endDate: g?.endDateIso || c?.end_date_iso || null,
+      question: clobQuestion || gammaQuestion,
+      image: gammaMatch ? (g?.image || g?.icon || '') : '',
+      endDate: c?.end_date_iso || (gammaMatch ? g?.endDateIso : null) || null,
       priceYes: +priceYes.toFixed(4),
       priceNo:  +priceNo.toFixed(4),
       volume24h: parseFloat(g?.volume24hr || 0),
