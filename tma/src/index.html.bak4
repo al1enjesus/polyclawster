@@ -921,64 +921,6 @@ body {
   background: linear-gradient(135deg, rgba(25,251,155,0.12), rgba(69,170,242,0.08));
   border: 1px solid rgba(25,251,155,0.2);
 }
-.ob-visual-edu1 {
-  background: linear-gradient(135deg, rgba(69,170,242,0.15), rgba(153,69,255,0.1));
-  border: 1px solid rgba(69,170,242,0.2);
-}
-.ob-visual-edu2 {
-  background: linear-gradient(135deg, rgba(25,251,155,0.15), rgba(247,183,49,0.08));
-  border: 1px solid rgba(25,251,155,0.2);
-}
-.ob-visual-edu3 {
-  background: linear-gradient(135deg, rgba(247,183,49,0.15), rgba(255,107,53,0.08));
-  border: 1px solid rgba(247,183,49,0.2);
-}
-.ob-card {
-  width: 100%; max-width: 290px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
-  padding: 16px;
-  text-align: left;
-  margin-top: 16px;
-}
-.ob-card-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-}
-.ob-card-row + .ob-card-row {
-  border-top: 1px solid rgba(255,255,255,.06);
-}
-.ob-card-k {
-  font-size: 12px;
-  color: rgba(255,255,255,.45);
-}
-.ob-card-v {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(255,255,255,.9);
-}
-.ob-card-v.green { color: #19fb9b; }
-.ob-card-v.red { color: #FF4F4F; }
-.ob-card-v.purple { color: #9945FF; }
-.ob-card-divider {
-  height: 1px;
-  background: rgba(255,255,255,.06);
-  margin: 10px 0;
-}
-.ob-example-tag {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  padding: 3px 8px;
-  border-radius: 6px;
-  margin-bottom: 12px;
-}
-
 .ob-visual::before {
   content: '';
   position: absolute;
@@ -3307,40 +3249,24 @@ function renderPositionDetail(p) {
     + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
     + '</div></div>'
 
-    // ── Position summary (simplified) ──
-    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px">'
-    
-    // Price flow: bought → now
-    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
-    + '<span style="font-size:20px;font-weight:800">' + (cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—') + '</span>'
-    + '<span style="color:rgba(255,255,255,.2);font-size:16px">→</span>'
-    + '<span style="font-size:20px;font-weight:800">' + Math.round(pr) + '¢</span>'
-    + '<span style="font-size:13px;font-weight:700;margin-left:auto;color:' + (ppnl>=0?'#19fb9b':'#FF4F4F') + '">' + (ppnl>=0?'+':'') + pnlPct + '%</span>'
-    + '</div>'
-    + '<div style="display:flex;gap:4px;margin-bottom:14px;font-size:11px;color:var(--muted)">'
-    + '<span>покупка</span><span style="color:rgba(255,255,255,.15)">→</span><span>сейчас</span>'
-    + '</div>'
-    
-    // 3 key metrics
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800">$' + cost.toFixed(2) + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Вложил</div></div>'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800;color:' + (ppnl>=0?'#19fb9b':'#FF4F4F') + '">$' + p.currentValue.toFixed(2) + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Стоит</div></div>'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800;color:#19fb9b">$' + (p.size||0).toFixed(2) + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Если сбудется</div></div>'
-    + '</div>'
-    + '</div>'
-    
-    // Details (collapsed)
-    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:14px">'
-    + '<div class="detail-row"><span class="detail-row-k">Исход</span><span class="outcome-badge outcome-' + tagCls + '">' + p.outcome + '</span></div>'
-    + '<div class="detail-row"><span class="detail-row-k">Акции</span><span class="detail-row-v">' + (p.size||0).toFixed(1) + '</span></div>'
-    + '<div class="detail-row"><span class="detail-row-k">Средняя цена покупки</span><span class="detail-row-v">' + (cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—') + '</span></div>'
-    + '<div class="detail-row"><span class="detail-row-k">P&amp;L</span><span class="detail-row-v" style="color:' + (ppnl>=0?'#19fb9b':'#FF4F4F') + '">' + fmt(ppnl) + ' (' + (ppnl>=0?'+':'') + pnlPct + '%)</span></div>'
+    // Position Overview
+    + '<div class="detail-section">'
+    + '<div class="detail-section-title">Position Overview</div>'
+    + '<div class="detail-stats">'
+    + '<div class="detail-stat"><div class="detail-stat-v">' + Math.round(pr) + '¢</div><div class="detail-stat-k">Current Price</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v ' + pCls + '">' + fmt(ppnl) + '</div><div class="detail-stat-k">P&amp;L</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v">$' + p.currentValue.toFixed(2) + '</div><div class="detail-stat-k">Market Value</div></div>'
+    + '<div class="detail-stat"><div class="detail-stat-v ' + (parseFloat(pnlPct)>=0?'up':'down') + '">' + pnlPct + '%</div><div class="detail-stat-k">ROI</div></div>'
+    + '</div></div>'
+
+    // Details
+    + '<div class="detail-section">'
+    + '<div class="detail-section-title">Details</div>'
+    + '<div class="detail-row"><span class="detail-row-k">Outcome</span><span class="outcome-badge outcome-' + tagCls + '">' + p.outcome + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Shares held</span><span class="detail-row-v">' + (p.size||0).toFixed(1) + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Avg buy price</span><span class="detail-row-v">' + (cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—') + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Cost basis</span><span class="detail-row-v">$' + cost.toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="detail-row-k">Potential payout</span><span class="detail-row-v up">$' + (p.size||0).toFixed(2) + '</span></div>'
     + '</div>'
 
     // Polymarket link
@@ -4797,90 +4723,11 @@ loadSignals();
   <div class="ob-slides" id="ob-slides" style="position:relative;z-index:1">
     <div class="ob-track" id="ob-track">
 
-      <!-- Slide 1: What is Polymarket -->
+      <!-- Slide 1: Hook — live stats -->
       <div class="ob-slide" id="ob-s1">
-        <div class="ob-visual ob-visual-edu1">
-          <span class="ob-emoji">🗳</span>
-        </div>
-        <div class="ob-title">Ставь на<br><span style="color:#45aaf2">реальные события</span></div>
-        <div class="ob-desc">Polymarket — биржа, где люди ставят на исход событий. Как спортивные ставки, но на всё.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px;max-width:300px">
-          <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.7)">🏒 Кто возьмёт Кубок?</span>
-          <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.7)">🇺🇸 Кто станет президентом?</span>
-          <span style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.7)">₿ Bitcoin выше $100K?</span>
-        </div>
-        <div style="margin-top:16px;font-size:12px;color:rgba(255,255,255,.3)">Цена = вероятность. Чем дешевле — тем больше профит.</div>
-      </div>
-
-      <!-- Slide 2: How a bet works -->
-      <div class="ob-slide" id="ob-s2">
-        <div class="ob-visual ob-visual-edu2" style="width:180px;height:180px;border-radius:32px;margin-bottom:20px">
-          <span class="ob-emoji" style="font-size:60px">💰</span>
-        </div>
-        <div class="ob-title">Как работает<br><span style="color:#19fb9b">ставка</span></div>
-        <div class="ob-desc" style="margin-bottom:0">Пример: «Avalanche выиграют Кубок Стэнли?»</div>
-        <div class="ob-card">
-          <div class="ob-example-tag" style="background:rgba(25,251,155,.1);color:#19fb9b">Пример ставки</div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Ты ставишь</span>
-            <span class="ob-card-v">$5 на «ДА»</span>
-          </div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Цена акции</span>
-            <span class="ob-card-v">22¢</span>
-          </div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Получаешь</span>
-            <span class="ob-card-v">22 акции</span>
-          </div>
-          <div class="ob-card-divider"></div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">✅ Если победят</span>
-            <span class="ob-card-v green">22 × $1 = $22</span>
-          </div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">❌ Если нет</span>
-            <span class="ob-card-v red">$0 (−$5)</span>
-          </div>
-        </div>
-        <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.3)">$5 → $22. Множитель ×4.4</div>
-      </div>
-
-      <!-- Slide 3: Sell early -->
-      <div class="ob-slide" id="ob-s3">
-        <div class="ob-visual ob-visual-edu3" style="width:180px;height:180px;border-radius:32px;margin-bottom:20px">
-          <span class="ob-emoji" style="font-size:60px">📈</span>
-        </div>
-        <div class="ob-title">Не жди финала —<br><span style="color:#F7B731">продай раньше</span></div>
-        <div class="ob-desc" style="margin-bottom:0">Цена меняется каждую минуту. Продавай когда хочешь.</div>
-        <div class="ob-card">
-          <div class="ob-example-tag" style="background:rgba(247,183,49,.1);color:#F7B731">Трейд за 1 час</div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Купил 22 акции по</span>
-            <span class="ob-card-v">22¢ = $5</span>
-          </div>
-          <div style="text-align:center;padding:8px 0;font-size:11px;color:rgba(255,255,255,.3)">📰 Вышла новость: Avalanche подписали звезду</div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Цена выросла до</span>
-            <span class="ob-card-v" style="color:#F7B731">35¢</span>
-          </div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Продал</span>
-            <span class="ob-card-v">22 × 35¢ = $7.70</span>
-          </div>
-          <div class="ob-card-divider"></div>
-          <div class="ob-card-row">
-            <span class="ob-card-k">Профит</span>
-            <span class="ob-card-v green">+$2.70 за час 🎉</span>
-          </div>
-        </div>
-        <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.3)">Покупай дёшево, продавай дорого. Или держи до конца.</div>
-      </div>
-
-      <!-- Slide 4: Hook — live stats (was slide 1) -->
-      <div class="ob-slide" id="ob-s4">
         <div class="ob-visual ob-visual-1" style="position:relative">
           <span class="ob-emoji">🎯</span>
+          <!-- Live profit counter -->
           <div id="ob-live-counter" style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(25,251,155,.12);border:1px solid rgba(25,251,155,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#19fb9b">⚡ загружаем...</div>
         </div>
         <div class="ob-title" style="margin-top:28px">53 трейдера зарабатывают<br><span style="color:#19fb9b">прямо сейчас</span></div>
@@ -4897,13 +4744,14 @@ loadSignals();
         </div>
       </div>
 
-      <!-- Slide 5: Live signal preview (was slide 2) -->
-      <div class="ob-slide" id="ob-s5">
+      <!-- Slide 2: Live signal preview -->
+      <div class="ob-slide" id="ob-s2">
         <div class="ob-visual ob-visual-2">
           <span class="ob-emoji">⚡</span>
         </div>
         <div class="ob-title">Вот что AI<br>нашёл <span style="color:#F7B731">прямо сейчас</span></div>
         <div class="ob-desc" style="margin-bottom:16px">Реальный сигнал от умных денег. Такие появляются каждые несколько часов.</div>
+        <!-- Live signal card -->
         <div id="ob-signal-preview" style="width:100%;max-width:300px;background:rgba(255,107,53,.08);border:1px solid rgba(255,107,53,.25);border-radius:16px;padding:14px 16px;text-align:left">
           <div style="font-size:10px;font-weight:700;color:#FF6B35;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔴 Загрузка сигнала...</div>
           <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.9);line-height:1.4" id="ob-sig-title">Polymarket · Live</div>
@@ -4918,8 +4766,8 @@ loadSignals();
         <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.3)">Обновляется каждые 20 минут</div>
       </div>
 
-      <!-- Slide 6: Demo $1 offer (was slide 3) -->
-      <div class="ob-slide" id="ob-s6">
+      <!-- Slide 3: Demo $1 offer -->
+      <div class="ob-slide" id="ob-s3">
         <div class="ob-visual ob-visual-3" style="position:relative">
           <span class="ob-emoji">🎁</span>
           <div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(153,69,255,.15);border:1px solid rgba(153,69,255,.35);border-radius:20px;padding:4px 14px;font-size:13px;font-weight:800;color:#9945FF">$1.00 БОНУС</div>
@@ -4946,9 +4794,6 @@ loadSignals();
       <div class="ob-dot active" id="ob-dot-0"></div>
       <div class="ob-dot" id="ob-dot-1"></div>
       <div class="ob-dot" id="ob-dot-2"></div>
-      <div class="ob-dot" id="ob-dot-3"></div>
-      <div class="ob-dot" id="ob-dot-4"></div>
-      <div class="ob-dot" id="ob-dot-5"></div>
     </div>
     <button class="ob-btn" id="ob-next-btn" onclick="obNext()">Далее</button>
     <div class="ob-skip" id="ob-skip" onclick="obFinish()">Пропустить</div>
@@ -4958,8 +4803,8 @@ loadSignals();
 <script>
 // ══ ONBOARDING ══════════════════════════════════════════════════
 (function() {
-  var OB_KEY = 'pc_ob_done_v6';
-  var cur = 0, total = 6;
+  var OB_KEY = 'pc_ob_done_v5';
+  var cur = 0, total = 3;
   var _obSignals = [];
 
   function alreadySeen() {
@@ -5031,7 +4876,7 @@ loadSignals();
     }
     var btn  = document.getElementById('ob-next-btn');
     var skip = document.getElementById('ob-skip');
-    if (btn)  btn.textContent = (idx === total - 1) ? 'Получить $1 и начать 🚀' : (idx === 2 ? 'Понятно! Дальше' : 'Далее');
+    if (btn)  btn.textContent = (idx === total - 1) ? 'Получить $1 и начать 🚀' : 'Далее';
     if (skip) {
       skip.textContent = (idx === total - 1) ? 'Пропустить бонус' : 'Пропустить';
       skip.style.visibility = 'visible';
@@ -5560,36 +5405,23 @@ async function openBetDetail(betId) {
     + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
     + '</div></div>'
 
-    // ── Position summary (simplified) ──
-    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px">'
+    // Price & PnL hero
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
+    + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Текущая цена</div>'
+    + '<div style="font-size:28px;font-weight:800;color:'+sideClr+'">' + (curPrice !== null ? Math.round(curPrice*100)+'¢' : '—') + '</div>'
+    + '</div>'
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
+    + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Прибыль / Убыток</div>'
+    + '<div style="font-size:28px;font-weight:800;color:'+pnlClr+'">' + (pnlVal !== null ? (pnlVal>=0?'+':'') + '$'+Math.abs(pnlVal).toFixed(2) : '—') + '</div>'
+    + (pnlPct !== null ? '<div style="font-size:11px;color:'+pnlClr+';margin-top:2px">'+(pnlPct>=0?'+':'')+pnlPct+'%</div>' : '')
+    + '</div></div>'
     
-    // Price flow: bought → now
-    + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">'
-    + '<span style="font-size:20px;font-weight:800">' + Math.round(buyPrice*100) + '¢</span>'
-    + '<span style="color:rgba(255,255,255,.2);font-size:16px">→</span>'
-    + '<span style="font-size:20px;font-weight:800">' + (curPrice !== null ? Math.round(curPrice*100)+'¢' : '—') + '</span>'
-    + '<span style="font-size:13px;font-weight:700;margin-left:auto;color:'+pnlClr+'">' + (pnlPct !== null ? (pnlPct>=0?'+':'') + pnlPct + '%' : '—') + '</span>'
-    + '</div>'
-    + '<div style="display:flex;gap:4px;margin-bottom:14px;font-size:11px;color:var(--muted)">'
-    + '<span>покупка</span><span style="color:rgba(255,255,255,.15)">→</span><span>сейчас</span>'
-    + '</div>'
-    
-    // 3 key metrics
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800">$' + amt.toFixed(2) + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Вложил</div></div>'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800;color:'+pnlClr+'">' + (pnlVal !== null ? (pnlVal>=0?'+':'') + '$'+Math.abs(pnlVal).toFixed(2) : '—') + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">P&L</div></div>'
-    + '<div style="background:rgba(255,255,255,.04);border-radius:12px;padding:10px;text-align:center">'
-    + '<div style="font-size:15px;font-weight:800;color:#19fb9b">$'+potPayout.toFixed(2)+'</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:2px">Если сбудется</div></div>'
-    + '</div>'
-    + '</div>'
-    
-    // Details
-    + '<div style="background:var(--bg-glass);border:1px solid var(--border);border-radius:16px;padding:2px 14px;margin-bottom:14px">'
+    // Stats
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:2px 14px;margin-bottom:16px">'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Сумма ставки</span><span style="font-size:12px;font-weight:700">$'+amt.toFixed(2)+'</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Цена покупки</span><span style="font-size:12px;font-weight:600">'+Math.round(buyPrice*100)+'¢</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Выплата при победе</span><span style="font-size:12px;font-weight:700;color:#19fb9b">$'+potPayout.toFixed(2)+'</span></div>'
     + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Закрытие маркета</span><span style="font-size:12px;font-weight:600">'+endStr+(daysStr?' <span style="color:var(--muted)">('+daysStr+')</span>':'')+'</span></div>'
     + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Ликвидность</span><span style="font-size:12px">'+liqStr+'</span></div>'
     + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Объём 24ч</span><span style="font-size:12px">'+vol24Str+'</span></div>'
