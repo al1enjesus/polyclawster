@@ -2,6 +2,14 @@
   "version": 2,
   "builds": [
     {
+      "src": "api/sell.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/market-info.js",
+      "use": "@vercel/node"
+    },
+    {
       "src": "api/trade.js",
       "use": "@vercel/node",
       "config": {
@@ -195,6 +203,14 @@
     {
       "src": "/leaderboard",
       "dest": "/public/leaderboard.html"
+    },
+    {
+      "src": "/api/market-info",
+      "dest": "/api/market-info.js"
+    },
+    {
+      "src": "/api/sell",
+      "dest": "/api/sell.js"
     }
   ]
 }

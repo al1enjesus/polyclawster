@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
   try {
     const user = await db.getUser(tgId);
 
-    if (user && (parseFloat(user.demo_balance || 0) > 0 || parseFloat(user.total_deposited || 0) > 0)) {
+    if (user && (parseFloat(user.demo_balance || 0) > 0 || parseFloat(user.total_deposited || 0) > 0 || user.demo_claimed)) {
       res.json({ ok: true, granted: false, demoBalance: parseFloat(user.demo_balance || 0), reason: 'already_granted' });
       return;
     }

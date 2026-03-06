@@ -2087,36 +2087,64 @@ async function renderPortfolio(d) {
   // ─── Active bets (DB) ────────────────────────────
   let betsHTML = '';
   if (activeBets.length > 0) {
+    // Fetch live market info for all active bets
+    const betIds = [...new Set(activeBets.map(b => b.market_id).filter(Boolean))];
+    let mktInfo = {};
+    if (betIds.length && !window._mktInfoCache) {
+      try {
+        const mir = await fetch('/api/market-info?ids=' + betIds.join(',') + '&_=' + Date.now());
+        const mid = await mir.json();
+        mktInfo = mid.markets || {};
+        window._mktInfoCache = mktInfo;
+        setTimeout(() => { window._mktInfoCache = null; }, 60000);
+      } catch(e) { console.warn('[portfolio] market-info failed:', e); }
+    } else {
+      mktInfo = window._mktInfoCache || {};
+    }
+
     betsHTML = `<div style="padding:0 16px;margin-bottom:20px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:10px">Ставки (${activeBets.length})</div>
-      ${activeBets.slice(0,5).map((b,idx) => {
+      ${activeBets.slice(0,10).map((b,idx) => {
         const sideClr = b.side==='YES'?'#19fb9b':'#FF4F4F';
         const sideBg  = b.side==='YES'?'rgba(25,251,155,.15)':'rgba(255,79,79,.12)';
         const demoTag = b.is_demo?' <span style="font-size:8px;background:rgba(139,92,246,.2);color:#a78bfa;padding:1px 5px;border-radius:4px;font-weight:700">демо</span>':'';
-        // Try to find matching signal for icon & price
-        const sig = (window._signals||[]).find(s => s.conditionId===b.market_id || (s.market||s.question||s.title||'').slice(0,25)===(b.market||'').slice(0,25));
-        const icon = (b.image||sig?.icon) ? `<img src="${b.image||sig.icon}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\\"width:42px;height:42px;border-radius:10px;background:${sideBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${sideClr};flex-shrink:0\\">${b.side}</div>'">`
-          : `<div style="width:42px;height:42px;border-radius:10px;background:${sideBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${sideClr};flex-shrink:0">${b.side}</div>`;
-        // Current price from signal
-        const curPrice = sig ? (b.side==='YES' ? sig.priceYes : sig.priceNo) : null;
-        const buyPrice = b.price || (b.side==='YES' ? 0.5 : 0.5);
-        const pnlVal = curPrice ? ((curPrice - buyPrice) * parseFloat(b.amount||0)).toFixed(2) : null;
+        
+        // Market info from API
+        const mi = mktInfo[b.market_id] || {};
+        const sigMatch = (window._signals||[]).find(s => s.conditionId===b.market_id);
+        const img = mi.image || sigMatch?.icon || '';
+        const curPrice = b.side==='YES' ? (mi.priceYes || sigMatch?.priceYes || null) : (mi.priceNo || sigMatch?.priceNo || null);
+        const buyPrice = parseFloat(b.price) || 0.5;
+        const amt = parseFloat(b.amount||0);
+        const pnlVal = curPrice !== null ? +((curPrice - buyPrice) * amt).toFixed(2) : null;
         const pnlClr = pnlVal > 0 ? '#19fb9b' : pnlVal < 0 ? '#FF4F4F' : 'rgba(255,255,255,.4)';
-        // Date
+        
+        // End date
+        const endRaw = mi.endDate || null;
+        const endStr = endRaw ? new Date(endRaw).toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'}) : '';
+        
+        // Date created
         const betDate = b.created_at ? new Date(b.created_at) : null;
         const dateStr = betDate ? betDate.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) : '';
+        
+        // Icon HTML
+        const iconHtml = img 
+          ? '<img src="'+img+'" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror="this.style.display=\'none\'">'
+          : '<div style="width:44px;height:44px;border-radius:12px;background:'+sideBg+';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:'+sideClr+';flex-shrink:0">'+b.side+'</div>';
+
         return `<div onclick="openBetDetail(${b.id||idx})" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer">
-          ${icon}
+          ${iconHtml}
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px">${(b.market||'').slice(0,38)}${demoTag}</div>
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.35)">
-              <span style="background:${sideBg};color:${sideClr};padding:1px 6px;border-radius:4px;font-weight:700;font-size:9px">${b.side}</span>
-              <span>🟢 Открыта</span>${dateStr?`<span>· ${dateStr}</span>`:''}
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px">${(b.market||'').slice(0,38)}${demoTag}</div>
+            <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+              <span style="background:${sideBg};color:${sideClr};padding:1px 6px;border-radius:4px;font-weight:700;font-size:9px">${b.side}${curPrice!==null?' '+Math.round(curPrice*100)+'¢':''}</span>
+              ${endStr?'<span style="font-size:9px;color:rgba(255,255,255,.25)">до '+endStr+'</span>':''}
+              ${dateStr?'<span style="font-size:9px;color:rgba(255,255,255,.2)">· '+dateStr+'</span>':''}
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:15px;font-weight:700;color:#fff">$${parseFloat(b.amount||0).toFixed(2)}</div>
-            ${curPrice!==null?`<div style="font-size:10px;font-weight:600;color:${pnlClr}">${pnlVal>=0?'+':''}$${Math.abs(pnlVal).toFixed(2)} · ${Math.round(curPrice*100)}¢</div>`:''}
+            <div style="font-size:15px;font-weight:700;color:#fff">$${amt.toFixed(2)}</div>
+            ${pnlVal!==null?'<div style="font-size:10px;font-weight:600;color:'+pnlClr+'">'+(pnlVal>=0?'+':'')+pnlVal.toFixed(2)+'</div>':''}
           </div>
         </div>`;
       }).join('')}
@@ -4876,8 +4904,7 @@ function closeBetSheet() {
 }
 
 // ── Bet detail overlay ────────────────────────────────────────
-function openBetDetail(betId) {
-  // Find bet in portfolio data
+async function openBetDetail(betId) {
   var bets = (_portfolio && _portfolio.bets) || [];
   var bet = bets.find(function(b){ return b.id === betId; });
   if (!bet) { showToast('Ставка не найдена'); return; }
@@ -4885,47 +4912,150 @@ function openBetDetail(betId) {
   var sideClr = bet.side === 'YES' ? '#19fb9b' : '#FF4F4F';
   var sideBg  = bet.side === 'YES' ? 'rgba(25,251,155,.12)' : 'rgba(255,79,79,.12)';
   var amt = parseFloat(bet.amount || 0);
-  var potPayout = bet.price > 0 ? (amt / bet.price) : amt * 2;
-  var potProfit = potPayout - amt;
   var created = bet.created_at ? new Date(bet.created_at) : null;
   var createdStr = created ? created.toLocaleString('ru', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
   var statusMap = {open:'🟢 Открыта',queued:'⏳ В очереди',won:'🏆 Выиграна',lost:'❌ Проиграна',cancelled:'🚫 Отменена'};
   var statusTxt = statusMap[bet.status] || bet.status;
   var isDemo = bet.is_demo;
 
+  // Show loading overlay immediately
   var overlay = document.createElement('div');
   overlay.id = 'bet-detail-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2500;background:rgba(0,0,0,.88);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .2s';
-  overlay.innerHTML = '<div style="width:100%;max-width:480px;background:#111118;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:85vh;overflow-y:auto">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
-    + '<div style="font-size:16px;font-weight:800">Детали ставки</div>'
-    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:16px;cursor:pointer">✕</button>'
-    + '</div>'
-    // Market title
-    + '<div style="font-size:14px;font-weight:600;color:var(--text);line-height:1.5;margin-bottom:16px">' + (bet.market||'Unknown market') + '</div>'
-    // Side + amount hero
-    + '<div style="display:flex;gap:12px;margin-bottom:16px">'
-    + '<div style="flex:1;background:' + sideBg + ';border:1px solid ' + sideClr + '33;border-radius:14px;padding:16px;text-align:center">'
-    + '<div style="font-size:28px;font-weight:800;color:' + sideClr + '">' + bet.side + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:4px">Ставка</div></div>'
-    + '<div style="flex:1;background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;text-align:center">'
-    + '<div style="font-size:28px;font-weight:800">$' + amt.toFixed(2) + '</div>'
-    + '<div style="font-size:10px;color:var(--muted);margin-top:4px">Сумма</div></div>'
-    + '</div>'
-    // Stats grid
-    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;margin-bottom:16px">'
-    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Статус</span><span style="font-size:12px;font-weight:600">' + statusTxt + '</span></div>'
-    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Потенциальная выплата</span><span style="font-size:12px;font-weight:700;color:#19fb9b">$' + potPayout.toFixed(2) + '</span></div>'
-    + '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">Потенциальный профит</span><span style="font-size:12px;font-weight:700;color:#19fb9b">+$' + potProfit.toFixed(2) + '</span></div>'
-    + (bet.signal_score ? '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="font-size:12px;color:var(--muted)">AI Score</span><span style="font-size:12px;font-weight:700;color:#F7B731">' + parseFloat(bet.signal_score).toFixed(1) + '/10</span></div>' : '')
-    + '<div style="display:flex;justify-content:space-between;padding:8px 0"><span style="font-size:12px;color:var(--muted)">Дата</span><span style="font-size:12px">' + createdStr + '</span></div>'
-    + '</div>'
-    + (isDemo ? '<div style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:12px;padding:12px;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px;text-align:center">🎁 Demo-ставка · бесплатная тренировка</div>' : '')
-    + '<button class="btn btn-secondary" style="width:100%;font-size:13px" onclick="document.getElementById(\'bet-detail-overlay\').remove()">Закрыть</button>'
-    + '</div>';
+  overlay.innerHTML = '<div style="width:100%;max-width:480px;background:#111118;border-radius:24px 24px 0 0;padding:24px 20px 40px;text-align:center"><div class="spinner" style="margin:40px auto"></div><div style="color:var(--muted);font-size:12px;margin-top:12px">Загрузка данных маркета...</div></div>';
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+
+  // Fetch live market info
+  var mi = {};
+  if (bet.market_id) {
+    try {
+      var cached = window._mktInfoCache || {};
+      if (cached[bet.market_id]) { mi = cached[bet.market_id]; }
+      else {
+        var r = await fetch('/api/market-info?ids=' + bet.market_id + '&_=' + Date.now());
+        var d = await r.json();
+        mi = (d.markets || {})[bet.market_id] || {};
+      }
+    } catch(e) { console.warn('market-info fail', e); }
+  }
+
+  var curPrice = bet.side === 'YES' ? (mi.priceYes || null) : (mi.priceNo || null);
+  var buyPrice = parseFloat(bet.price) || 0.5;
+  var pnlVal = curPrice !== null ? +((curPrice - buyPrice) * amt).toFixed(2) : null;
+  var pnlPct = curPrice !== null && buyPrice > 0 ? +(((curPrice - buyPrice) / buyPrice) * 100).toFixed(1) : null;
+  var pnlClr = pnlVal > 0 ? '#19fb9b' : pnlVal < 0 ? '#FF4F4F' : 'rgba(255,255,255,.5)';
+  var potPayout = curPrice > 0 ? amt / curPrice : amt * 2;
+  var potProfit = potPayout - amt;
+  
+  var endDate = mi.endDate ? new Date(mi.endDate) : null;
+  var endStr = endDate ? endDate.toLocaleDateString('ru', {day:'numeric',month:'long',year:'numeric'}) : '—';
+  var daysLeft = endDate ? Math.max(0, Math.ceil((endDate - new Date()) / 86400000)) : null;
+  var daysStr = daysLeft !== null ? (daysLeft === 0 ? 'сегодня' : daysLeft + ' дн.') : '';
+  
+  var imgUrl = mi.image || '';
+  var imgHtml = imgUrl 
+    ? '<img src="'+imgUrl+'" style="width:56px;height:56px;border-radius:14px;object-fit:cover" onerror="this.style.display=\'none\'">'
+    : '<div style="width:56px;height:56px;border-radius:14px;background:'+sideBg+';display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:'+sideClr+'">'+bet.side+'</div>';
+
+  var liqStr = mi.liquidity ? '$' + (mi.liquidity > 1000 ? (mi.liquidity/1000).toFixed(1)+'k' : mi.liquidity.toFixed(0)) : '—';
+  var vol24Str = mi.volume24h ? '$' + (mi.volume24h > 1000 ? (mi.volume24h/1000).toFixed(1)+'k' : mi.volume24h.toFixed(0)) : '—';
+
+  // Build detail HTML
+  var inner = '<div style="width:100%;max-width:480px;background:#111118;border-radius:24px 24px 0 0;padding:24px 20px 40px;max-height:90vh;overflow-y:auto">'
+    // Header
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">'
+    + '<div style="font-size:16px;font-weight:800">Детали ставки</div>'
+    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove()" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:16px;cursor:pointer">✕</button></div>'
+    // Market card with image
+    + '<div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:20px">'
+    + imgHtml
+    + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;line-height:1.4;margin-bottom:6px">' + (bet.market||'Unknown') + '</div>'
+    + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+    + '<span style="background:'+sideBg+';color:'+sideClr+';padding:2px 8px;border-radius:6px;font-weight:800;font-size:11px">'+bet.side+'</span>'
+    + (isDemo?'<span style="background:rgba(139,92,246,.15);color:#a78bfa;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:700">ДЕМО</span>':'')
+    + '<span style="font-size:10px;color:var(--muted)">'+statusTxt+'</span>'
+    + '</div></div></div>'
+    
+    // Price & PnL hero
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
+    // Current price
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
+    + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Текущая цена</div>'
+    + '<div style="font-size:28px;font-weight:800;color:'+sideClr+'">' + (curPrice !== null ? Math.round(curPrice*100)+'¢' : '—') + '</div>'
+    + '</div>'
+    // PnL
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:center">'
+    + '<div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Прибыль / Убыток</div>'
+    + '<div style="font-size:28px;font-weight:800;color:'+pnlClr+'">' + (pnlVal !== null ? (pnlVal>=0?'+':'') + '$'+Math.abs(pnlVal).toFixed(2) : '—') + '</div>'
+    + (pnlPct !== null ? '<div style="font-size:11px;color:'+pnlClr+';margin-top:2px">'+(pnlPct>=0?'+':'')+pnlPct+'%</div>' : '')
+    + '</div></div>'
+    
+    // Stats
+    + '<div style="background:var(--bg-glass2);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:2px 14px;margin-bottom:16px">'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Сумма ставки</span><span style="font-size:12px;font-weight:700">$'+amt.toFixed(2)+'</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Цена покупки</span><span style="font-size:12px;font-weight:600">'+Math.round(buyPrice*100)+'¢</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Выплата при победе</span><span style="font-size:12px;font-weight:700;color:#19fb9b">$'+potPayout.toFixed(2)+'</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Закрытие маркета</span><span style="font-size:12px;font-weight:600">'+endStr+(daysStr?' <span style="color:var(--muted)">('+daysStr+')</span>':'')+'</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Ликвидность</span><span style="font-size:12px">'+liqStr+'</span></div>'
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">Объём 24ч</span><span style="font-size:12px">'+vol24Str+'</span></div>'
+    + (bet.signal_score ? '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)"><span style="font-size:12px;color:var(--muted)">AI Score</span><span style="font-size:12px;font-weight:700;color:#F7B731">'+parseFloat(bet.signal_score).toFixed(1)+'/10</span></div>' : '')
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0"><span style="font-size:12px;color:var(--muted)">Создана</span><span style="font-size:12px">'+createdStr+'</span></div>'
+    + '</div>'
+    
+    // Action buttons
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
+    + '<button onclick="sellBet('+betId+')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer">🔻 Продать</button>'
+    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove();openBetSheet({conditionId:\''+bet.market_id+'\',market:\''+(bet.market||'').replace(/'/g,"\\'")+'\',icon:\''+imgUrl+'\'},\''+(bet.side==='YES'?'YES':'NO')+'\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer">🔺 Докупить</button>'
+    + '</div>'
+
+    // Polymarket link
+    + (mi.slug ? '<a href="https://polymarket.com/event/'+mi.slug+'" target="_blank" style="display:block;text-align:center;font-size:11px;color:var(--muted);text-decoration:none;padding:8px">Открыть на Polymarket ↗</a>' : '')
+    + '</div>';
+
+  overlay.innerHTML = inner;
   haptic.light && haptic.light();
+}
+
+
+async function sellBet(betId) {
+  var bets = (_portfolio && _portfolio.bets) || [];
+  var bet = bets.find(function(b){ return b.id === betId; });
+  if (!bet) { showToast("Ставка не найдена"); return; }
+  
+  // Confirm
+  if (!confirm("Продать ставку " + bet.side + " $" + parseFloat(bet.amount||0).toFixed(2) + " на \"" + (bet.market||"").slice(0,40) + "\"?")) return;
+  
+  var tgId = window._tgId || "";
+  if (!tgId) { showToast("Не авторизован"); return; }
+  
+  if (bet.is_demo) {
+    // Demo sell: close bet, return amount +/- PnL to demo_balance
+    try {
+      showToast("Продаю...", 2000);
+      var mi = (window._mktInfoCache || {})[bet.market_id] || {};
+      var curPrice = bet.side === "YES" ? (mi.priceYes || 0.5) : (mi.priceNo || 0.5);
+      var buyPrice = parseFloat(bet.price) || 0.5;
+      var amt = parseFloat(bet.amount || 0);
+      var pnl = (curPrice - buyPrice) * amt;
+      var returnAmt = Math.max(0, amt + pnl);
+      
+      var r = await fetch("/api/sell", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ tgId: tgId, betId: betId, isDemo: true, returnAmount: returnAmt })
+      });
+      var d = await r.json();
+      if (d.ok) {
+        showToast("✅ Продано! " + (pnl >= 0 ? "+" : "") + "$" + pnl.toFixed(2), 3000);
+        document.getElementById("bet-detail-overlay")?.remove();
+        _portfolio = null; loadPortfolio && loadPortfolio();
+      } else { showToast("❌ " + (d.error || "Ошибка"), 3000); }
+    } catch(e) { showToast("❌ Ошибка: " + e.message, 3000); }
+  } else {
+    // Real sell: TODO — execute sell order via CLOB
+    showToast("⚠️ Продажа реальных позиций скоро будет доступна", 3000);
+  }
 }
 
 function _bsSetSide(side, silent) {
