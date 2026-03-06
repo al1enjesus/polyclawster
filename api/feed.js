@@ -75,6 +75,8 @@ module.exports = async (req, res) => {
           ago:     timeAgo(ts),
           icon:    usd >= 5000 ? '🐳' : usd >= 1000 ? '🐋' : '🐟',
           slug:    t.slug || t.eventSlug || '',
+          conditionId: t.conditionId || t.marketSlug || '',
+          image: t.image || '',
         };
       });
 
@@ -95,6 +97,9 @@ module.exports = async (req, res) => {
           return Math.round((isNaN(p) ? 0.5 : p) * 100);
         })(),
           slug:   m.slug || '',
+          image: m.image || m.icon || '',
+          conditionId: m.conditionId || '',
+          endDate: m.endDateIso || '',
         }));
     } catch {}
 
