@@ -71,30 +71,49 @@ body {
   position: relative;
 }
 
-/* PHANTOM ORBS - фоновые градиентные шары */
-body::before {
-  content: '';
-  position: fixed;
-  top: -120px;
-  left: -80px;
+
+
+/* ══ BACKGROUND EFFECTS ═══════════════════════════════════════ */
+.bg-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.6;
+}
+
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+.bg-glow-1 {
+  top: -10%;
+  left: -15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(153,69,255,0.2) 0%, transparent 70%);
+  animation: glowPulse1 8s ease-in-out infinite;
+}
+
+.bg-glow-2 {
+  bottom: 5%;
+  right: -10%;
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(153,69,255,0.18) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-}
-body::after {
-  content: '';
-  position: fixed;
-  bottom: 80px;
-  right: -100px;
-  width: 350px;
-  height: 350px;
   background: radial-gradient(circle, rgba(25,251,155,0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
+  animation: glowPulse2 10s ease-in-out infinite;
+}
+
+@keyframes glowPulse1 {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.7; }
+  50% { transform: scale(1.15) translate(5%, 5%); opacity: 1; }
+}
+
+@keyframes glowPulse2 {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.5; }
+  50% { transform: scale(1.12) translate(-3%, -4%); opacity: 0.85; }
 }
 
 ::-webkit-scrollbar { width: 0; }
@@ -1175,6 +1194,7 @@ body::after {
   animation: shimmer 1.4s ease infinite;
 }
 .skeleton-hero { height: 110px; border-radius: 20px; margin-bottom: 14px; }
+.skeleton-screen { padding: 16px; }
 .skeleton-pill { height: 58px; border-radius: 16px; flex: 1; }
 
 /* ══ TRANSITIONS ════════════════════════════════════════════════ */
@@ -1272,7 +1292,7 @@ body::after {
 .whale-card:active .whale-icon { transform: scale(1.2); }
 
 /* Pull-to-refresh arc */
-#ptr-arc { transition: stroke .2s ease; }
+#ptr-arc { transition: stroke .2s ease, stroke-dasharray .3s ease; }
 
 /* ══ BET SHEET ══ */
 #bet-sheet-overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0);pointer-events:none;transition:background .25s}
@@ -1315,22 +1335,29 @@ body::after {
 </head>
 <body>
 
+<!-- Background effects -->
+<div id="bg-effects" style="position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden">
+  <div class="bg-dots"></div>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+</div>
+
 <!-- Pull-to-refresh indicator -->
-<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;z-index:200;pointer-events:none;overflow:hidden;height:0;background:transparent;">
-  <div id="ptr-inner" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%) scale(0.5);opacity:0;transition:opacity .2s ease,transform .2s ease;width:36px;height:36px;">
-    <svg id="ptr-svg" width="36" height="36" viewBox="0 0 36 36">
-      <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(153,69,255,.2)" stroke-width="3"/>
-      <circle id="ptr-fill" cx="18" cy="18" r="13" fill="transparent"
-        style="transition:fill .2s ease"/>
-      <circle id="ptr-arc" cx="18" cy="18" r="14" fill="none" stroke="#9945FF" stroke-width="3"
-        stroke-linecap="round" stroke-dasharray="22 66"
-        transform="rotate(-90 18 18)"
-        style="filter:drop-shadow(0 0 6px rgba(153,69,255,.8));transition:stroke-dasharray .3s ease,stroke .2s ease"/>
-      <path id="ptr-check" d="M12 18l4 4 8-8" stroke="#19fb9b" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round" fill="none"
-        stroke-dasharray="20" stroke-dashoffset="20" stroke="#19fb9b"
-        style="transition:stroke-dashoffset .35s cubic-bezier(.25,.46,.45,.94)"/>
-    </svg>
+<div id="ptr-indicator" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;pointer-events:none;display:flex;align-items:flex-start;justify-content:center;padding-top:35vh;">
+  <div id="ptr-inner" style="opacity:0;transform:scale(0.4);transition:opacity .25s ease,transform .25s ease;">
+    <div style="width:44px;height:44px;background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 24px rgba(0,0,0,0.3);">
+      <svg id="ptr-svg" width="28" height="28" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="3"/>
+        <circle id="ptr-arc" cx="18" cy="18" r="14" fill="none" stroke="#fff" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="22 66"
+          transform="rotate(-90 18 18)"
+          style="filter:drop-shadow(0 0 6px rgba(255,255,255,.5));transition:stroke-dasharray .3s ease,stroke .2s ease"/>
+        <path id="ptr-check" d="M12 18l4 4 8-8" stroke="#19fb9b" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"
+          stroke-dasharray="20" stroke-dashoffset="20"
+          style="transition:stroke-dashoffset .35s cubic-bezier(.25,.46,.45,.94)"/>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -1344,7 +1371,16 @@ body::after {
   </div>
   <div class="scroll-area" style="padding-top:0">
     <div id="portfolio-content">
-      <div class="loader"><div class="spinner"></div>Loading positions...</div>
+      <div class="skeleton-screen skeleton-portfolio">
+  <div class="skeleton skeleton-hero" style="height:120px;border-radius:20px;margin-bottom:16px"></div>
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <div class="skeleton skeleton-pill" style="height:56px;flex:1"></div>
+    <div class="skeleton skeleton-pill" style="height:56px;flex:1"></div>
+  </div>
+  <div class="skeleton skeleton-card" style="height:76px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:76px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:76px"></div>
+</div>
     </div>
   </div>
 </div>
@@ -1391,13 +1427,23 @@ body::after {
     <!-- Whales sub-tab -->
     <div id="live-whales-pane" class="live-section" style="display:none">
       <div id="whales-content">
-        <div class="loader"><div class="spinner"></div>Fetching whale activity...</div>
+        <div class="skeleton-screen skeleton-whales" style="padding:8px 0">
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px"></div>
+</div>
       </div>
     </div>
     <!-- Movers sub-tab -->
     <div id="live-movers-pane" class="live-section" style="display:none">
       <div id="movers-content">
-        <div class="loader"><div class="spinner"></div>Loading market movers...</div>
+        <div class="skeleton-screen skeleton-movers" style="padding:8px 0">
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px"></div>
+</div>
       </div>
     </div>
   </div>
@@ -1563,7 +1609,16 @@ body::after {
 <div id="s-stats" class="screen">
   <div class="scroll-area" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="stats-content">
-      <div class="loader"><div class="spinner"></div>Loading...</div>
+      <div class="skeleton-screen skeleton-stats">
+  <div class="skeleton skeleton-hero" style="height:100px;border-radius:20px;margin-bottom:14px"></div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div>
+    <div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div>
+    <div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div>
+  </div>
+  <div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div>
+  <div class="skeleton skeleton-card" style="height:72px"></div>
+</div>
     </div>
   </div>
 </div>
@@ -1572,7 +1627,14 @@ body::after {
 <div id="s-wallet" class="screen">
   <div class="scroll-area" style="padding-top:calc(8px + var(--tg-content-safe-area-inset-top, env(safe-area-inset-top, 0px)))">
     <div id="wallet-content">
-      <div class="loader"><div class="spinner"></div></div>
+      <div class="skeleton-screen skeleton-wallet">
+  <div class="skeleton" style="height:80px;border-radius:20px;margin-bottom:14px"></div>
+  <div class="skeleton" style="height:48px;border-radius:14px;margin-bottom:10px"></div>
+  <div style="display:flex;gap:10px">
+    <div class="skeleton" style="height:52px;flex:1;border-radius:14px"></div>
+    <div class="skeleton" style="height:52px;flex:1;border-radius:14px"></div>
+  </div>
+</div>
     </div>
   </div>
 </div>
@@ -3396,7 +3458,7 @@ async function fetchWalletStats(addr) {
 async function loadStats() {
   var el = document.getElementById('stats-content');
   if (!el) return;
-  el.innerHTML = '<div class="loader"><div class="spinner"></div>Loading...</div>';
+  el.innerHTML = '<div class="skeleton-screen skeleton-stats"><div class="skeleton skeleton-hero" style="height:100px;border-radius:20px;margin-bottom:14px"></div><div style="display:flex;gap:10px;margin-bottom:14px"><div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div><div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div><div class="skeleton" style="height:64px;flex:1;border-radius:14px"></div></div><div class="skeleton skeleton-card" style="height:72px;margin-bottom:10px"></div><div class="skeleton skeleton-card" style="height:72px"></div></div>';
   try {
     var tgId2 = window._tgId || '';
     // Parallel: personal portfolio + live feed
@@ -3499,7 +3561,7 @@ async function loadWallet() {
     return;
   }
 
-  el.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+  el.innerHTML = '<div class="skeleton-screen skeleton-wallet"><div class="skeleton" style="height:80px;border-radius:20px;margin-bottom:14px"></div><div class="skeleton" style="height:48px;border-radius:14px;margin-bottom:10px"></div><div style="display:flex;gap:10px"><div class="skeleton" style="height:52px;flex:1;border-radius:14px"></div><div class="skeleton" style="height:52px;flex:1;border-radius:14px"></div></div></div>';
 
   try {
     var r = await fetch('/api/wallet?tgId=' + tgId);
@@ -4012,7 +4074,7 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
 
   var PTR_THRESHOLD = 65;
   var startY = 0, pulling = false, triggered = false;
-  var ptrEl, ptrInner, ptrArc, ptrSvg, ptrCheck, ptrFill;
+  var ptrEl, ptrInner, ptrArc, ptrSvg, ptrCheck;
   var _spinInterval = null;
 
   function initPtrEls() {
@@ -4022,7 +4084,6 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
       ptrArc   = document.getElementById('ptr-arc');
       ptrSvg   = document.getElementById('ptr-svg');
       ptrCheck = document.getElementById('ptr-check');
-      ptrFill  = document.getElementById('ptr-fill');
     }
     return !!ptrEl;
   }
@@ -4044,14 +4105,12 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
   function showPtr(dy) {
     if (!initPtrEls()) return;
     var pct = Math.min(dy / PTR_THRESHOLD, 1);
-    var headerEl = document.querySelector('.screen.active .header') || document.querySelector('.header');
-    var headerH  = headerEl ? headerEl.offsetHeight : 56;
-    var h = Math.min(dy * 0.55, headerH);
-    ptrEl.style.height = h + 'px';
     var vis = pct > 0.1 ? Math.min((pct - 0.1) / 0.4, 1) : 0;
     ptrInner.style.opacity = vis.toFixed(2);
-    ptrInner.style.transform = 'translateX(-50%) scale(' + (0.5 + vis * 0.5).toFixed(2) + ')';
-    if (ptrArc) ptrArc.style.stroke = pct >= 1 ? '#19fb9b' : '#9945FF';
+    ptrInner.style.transform = 'scale(' + (0.4 + vis * 0.6).toFixed(2) + ')';
+    if (ptrArc) ptrArc.style.stroke = pct >= 1 ? '#19fb9b' : '#fff';
+    var da = (pct * 66).toFixed(1);
+    if (ptrArc) ptrArc.style.strokeDasharray = da + ' ' + (88 - parseFloat(da)).toFixed(1);
     if (pct >= 1 && !triggered) {
       triggered = true;
       if (haptic) { haptic.impactOccurred('rigid'); setTimeout(function(){haptic.impactOccurred('soft');},100); }
@@ -4061,12 +4120,9 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
 
   function startRefresh() {
     if (!initPtrEls()) return;
-    var headerEl = document.querySelector('.screen.active .header') || document.querySelector('.header');
-    var headerH  = headerEl ? headerEl.offsetHeight : 56;
-    ptrEl.style.height = headerH + 'px';
     ptrInner.style.opacity = '1';
-    ptrInner.style.transform = 'translateX(-50%) scale(1)';
-    if (ptrArc) ptrArc.style.stroke = '#9945FF';
+    ptrInner.style.transform = 'scale(1)';
+    if (ptrArc) ptrArc.style.stroke = '#fff';
     startSpin();
     if (haptic) { haptic.impactOccurred('medium'); setTimeout(function(){haptic.impactOccurred('light');},80); }
     else if (navigator.vibrate) navigator.vibrate([15,30,10]);
@@ -4123,16 +4179,13 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
   function hidePtr() {
     if (!initPtrEls()) return;
     stopSpin();
-    ptrEl.style.transition = 'height .3s cubic-bezier(.4,0,.2,1)';
-    ptrInner.style.transition = 'opacity .2s ease, transform .2s ease';
-    ptrEl.style.height = '0';
+    ptrInner.style.transition = 'opacity .3s ease, transform .3s ease';
     ptrInner.style.opacity = '0';
-    ptrInner.style.transform = 'translateX(-50%) scale(0.6)';
+    ptrInner.style.transform = 'scale(0.4)';
     setTimeout(function() {
-      ptrEl.style.transition = '';
-      ptrInner.style.transition = 'opacity .2s ease,transform .2s ease';
-      if (ptrArc) { ptrArc.style.stroke='#9945FF'; ptrArc.style.strokeDasharray='22 66';
-        ptrArc.style.filter='drop-shadow(0 0 6px rgba(153,69,255,.8))'; }
+      ptrInner.style.transition = 'opacity .25s ease, transform .25s ease';
+      if (ptrArc) { ptrArc.style.stroke='#fff'; ptrArc.style.strokeDasharray='22 66';
+        ptrArc.style.filter='drop-shadow(0 0 6px rgba(255,255,255,.5))'; }
       if (ptrCheck) ptrCheck.style.strokeDashoffset = '20';
       triggered = false;
     }, 350);
@@ -4178,10 +4231,7 @@ fetch('/api/feed').then(r=>r.json()).then(d=>{if(!d.ok)console.warn('feed:',d);}
 })();
 
 function updatePtrPosition() {
-  var ptr = document.getElementById('ptr-indicator');
-  if (!ptr) return;
-  ptr.style.top = '0';
-  ptr.style.height = '0';
+  // PTR is now a fixed overlay, no position update needed
 }
 
 updatePtrPosition();
