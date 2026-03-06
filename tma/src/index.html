@@ -2995,12 +2995,7 @@ function renderPriceChart(containerId, history, height, opts) {
   var minP = Math.min.apply(null, prices);
   var maxP = Math.max.apply(null, prices);
   
-  // Include buyPrice in range if present
-  if (buyPrice !== null) {
-    if (buyPrice < minP) minP = buyPrice;
-    if (buyPrice > maxP) maxP = buyPrice;
-  }
-  
+  // buyPrice NOT included in range - only shown if within natural price range
   var range = maxP - minP || 0.01;
   minP -= range * 0.08;
   maxP += range * 0.08;
