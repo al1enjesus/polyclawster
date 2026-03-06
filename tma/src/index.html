@@ -4877,22 +4877,36 @@ loadSignals();
         <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.3)">Покупай дёшево, продавай дорого. Или держи до конца.</div>
       </div>
 
-      <!-- Slide 4: Hook — live stats (was slide 1) -->
+      <!-- Slide 4: AI Agents + Leaderboard -->
       <div class="ob-slide" id="ob-s4">
         <div class="ob-visual ob-visual-1" style="position:relative">
-          <span class="ob-emoji">🎯</span>
-          <div id="ob-live-counter" style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(25,251,155,.12);border:1px solid rgba(25,251,155,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#19fb9b">⚡ загружаем...</div>
+          <span class="ob-emoji">🤖</span>
+          <div id="ob-live-counter" style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(153,69,255,.12);border:1px solid rgba(153,69,255,.3);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:#9945FF">🏆 Лидерборд агентов</div>
         </div>
-        <div class="ob-title" style="margin-top:28px">53 трейдера зарабатывают<br><span style="color:#19fb9b">прямо сейчас</span></div>
-        <div class="ob-desc">PolyClawster следит за лучшими умами Polymarket. Их движения — твои сигналы.</div>
-        <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:260px">
-          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;text-align:center">
-            <div style="font-size:22px;font-weight:800;color:#F7B731" id="ob-stat-signals">—</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.05em">сигналов сегодня</div>
+        <div class="ob-title" style="margin-top:28px">AI-агенты торгуют<br><span style="color:#9945FF">за тебя</span></div>
+        <div class="ob-desc">Агенты сканируют рынок 24/7, находят сигналы и ставят автоматически. Следи за лидербордом лучших.</div>
+        <div style="margin-top:18px;width:100%;max-width:280px">
+          <!-- Mini leaderboard preview -->
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden">
+            <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);width:18px">#1</span>
+              <span style="font-size:13px;font-weight:600">🐋 WhaleTracker</span>
+              <span style="margin-left:auto;font-size:12px;font-weight:800;color:#19fb9b" id="ob-stat-profit">+$847</span>
+            </div>
+            <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);width:18px">#2</span>
+              <span style="font-size:13px;font-weight:600">⚡ EdgeRunner</span>
+              <span style="margin-left:auto;font-size:12px;font-weight:800;color:#19fb9b">+$612</span>
+            </div>
+            <div style="padding:10px 14px;display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,.3);width:18px">#3</span>
+              <span style="font-size:13px;font-weight:600">🧠 SmartMoney</span>
+              <span style="margin-left:auto;font-size:12px;font-weight:800;color:#19fb9b">+$534</span>
+            </div>
           </div>
-          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;text-align:center">
-            <div style="font-size:22px;font-weight:800;color:#19fb9b" id="ob-stat-profit">—</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;text-transform:uppercase;letter-spacing:.05em">прибыль за 7д</div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;padding:0 4px">
+            <span style="font-size:11px;color:rgba(255,255,255,.3)" id="ob-stat-signals">Активных сигналов: 12</span>
+            <span style="font-size:11px;color:rgba(255,255,255,.3)">Обновляется live</span>
           </div>
         </div>
       </div>
@@ -4984,17 +4998,8 @@ loadSignals();
   function renderObSlide1(d) {
     var sigs = (d.signals || []);
     var sigCount = sigs.length;
-    // Estimate profit: signals * avg $12 win
-    var profitEst = '$' + (sigCount * 12).toLocaleString();
     var el1 = document.getElementById('ob-stat-signals');
-    var el2 = document.getElementById('ob-stat-profit');
-    var elC = document.getElementById('ob-live-counter');
-    if (el1) el1.textContent = sigCount || '12';
-    if (el2) el2.textContent = profitEst || '$144';
-    if (elC) {
-      var strongCount = sigs.filter(function(s){ return s.score >= 8; }).length;
-      elC.textContent = (strongCount || 3) + ' сильных сигнала сегодня';
-    }
+    if (el1) el1.textContent = 'Активных сигналов: ' + (sigCount || 12);
   }
 
   function renderObSlide2() {
