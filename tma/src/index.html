@@ -2973,56 +2973,173 @@ async function fetchPriceHistory(tokenId, interval) {
   }
 }
 
-function renderPriceChart(containerId, history, height) {
+function renderPriceChart(containerId, history, height, opts) {
   var el = document.getElementById(containerId);
   if (!el || !history.length) {
     if (el) el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No price data</div>';
     return;
   }
+  opts = opts || {};
+  var buyPrice = opts.buyPrice || null; // 0-1 scale
+  var buyTime = opts.buyTime || null;   // unix timestamp
+  var interval = opts.interval || '1m';
   
   var W = el.offsetWidth || 320;
-  var H = height || 140;
-  var PAD_L = 0, PAD_R = 0, PAD_T = 10, PAD_B = 10;
+  var H = height || 200;
+  var PAD_L = 38, PAD_R = 8, PAD_T = 12, PAD_B = 28;
   var chartW = W - PAD_L - PAD_R;
   var chartH = H - PAD_T - PAD_B;
   
   var prices = history.map(function(h) { return h.p; });
+  var times = history.map(function(h) { return h.t; });
   var minP = Math.min.apply(null, prices);
   var maxP = Math.max.apply(null, prices);
-  var range = maxP - minP || 0.01;
   
-  minP -= range * 0.05;
-  maxP += range * 0.05;
-  range = maxP - minP;
+  // Include buyPrice in range if present
+  if (buyPrice !== null) {
+    if (buyPrice < minP) minP = buyPrice;
+    if (buyPrice > maxP) maxP = buyPrice;
+  }
+  
+  var range = maxP - minP || 0.01;
+  minP -= range * 0.08;
+  maxP += range * 0.08;
+  // Clamp to 0-1
+  if (minP < 0) minP = 0;
+  if (maxP > 1) maxP = 1;
+  range = maxP - minP || 0.01;
   
   var firstP = prices[0];
   var lastP = prices[prices.length - 1];
   var isUp = lastP >= firstP;
   var lineColor = isUp ? '#19fb9b' : '#FF4F4F';
-  var fillTop = isUp ? 'rgba(25,251,155,0.15)' : 'rgba(255,79,79,0.15)';
-  var fillBot = 'rgba(0,0,0,0)';
+  var fillTop = isUp ? 'rgba(25,251,155,0.12)' : 'rgba(255,79,79,0.12)';
   
-  var points = history.map(function(h, i) {
-    var x = PAD_L + (i / (history.length - 1)) * chartW;
+  // ── Y-axis labels (price ticks) ──
+  var yTicks = _calcYTicks(minP, maxP, 4);
+  var yLabels = '';
+  var gridLines = '';
+  for (var yi = 0; yi < yTicks.length; yi++) {
+    var yVal = yTicks[yi];
+    var yPos = PAD_T + (1 - (yVal - minP) / range) * chartH;
+    yLabels += '<text x="' + (PAD_L - 4) + '" y="' + (yPos + 3) + '" text-anchor="end" font-size="9" fill="rgba(255,255,255,.25)" font-family="system-ui,sans-serif">' + Math.round(yVal * 100) + '¢</text>';
+    gridLines += '<line x1="' + PAD_L + '" y1="' + yPos.toFixed(1) + '" x2="' + (W - PAD_R) + '" y2="' + yPos.toFixed(1) + '" stroke="rgba(255,255,255,.04)" stroke-width="1"/>';
+  }
+  
+  // ── X-axis labels (time ticks) ──
+  var tMin = times[0], tMax = times[times.length - 1];
+  var xTickCount = interval === '1d' ? 4 : interval === '1w' ? 5 : 5;
+  var xLabels = '';
+  for (var xi = 0; xi < xTickCount; xi++) {
+    var tVal = tMin + (tMax - tMin) * (xi / (xTickCount - 1));
+    var xPos = PAD_L + chartW * (xi / (xTickCount - 1));
+    var label = _formatTimeLabel(tVal, interval);
+    var anchor = xi === 0 ? 'start' : xi === xTickCount - 1 ? 'end' : 'middle';
+    xLabels += '<text x="' + xPos.toFixed(1) + '" y="' + (H - 4) + '" text-anchor="' + anchor + '" font-size="9" fill="rgba(255,255,255,.25)" font-family="system-ui,sans-serif">' + label + '</text>';
+  }
+  
+  // ── Price line points ──
+  var tRange = tMax - tMin || 1;
+  var points = history.map(function(h) {
+    var x = PAD_L + ((h.t - tMin) / tRange) * chartW;
     var y = PAD_T + (1 - (h.p - minP) / range) * chartH;
-    return x.toFixed(1) + ',' + y.toFixed(1);
+    return { x: x, y: y, t: h.t, p: h.p };
   });
   
-  var polyline = points.join(' ');
-  var fillPoly = points.join(' ') + ' ' + (PAD_L + chartW).toFixed(1) + ',' + (PAD_T + chartH) + ' ' + PAD_L + ',' + (PAD_T + chartH);
+  var polyline = points.map(function(pt) { return pt.x.toFixed(1) + ',' + pt.y.toFixed(1); }).join(' ');
+  var lastPt = points[points.length - 1];
+  var fillPoly = polyline + ' ' + lastPt.x.toFixed(1) + ',' + (PAD_T + chartH) + ' ' + points[0].x.toFixed(1) + ',' + (PAD_T + chartH);
   
   var gradId = 'pg_' + containerId;
   
-  el.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">'
+  // ── Buy price line (dashed) ──
+  var buyLineHtml = '';
+  if (buyPrice !== null && buyPrice >= minP && buyPrice <= maxP) {
+    var buyY = PAD_T + (1 - (buyPrice - minP) / range) * chartH;
+    buyLineHtml = '<line x1="' + PAD_L + '" y1="' + buyY.toFixed(1) + '" x2="' + (W - PAD_R) + '" y2="' + buyY.toFixed(1) + '" stroke="#9945FF" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/>'
+      + '<rect x="' + PAD_L + '" y="' + (buyY - 8).toFixed(1) + '" width="52" height="14" rx="3" fill="rgba(153,69,255,.15)"/>'
+      + '<text x="' + (PAD_L + 4) + '" y="' + (buyY + 3).toFixed(1) + '" font-size="8" fill="#9945FF" font-weight="600" font-family="system-ui,sans-serif">Вход ' + Math.round(buyPrice * 100) + '¢</text>';
+  }
+  
+  // ── Buy time marker (entry point on the line) ──
+  var buyMarkerHtml = '';
+  if (buyTime && buyTime >= tMin && buyTime <= tMax) {
+    var bx = PAD_L + ((buyTime - tMin) / tRange) * chartW;
+    // Find closest point for Y
+    var closestIdx = 0, closestDist = Infinity;
+    for (var bi = 0; bi < history.length; bi++) {
+      var bd = Math.abs(history[bi].t - buyTime);
+      if (bd < closestDist) { closestDist = bd; closestIdx = bi; }
+    }
+    var by = points[closestIdx].y;
+    buyMarkerHtml = '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="4" fill="#9945FF" stroke="#0d0820" stroke-width="2"/>'
+      + '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="8" fill="#9945FF" opacity="0.15"><animate attributeName="r" values="8;12;8" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.15;0.05;0.15" dur="2s" repeatCount="indefinite"/></circle>';
+  }
+  
+  // ── Current price label (right side) ──
+  var curPriceLabel = '<rect x="' + (lastPt.x + 4).toFixed(1) + '" y="' + (lastPt.y - 8).toFixed(1) + '" width="' + (PAD_R > 30 ? 36 : 0) + '" height="14" rx="3" fill="' + lineColor + '" opacity="0.15"/>';
+  
+  el.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" style="overflow:visible">'
     + '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
     + '<stop offset="0%" stop-color="' + fillTop + '"/>'
-    + '<stop offset="100%" stop-color="' + fillBot + '"/>'
+    + '<stop offset="100%" stop-color="rgba(0,0,0,0)"/>'
     + '</linearGradient></defs>'
+    // Grid
+    + gridLines
+    // Y labels
+    + yLabels
+    // X labels
+    + xLabels
+    // Buy price dashed line
+    + buyLineHtml
+    // Fill
     + '<polygon points="' + fillPoly + '" fill="url(#' + gradId + ')"/>'
+    // Price line
     + '<polyline points="' + polyline + '" fill="none" stroke="' + lineColor + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>'
-    + '<circle cx="' + points[points.length-1].split(',')[0] + '" cy="' + points[points.length-1].split(',')[1] + '" r="3" fill="' + lineColor + '" stroke="' + lineColor + '" stroke-width="1"/>'
-    + '<circle cx="' + points[points.length-1].split(',')[0] + '" cy="' + points[points.length-1].split(',')[1] + '" r="6" fill="' + lineColor + '" opacity="0.2"/>'
+    // Buy entry marker
+    + buyMarkerHtml
+    // Current price dot
+    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="3" fill="' + lineColor + '"/>'
+    + '<circle cx="' + lastPt.x.toFixed(1) + '" cy="' + lastPt.y.toFixed(1) + '" r="6" fill="' + lineColor + '" opacity="0.2"/>'
     + '</svg>';
+}
+
+// ── Chart helper: Y-axis ticks ──
+function _calcYTicks(minP, maxP, count) {
+  var range = maxP - minP;
+  var step = range / (count + 1);
+  // Round to nice values (0.05, 0.10, 0.25)
+  var niceSteps = [0.01, 0.02, 0.05, 0.10, 0.20, 0.25, 0.50];
+  var best = step;
+  for (var i = 0; i < niceSteps.length; i++) {
+    if (niceSteps[i] >= step * 0.7) { best = niceSteps[i]; break; }
+  }
+  var ticks = [];
+  var start = Math.ceil(minP / best) * best;
+  for (var v = start; v <= maxP; v += best) {
+    if (v > minP + range * 0.02 && v < maxP - range * 0.02) {
+      ticks.push(Math.round(v * 100) / 100);
+    }
+    if (ticks.length >= count + 1) break;
+  }
+  return ticks;
+}
+
+// ── Chart helper: X-axis time labels ──
+function _formatTimeLabel(ts, interval) {
+  var d = new Date(ts * 1000);
+  if (interval === '1d') {
+    return d.getHours().toString().padStart(2,'0') + ':00';
+  } else if (interval === '1w') {
+    var days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+    return days[d.getDay()] + ' ' + d.getDate();
+  } else if (interval === '1m') {
+    var months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+    return d.getDate() + ' ' + months[d.getMonth()];
+  } else {
+    var months2 = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+    return months2[d.getMonth()] + ' ' + (d.getFullYear() % 100);
+  }
 }
 
 function switchChartInterval(btn, interval) {
@@ -3039,17 +3156,12 @@ function switchChartInterval(btn, interval) {
   if (chartEl) chartEl.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>';
   
   fetchPriceHistory(window._chartTokenId, interval).then(function(history) {
-    renderPriceChart(chartId, history, 140);
-    
-    if (history.length > 1) {
-      var first = history[0].p;
-      var last = history[history.length-1].p;
-      var change = ((last - first) / first * 100);
-      if (changeEl) {
-        changeEl.style.color = change >= 0 ? '#19fb9b' : '#FF4F4F';
-        changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1) + '%';
-      }
-    }
+    renderPriceChart(chartId, history, 200, {
+      buyPrice: window._chartBuyPrice || null,
+      buyTime: window._chartBuyTime || null,
+      interval: interval
+    });
+    _updateChartChange(history, changeEl ? changeEl.id : 'chart-change');
   });
 }
 
@@ -3082,6 +3194,8 @@ function renderPositionDetail(p) {
   // Get token ID for chart
   var tokenId = p.clobTokenId || p.asset || p.tokenId || '';
   window._chartTokenId = tokenId;
+  window._chartBuyPrice = cost > 0 && p.size > 0 ? cost / p.size : null;
+  window._chartBuyTime = p.createdAt ? Math.floor(new Date(p.createdAt).getTime() / 1000) : null;
 
   var escapedTitle = (p.title||'').replace(/'/g, "\\'");
   var escapedIcon = (p.icon||'').replace(/'/g, "\\'");
@@ -3098,10 +3212,15 @@ function renderPositionDetail(p) {
     + '&nbsp;·&nbsp;<span style="color:' + statusColor + ';font-weight:600">' + statusLabel + '</span>'
     + '</div></div></div>'
 
-    // Action buttons - RIGHT AFTER HEADER
+    // Action buttons + position info
+    + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:0 2px">'
+    + '<span style="font-size:11px;color:var(--muted)">' + (p.size||0).toFixed(1) + ' shares</span>'
+    + '<span style="font-size:11px;color:rgba(255,255,255,.15)">·</span>'
+    + '<span style="font-size:11px;color:var(--muted)">bought at ' + (cost>0&&p.size>0?Math.round(cost/p.size*100)+'¢':'—') + '</span>'
+    + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-    + '<button class="btn" onclick="openExternal(\'' + polyLink + '\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔻 Продать</button>'
-    + '<button class="btn" onclick="openBetSheet&&openBetSheet({conditionId:\'' + (p.conditionId||'') + '\',market:\'' + escapedTitle + '\',icon:\'' + escapedIcon + '\'},\'' + (p.outcome||'YES') + '\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔺 Докупить</button>'
+    + '<button class="btn" onclick="openExternal(\'' + polyLink + '\')" style="padding:13px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;backdrop-filter:blur(8px)"><span style="width:6px;height:6px;border-radius:50%;background:#FF4F4F"></span> Продать</button>'
+    + '<button class="btn" onclick="openBetSheet&&openBetSheet({conditionId:\'' + (p.conditionId||'') + '\',market:\'' + escapedTitle + '\',icon:\'' + escapedIcon + '\'},\'' + (p.outcome||'YES') + '\')" style="padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">Купить</button>'
     + '</div>'
 
     // Claim/Resolving banners
@@ -3131,7 +3250,7 @@ function renderPositionDetail(p) {
     + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
     + '</div></div>'
-    + '<div id="detail-price-chart" style="width:100%;min-height:140px">'
+    + '<div id="detail-price-chart" style="width:100%;min-height:200px">'
     + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
     + '</div></div>'
 
@@ -3164,7 +3283,11 @@ function renderPositionDetail(p) {
   // Load chart — use tokenId if available, otherwise fetch from our market-info API
   if (tokenId) {
     fetchPriceHistory(tokenId, '1m').then(function(history) {
-      renderPriceChart('detail-price-chart', history, 140);
+      renderPriceChart('detail-price-chart', history, 200, {
+        buyPrice: cost > 0 && p.size > 0 ? cost / p.size : null,
+        buyTime: p.createdAt ? Math.floor(new Date(p.createdAt).getTime() / 1000) : null,
+        interval: '1m'
+      });
       _updateChartChange(history, 'chart-change');
     });
   } else {
@@ -3187,7 +3310,11 @@ function renderPositionDetail(p) {
         })
         .then(function(history) {
           if (history && history.length) {
-            renderPriceChart('detail-price-chart', history, 140);
+            renderPriceChart('detail-price-chart', history, 200, {
+              buyPrice: cost > 0 && p.size > 0 ? cost / p.size : null,
+              buyTime: p.createdAt ? Math.floor(new Date(p.createdAt).getTime() / 1000) : null,
+              interval: '1m'
+            });
             _updateChartChange(history, 'chart-change');
           } else {
             var ce = document.getElementById('detail-price-chart');
@@ -5256,10 +5383,16 @@ async function openBetDetail(betId) {
     + '<span style="font-size:10px;color:var(--muted)">'+statusTxt+'</span>'
     + '</div></div></div>'
 
-    // Action buttons - MOVED UP right after header
+        // Action buttons + position info
+    + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;padding:0 2px">'
+    + '<span style="font-size:11px;color:var(--muted)">$' + amt.toFixed(2) + ' ставка</span>'
+    + '<span style="font-size:11px;color:rgba(255,255,255,.15)">·</span>'
+    + '<span style="font-size:11px;color:var(--muted)">покупка ' + Math.round(buyPrice*100) + '¢</span>'
+    + (isDemo ? '<span style="font-size:11px;color:rgba(255,255,255,.15)">·</span><span style="font-size:10px;color:#a78bfa;font-weight:600">DEMO</span>' : '')
+    + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'
-    + '<button onclick="sellBet('+betId+')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#FF4F4F,#ff6b6b);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔻 Продать</button>'
-    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove();openBetSheet({conditionId:\''+bet.market_id+'\',market:\''+(bet.market||'').replace(/'/g,"\\'")+'\',icon:\''+imgUrl+'\'},\''+(bet.side==='YES'?'YES':'NO')+'\')" style="padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#19fb9b,#0fa);color:#000;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">🔺 Докупить</button>'
+    + '<button onclick="sellBet('+betId+')" style="padding:13px;border-radius:14px;border:none;background:rgba(255,255,255,.06);color:#fff;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><span style='width:6px;height:6px;border-radius:50%;background:#FF4F4F'></span> Продать</button>'
+    + '<button onclick="document.getElementById(\'bet-detail-overlay\').remove();openBetSheet({conditionId:\''+bet.market_id+'\',market:\''+(bet.market||'').replace(/'/g,"\\'")+'\',icon:\''+imgUrl+'\'},\''+(bet.side==='YES'?'YES':'NO')+'\')" style="padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">Купить</button>'
     + '</div>'
 
     // Price Chart - NEW
@@ -5273,7 +5406,7 @@ async function openBetDetail(betId) {
     + '<button class="chart-tab active" onclick="switchChartInterval(this,\'1m\')">1M</button>'
     + '<button class="chart-tab" onclick="switchChartInterval(this,\'all\')">ALL</button>'
     + '</div></div>'
-    + '<div id="bet-detail-chart" style="width:100%;min-height:140px">'
+    + '<div id="bet-detail-chart" style="width:100%;min-height:200px">'
     + '<div style="text-align:center;padding:30px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>'
     + '</div></div>'
 
@@ -5322,9 +5455,15 @@ async function openBetDetail(betId) {
             var tkn = (bet.side||'').toUpperCase() === 'NO' ? (info.tokenNo || info.tokenYes || '') : (info.tokenYes || info.tokenNo || '');
             if (tkn) {
               window._chartTokenId = tkn;
+              window._chartBuyPrice = buyPrice || null;
+              window._chartBuyTime = created ? Math.floor(created.getTime() / 1000) : null;
               fetchPriceHistory(tkn, '1m').then(function(history) {
                 if (history && history.length) {
-                  renderPriceChart('bet-detail-chart', history, 140);
+                  renderPriceChart('bet-detail-chart', history, 200, {
+                    buyPrice: buyPrice || null,
+                    buyTime: created ? Math.floor(created.getTime() / 1000) : null,
+                    interval: '1m'
+                  });
                   _updateChartChange(history, 'bet-chart-change');
                 }
               });
@@ -5338,9 +5477,15 @@ async function openBetDetail(betId) {
       return;
     }
     window._chartTokenId = tid;
+    window._chartBuyPrice = buyPrice || null;
+    window._chartBuyTime = created ? Math.floor(created.getTime() / 1000) : null;
     fetchPriceHistory(tid, '1m').then(function(history) {
       if (history && history.length) {
-        renderPriceChart('bet-detail-chart', history, 140);
+        renderPriceChart('bet-detail-chart', history, 200, {
+          buyPrice: buyPrice || null,
+          buyTime: created ? Math.floor(created.getTime() / 1000) : null,
+          interval: '1m'
+        });
         _updateChartChange(history, 'bet-chart-change');
       } else {
         var ce = document.getElementById('bet-detail-chart');
