@@ -64,6 +64,7 @@ module.exports = async (req, res) => {
         hasWallet: !!(user.address),
         address: user.address || null,
         demoBalance,
+        onboarded: user.onboarded === true || user.onboarded === 1,
         credits: parseInt(user.credits || 0),
         bets: userBets,
         activeBets: userBets.filter(b => b.status === 'open' || b.status === 'queued'),
@@ -82,6 +83,8 @@ module.exports = async (req, res) => {
         credits: 0,
         bets: [],
         activeBets: [],
+        onboarded: false,
+        isNewUser: true,
       };
     }
 

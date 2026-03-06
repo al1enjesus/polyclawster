@@ -2181,6 +2181,10 @@ async function loadPortfolio() {
     _portfolio._signals = d.signals && d.signals.length > 0 ? d.signals : (_signals || []);
     _portfolio._tgId    = tgId;
     _portfolio._isOwner = d.isOwner;
+    // Sync onboarded status from server — source of truth
+    if (typeof d.portfolio !== 'undefined') {
+      window._serverOnboarded = d.portfolio.onboarded === true;
+    }
     // Sync demo balance from server
     var serverDemoFresh = parseFloat((_portfolio.demoBalance) || 0);
     var localDemoFresh = parseFloat(localStorage.getItem('pc_demo_balance') || '0');
@@ -5164,10 +5168,14 @@ loadSignals();
 
   window.obFinish = function() {
     markSeen();
-    // Grant demo $1 to new users
+    window._serverOnboarded = true;
+    // Grant demo $1 to new users + mark onboarded in DB
     var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || '';
     if (tgId) {
       fetch('/api/demo-bonus', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({tgId: tgId}) })
+        .catch(function(){});
+      // Mark onboarded in DB so deletion+re-entry shows onboarding again
+      fetch('/api/set-onboarded', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({tgId: tgId}) })
         .catch(function(){});
     }
     var ob = document.getElementById('onboarding');
@@ -5185,10 +5193,31 @@ loadSignals();
     if (tgw && tgw.HapticFeedback) tgw.HapticFeedback.notificationOccurred('success');
   };
 
+  function checkServerOnboarding() {
+    // Called after portfolio loads — if server says not onboarded, force show
+    if (window._serverOnboarded === false) {
+      var el = document.getElementById('onboarding');
+      if (el && el.style.display === 'none') {
+        el.style.display = 'flex';
+        el.classList.remove('hidden');
+      }
+    }
+  }
+  window._checkServerOnboarding = checkServerOnboarding;
+
   function initOB() {
     if (alreadySeen()) {
       var el = document.getElementById('onboarding');
       if (el) el.style.display = 'none';
+      // Still — after portfolio loads, double-check server says onboarded too
+      // (handles case where user was deleted from DB)
+      setTimeout(function() {
+        if (window._serverOnboarded === false) {
+          if (el) el.style.display = 'flex';
+          if (el) el.classList.remove('hidden');
+          try { localStorage.removeItem('pc_ob_done_v6'); } catch(e) {}
+        }
+      }, 1500); // wait for portfolio to load
       return;
     }
     var el = document.getElementById('onboarding');

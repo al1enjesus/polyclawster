@@ -109,6 +109,10 @@
     {
       "src": "api/price-history.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/set-onboarded.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -219,6 +223,10 @@
     {
       "src": "/api/price-history",
       "dest": "/api/price-history.js"
+    },
+    {
+      "src": "/api/set-onboarded",
+      "dest": "/api/set-onboarded.js"
     }
   ]
 }
