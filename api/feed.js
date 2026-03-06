@@ -103,6 +103,22 @@ module.exports = async (req, res) => {
         }));
     } catch {}
 
+    // Enrich whale trades with images from Gamma (using movers data + extra lookup)
+    const imgCache = {};
+    movers.forEach(m => { if (m.slug && m.image) imgCache[m.slug] = m.image; });
+    
+    // Try to get images for whale trades that have slugs
+    const needImgs = trades.filter(t => t.slug && !imgCache[t.slug]).map(t => t.slug);
+    if (needImgs.length > 0) {
+      try {
+        const slugList = [...new Set(needImgs)].slice(0, 10);
+        const gRes = await get('https://gamma-api.polymarket.com/markets?slug=' + slugList[0] + '&limit=1');
+        if (Array.isArray(gRes) && gRes[0]?.image) imgCache[slugList[0]] = gRes[0].image;
+      } catch {}
+    }
+    
+    trades.forEach(t => { if (t.slug && imgCache[t.slug]) t.image = imgCache[t.slug]; });
+
     res.json({ ok: true, trades, movers, updated: new Date().toISOString() });
 
   } catch (e) {

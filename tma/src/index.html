@@ -3022,41 +3022,34 @@ function renderWhales(trades) {
   const el = document.getElementById('whales-content');
   if (!el) return;
   if (!trades.length) {
-    el.innerHTML='<div class="empty"><div class="empty-icon">🐋</div><div style="color:var(--muted);font-size:13px">Нет крупных сделок за последние 24ч</div></div>';
+    el.innerHTML='<div class="empty"><div class="empty-icon">🐋</div><div style="color:var(--muted);font-size:13px">Нет крупных сделок</div></div>';
     return;
   }
   const rows = trades.map(t => {
-    const sideClr = t.side==='YES'?'#19fb9b':'#FF4F4F';
-    const sideBg = t.side==='YES'?'rgba(25,251,155,.1)':'rgba(255,79,79,.08)';
-    const amtStr = t.amount >= 1000 ? '$'+Math.round(t.amount/1000)+'k' : '$'+t.amount;
-    const imgHtml = t.image 
-      ? `<img src="${t.image}" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\\'width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0\\'>${t.icon}</div>'">`
-      : `<div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${t.icon}</div>`;
-    const sigData = encodeURIComponent(JSON.stringify({
+    const sClr = t.side==='YES'?'#19fb9b':'#FF4F4F';
+    const amtStr = t.amount>=1000?'$'+Math.round(t.amount/1000)+'k':'$'+t.amount;
+    const imgHtml = t.image
+      ? '<img src="'+t.image+'" style="width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div style=\\\'width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0\\\'>🐋</div>\'">'
+      : '<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🐋</div>';
+    const sEnc = encodeURIComponent(JSON.stringify({
       type:'whale_order',score:8,market:t.market,title:t.market,
-      side:t.side,price:t.price?t.price/100:0.5,amount:t.amount,
+      side:t.side,price:t.price?t.price/100:0.5,
       conditionId:t.conditionId||'',image:t.image||'',icon:t.image||''
     }));
-    return `<div onclick="quickBet(decodeURIComponent('${sigData}'),'${t.side}')" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:12px 14px;margin:0 16px 8px;cursor:pointer">
-      ${imgHtml}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${t.market}</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:9px;font-weight:700;background:${sideBg};color:${sideClr};padding:2px 6px;border-radius:4px">${t.side} ${t.price}¢</span>
-          <span style="font-size:9px;color:rgba(255,255,255,.3)">${t.icon} ${amtStr} · ${t.wallet} · ${t.ago}</span>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-        <button onclick="event.stopPropagation();quickBet(decodeURIComponent('${sigData}'),'YES')" style="padding:4px 10px;border-radius:6px;border:none;background:rgba(25,251,155,.12);color:#19fb9b;font-size:10px;font-weight:700;cursor:pointer">YES</button>
-        <button onclick="event.stopPropagation();quickBet(decodeURIComponent('${sigData}'),'NO')" style="padding:4px 10px;border-radius:6px;border:none;background:rgba(255,79,79,.1);color:#FF4F4F;font-size:10px;font-weight:700;cursor:pointer">NO</button>
-      </div>
-    </div>`;
+    return '<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:12px;margin:0 12px 8px;cursor:pointer" onclick="quickBet(decodeURIComponent(\''+sEnc+'\'),\''+t.side+'\')">'
+      + imgHtml
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+t.market+'</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,.3)">'+t.icon+' '+amtStr+' · '+t.side+' '+t.price+'¢ · '+t.ago+'</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'
+      + '<div style="font-size:16px;font-weight:800;color:'+sClr+'">'+amtStr+'</div>'
+      + '<div style="display:flex;gap:4px">'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'YES\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(25,251,155,.12);color:#19fb9b;font-size:10px;font-weight:700;cursor:pointer">YES</button>'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'NO\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(255,79,79,.1);color:#FF4F4F;font-size:10px;font-weight:700;cursor:pointer">NO</button>'
+      + '</div></div></div>';
   }).join('');
-
-  el.innerHTML = `<div style="padding:8px 0 20px">
-    <div style="padding:4px 16px 12px;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.08em;font-weight:600">🐋 Крупные сделки · 24ч</div>
-    ${rows}
-  </div>`;
+  el.innerHTML='<div style="padding:8px 0 20px">'+rows+'</div>';
 }
 
 function renderMovers(movers) {
@@ -3068,37 +3061,30 @@ function renderMovers(movers) {
   }
   const rows = movers.map((m,i) => {
     const yes=m.yes||50, no=100-yes;
-    const barClr=yes>=70?'#19fb9b':yes>=40?'#F7B731':'#ff6363';
-    const volStr=m.volume>=1000000?'$'+Math.round(m.volume/1000000)+'M':m.volume>=1000?'$'+Math.round(m.volume/1000)+'k':'$'+m.volume;
-    const imgHtml = m.image 
-      ? `<img src="${m.image}" style="width:44px;height:44px;border-radius:12px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\\'width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:rgba(255,255,255,.3);flex-shrink:0\\'>${i+1}</div>'">`
-      : `<div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:rgba(255,255,255,.3);flex-shrink:0">${i+1}</div>`;
-    const sigData = encodeURIComponent(JSON.stringify({
+    const clr=yes>=70?'#19fb9b':yes>=40?'#F7B731':'#ff6363';
+    const volStr=m.volume>=1e6?'$'+Math.round(m.volume/1e6)+'M':m.volume>=1000?'$'+Math.round(m.volume/1000)+'k':'$'+m.volume;
+    const imgHtml = m.image
+      ? '<img src="'+m.image+'" style="width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML=\'<div style=\\\'width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0\\\'>📈</div>\'">'
+      : '<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">📈</div>';
+    const sEnc = encodeURIComponent(JSON.stringify({
       type:'vol_spike',score:6,market:m.title,title:m.title,
-      side:yes>=60?'YES':'NO',price:yes/100,volume:m.volume,
+      side:yes>=60?'YES':'NO',price:yes/100,priceYes:yes/100,priceNo:no/100,
       conditionId:m.conditionId||'',image:m.image||'',icon:m.image||''
     }));
-    const endStr = m.endDate ? new Date(m.endDate).toLocaleDateString('ru',{day:'numeric',month:'short'}) : '';
-    return `<div onclick="quickBet(decodeURIComponent('${sigData}'),${yes>=60?"'YES'":"'NO'"})" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:12px 14px;margin:0 16px 8px;cursor:pointer">
-      ${imgHtml}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${m.title}</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span style="font-size:9px;color:rgba(255,255,255,.3)">Vol ${volStr}${endStr?' · до '+endStr:''}</span>
-        </div>
-        <div style="height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${yes}%;background:${barClr};border-radius:2px"></div></div>
-      </div>
-      <div style="text-align:center;flex-shrink:0">
-        <div style="font-size:18px;font-weight:800;color:${barClr}">${yes}¢</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.25)">YES</div>
-      </div>
-    </div>`;
+    return '<div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:12px;margin:0 12px 8px;cursor:pointer" onclick="quickBet(decodeURIComponent(\''+sEnc+'\'),'+(yes>=60?"'YES'":"'NO'")+')\">'
+      + imgHtml
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:13px;font-weight:600;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+m.title+'</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,.3)">YES '+yes+'¢ · NO '+no+'¢ · Vol '+volStr+'</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">'
+      + '<div style="font-size:18px;font-weight:800;color:'+clr+'">'+yes+'¢</div>'
+      + '<div style="display:flex;gap:4px">'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'YES\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(25,251,155,.12);color:#19fb9b;font-size:10px;font-weight:700;cursor:pointer">YES</button>'
+      + '<button onclick="event.stopPropagation();quickBet(decodeURIComponent(\''+sEnc+'\'),\'NO\')" style="padding:3px 8px;border-radius:6px;border:none;background:rgba(255,79,79,.1);color:#FF4F4F;font-size:10px;font-weight:700;cursor:pointer">NO</button>'
+      + '</div></div></div>';
   }).join('');
-
-  el.innerHTML=`<div style="padding:8px 0 20px">
-    <div style="padding:4px 16px 12px;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.08em;font-weight:600">📈 Топ по объёму · 24ч</div>
-    ${rows}
-  </div>`;
+  el.innerHTML='<div style="padding:8px 0 20px">'+rows+'</div>';
 }
 
 function renderMoversTicker(movers) {
