@@ -1717,7 +1717,7 @@ function joinWaitlist() {
 let _history = [];
 let _tab = 'portfolio';
 let _portfolio = null;
-let _signals = null;
+var _signals = null; window._signals = null;
 
 function showScreen(id, pushHistory) { if(pushHistory===undefined) pushHistory=true;
   if (pushHistory && _history[_history.length-1] !== id) _history.push(id);
@@ -2092,14 +2092,32 @@ async function renderPortfolio(d) {
       ${activeBets.slice(0,5).map((b,idx) => {
         const sideClr = b.side==='YES'?'#19fb9b':'#FF4F4F';
         const sideBg  = b.side==='YES'?'rgba(25,251,155,.15)':'rgba(255,79,79,.12)';
-        const demoTag = b.is_demo?'<span style="font-size:9px;background:rgba(139,92,246,.2);color:#a78bfa;padding:1px 5px;border-radius:4px;margin-left:5px;font-weight:700">demo</span>':'';
+        const demoTag = b.is_demo?' <span style="font-size:8px;background:rgba(139,92,246,.2);color:#a78bfa;padding:1px 5px;border-radius:4px;font-weight:700">демо</span>':'';
+        // Try to find matching signal for icon & price
+        const sig = (window._signals||[]).find(s => s.conditionId===b.market_id || (s.market||s.question||s.title||'').slice(0,25)===(b.market||'').slice(0,25));
+        const icon = (b.image||sig?.icon) ? `<img src="${b.image||sig.icon}" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0" onerror="this.outerHTML='<div style=\\"width:42px;height:42px;border-radius:10px;background:${sideBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${sideClr};flex-shrink:0\\">${b.side}</div>'">`
+          : `<div style="width:42px;height:42px;border-radius:10px;background:${sideBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${sideClr};flex-shrink:0">${b.side}</div>`;
+        // Current price from signal
+        const curPrice = sig ? (b.side==='YES' ? sig.priceYes : sig.priceNo) : null;
+        const buyPrice = b.price || (b.side==='YES' ? 0.5 : 0.5);
+        const pnlVal = curPrice ? ((curPrice - buyPrice) * parseFloat(b.amount||0)).toFixed(2) : null;
+        const pnlClr = pnlVal > 0 ? '#19fb9b' : pnlVal < 0 ? '#FF4F4F' : 'rgba(255,255,255,.4)';
+        // Date
+        const betDate = b.created_at ? new Date(b.created_at) : null;
+        const dateStr = betDate ? betDate.toLocaleDateString('ru-RU',{day:'numeric',month:'short'}) : '';
         return `<div onclick="openBetDetail(${b.id||idx})" style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer">
-          <div style="width:38px;height:38px;border-radius:10px;background:${sideBg};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:${sideClr};flex-shrink:0">${b.side}</div>
+          ${icon}
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px">${(b.market||'').slice(0,40)}${demoTag}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,.35)">🟢 Открыта</div>
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px">${(b.market||'').slice(0,38)}${demoTag}</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.35)">
+              <span style="background:${sideBg};color:${sideClr};padding:1px 6px;border-radius:4px;font-weight:700;font-size:9px">${b.side}</span>
+              <span>🟢 Открыта</span>${dateStr?`<span>· ${dateStr}</span>`:''}
+            </div>
           </div>
-          <div style="font-size:15px;font-weight:700;flex-shrink:0;color:#fff">$${parseFloat(b.amount||0).toFixed(2)}</div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:15px;font-weight:700;color:#fff">$${parseFloat(b.amount||0).toFixed(2)}</div>
+            ${curPrice!==null?`<div style="font-size:10px;font-weight:600;color:${pnlClr}">${pnlVal>=0?'+':''}$${Math.abs(pnlVal).toFixed(2)} · ${Math.round(curPrice*100)}¢</div>`:''}
+          </div>
         </div>`;
       }).join('')}
     </div>`;
@@ -2874,6 +2892,7 @@ async function loadSignals() {
     const r   = await fetch('/api/signals?limit=20&_=' + Date.now());
     const raw = await r.json();
     _signals  = (raw.signals||[]).sort((a,b)=>(b.score||0)-(a.score||0));
+    window._signals = _signals;
 
     renderSignals(_signals);
 
