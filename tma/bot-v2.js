@@ -83,9 +83,14 @@ async function sendWelcome(chatId, firstName, refCode) {
             await db.updateUser(String(refCode), {
               ref_count: (parseInt(referrer.ref_count || 0) + 1),
             }).catch(() => {});
+            const newUserMention = msg.from?.username ? `@${msg.from.username}` : (firstName || 'Someone');
+            const newUserDisplay = (firstName && msg.from?.username) ? `${firstName} (${newUserMention})` : (firstName || newUserMention);
             await sendMsg(refCode,
-              `🎉 *New referral!*\n\n${firstName || 'Someone'} just joined via your link!\n\n` +
-              `👥 Total refs: ${parseInt(referrer.ref_count || 0) + 1}`
+              `🎉 *Новый реферал!*\n\n` +
+              `${newUserDisplay} только что зашёл по твоей ссылке!\n\n` +
+              `👥 Всего рефералов: ${parseInt(referrer.ref_count || 0) + 1}\n` +
+              `💰 Ты получаешь 1% от его комиссий навсегда`,
+              { parse_mode: 'Markdown' }
             );
           }
         }
