@@ -2735,6 +2735,7 @@ async function placeBet(signal, side) {
           slug: signal.slug || '',
           side: side,
           amount: amt,
+          price: side === 'NO' ? (signal.priceNo || 1 - (signal.price || signal.priceYes || 0.5)) : (signal.priceYes || signal.price || 0.5),
           signalScore: signal.score || 0,
           isDemo: true
         })
@@ -2779,6 +2780,7 @@ function _noBetDemoClick() {
         slug: ctx.signal.slug || '',
         side: ctx.side,
         amount: ctx.amt,
+        price: ctx.side === 'NO' ? (ctx.signal.priceNo || 1 - (ctx.signal.price || ctx.signal.priceYes || 0.5)) : (ctx.signal.priceYes || ctx.signal.price || 0.5),
         signalScore: ctx.signal.score || 0,
         isDemo: true
       })

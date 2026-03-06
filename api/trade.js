@@ -61,9 +61,10 @@ module.exports = async (req, res) => {
       if (curDemo < amount) {
         return res.json({ ok: false, error: 'Insufficient demo balance ($' + curDemo.toFixed(2) + ')' });
       }
+      const demoPrice = parseFloat(body.price || 0) || 0; // save real market price
       await db.insertBet({
         tg_id: parseInt(tgId), market: market.slice(0, 200), market_id: conditionId || null,
-        side, amount, price: 0, status: 'open', is_demo: true,
+        side, amount, price: demoPrice, status: 'open', is_demo: true,
         signal_type: null, signal_score: signalScore || null,
       }).catch(e => console.error('[trade] demo insertBet fail:', e.message));
       await db.updateUser(tgId, { demo_balance: Math.max(0, curDemo - amount) })
