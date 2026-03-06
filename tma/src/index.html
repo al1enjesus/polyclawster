@@ -2840,31 +2840,52 @@ function showBetConfirm(signal, side, amt, isDemo) {
   var tgw = window.Telegram && window.Telegram.WebApp;
   if (tgw && tgw.HapticFeedback) tgw.HapticFeedback.notificationOccurred('success');
 
-  var market = (signal.market || signal.title || '').slice(0, 50);
+  var market = (signal.market || signal.title || '');
+  var marketShort = market.slice(0, 60);
   var sideColor = side === 'YES' ? '#19fb9b' : '#FF4F4F';
+  var shareText = encodeURIComponent('Поставил $' + amt.toFixed(2) + ' на ' + side + ' — "' + market.slice(0,40) + '" 🤖\nhttps://t.me/PolyClawsterBot');
+  var shareUrl = encodeURIComponent('https://t.me/PolyClawsterBot');
 
   var overlay = document.createElement('div');
   overlay.id = 'bet-confirm-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center';
   overlay.innerHTML = (
-    '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;padding:28px 24px 40px">'
-    + '<div style="text-align:center;margin-bottom:20px">'
-    + '<div style="font-size:52px">' + (isDemo ? '🎁' : '✅') + '</div>'
-    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:6px">Ставка ' + (isDemo ? 'demo-' : '') + 'принята!</div>'
-    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:260px;margin:0 auto">' + market + '</div>'
+    '<div style="width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;padding:24px 24px 40px;position:relative">'
+
+    // Share button — top right corner
+    + '<div style="position:absolute;top:16px;right:16px;display:flex;gap:6px">'
+    + '<a href="https://t.me/share/url?url=' + shareUrl + '&text=' + shareText + '" target="_blank" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px" title="Telegram">✈️</a>'
+    + '<a href="https://twitter.com/intent/tweet?text=' + shareText + '" target="_blank" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px" title="X/Twitter">𝕏</a>'
+    + '<a href="https://www.instagram.com/" target="_blank" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px" title="Instagram">📸</a>'
+    + '<div onclick="navigator.clipboard.writeText(\'Поставил $' + amt.toFixed(2) + ' на ' + side + ' вместе с AI 🤖 https://t.me/PolyClawsterBot\').then(function(){showToast(\'Скопировано!\');})" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px" title="Копировать">📋</div>'
     + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'
-    + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:' + sideColor + '">' + side + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Ставка</div></div>'
+
+    // Main content
+    + '<div style="text-align:center;margin-bottom:20px;padding-top:4px">'
+    + '<div style="font-size:52px">✅</div>'
+    + '<div style="font-size:20px;font-weight:800;margin-top:12px;margin-bottom:6px">Ставка принята!</div>'
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.5;max-width:280px;margin:0 auto">' + marketShort + '</div>'
+    + '</div>'
+
+    // 3 metrics
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">'
+    + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:' + sideColor + '">' + side + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Исход</div></div>'
     + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800">$' + amt.toFixed(2) + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Сумма</div></div>'
-    + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:#F7B731">' + (signal.score||0).toFixed(1) + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Сила</div></div>'
+    + '<div style="background:var(--bg3);border-radius:12px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:800;color:#F7B731">' + (signal.score||0).toFixed(1) + '</div><div style="font-size:10px;color:var(--muted);margin-top:2px">AI Score</div></div>'
     + '</div>'
-    + (isDemo ? '<div style="background:rgba(153,69,255,.08);border:1px solid rgba(153,69,255,.2);border-radius:12px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.5">🎁 Demo-ставка. Пополни кошелёк для реальных денег.</div>' : '')
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<button class="btn btn-secondary" style="font-size:13px" onclick="shareBet(\'' + market.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\',' + amt + ',\'' + side + '\')">'
-    + '📤 Поделиться'
-    + '</button>'
-    + '<button class="btn btn-primary" style="font-size:13px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');refreshAll(100)">📊 Смотреть портфель</button>'
+
+    // What happens next
+    + '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px 16px;margin-bottom:16px">'
+    + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Что дальше</div>'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:14px">📊</span><span style="font-size:12px;color:rgba(255,255,255,.7)">Следи за ценой в Портфеле</span></div>'
+    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-size:14px">💰</span><span style="font-size:12px;color:rgba(255,255,255,.7)">Продай когда цена вырастет — или жди результат</span></div>'
+    + '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:14px">🎯</span><span style="font-size:12px;color:rgba(255,255,255,.7)">Если исход верный — получишь $1 за каждую акцию</span></div>'
     + '</div>'
+
+    + (isDemo ? '<div style="background:rgba(25,251,155,.06);border:1px solid rgba(25,251,155,.15);border-radius:12px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.5">🔓 Demo-ставка на твой бонусный баланс. Пополни кошелёк для реальных денег.</div>' : '')
+
+    // CTA button
+    + '<button class="btn btn-primary" style="font-size:14px;width:100%;padding:15px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');refreshAll(100)">📊 Смотреть в портфеле</button>'
     + '</div>'
   );
   overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
@@ -4200,7 +4221,7 @@ function buildWalletBalance(w, isDemoMode) {
       + '</div>'
       + '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px">'
       + '<div style="font-size:14px;font-weight:700;color:rgba(255,255,255,.3)">$0.00</div>'
-      + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">🔒 В ставках</div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">📊 В ставках</div>'
       + '</div></div></div>';
   } else {
     return '<div style="text-align:center;padding:28px 0 20px">'
@@ -4217,7 +4238,7 @@ function buildWalletBalance(w, isDemoMode) {
       + '</div>'
       + '<div style="background:rgba(247,183,49,.07);border:1px solid rgba(247,183,49,.15);border-radius:12px;padding:10px">'
       + '<div style="font-size:14px;font-weight:700;color:#F7B731">$' + posVal.toFixed(2) + '</div>'
-      + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">🔒 В ставках</div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">📊 В ставках</div>'
       + '</div></div>'
       + (polBal > 0 ? '<div style="margin-top:10px;font-size:11px;color:rgba(255,255,255,.3)">⛽ ' + polBal.toFixed(3) + ' POL (газ)</div>' : '')
       + '</div>';
