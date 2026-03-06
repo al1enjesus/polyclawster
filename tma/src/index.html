@@ -2670,10 +2670,11 @@ function drawSparkline(snapshots, isSynthetic) {
 
 // ══ QUICK TRADE FROM SIGNAL ════════════════════════════════════
 // ══ PLACE BET (demo + real) ═════════════════════════════════════
-async function placeBet(signal, side) {
+async function placeBet(signal, side, amtOverride) {
   var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || '';
-  var amtInput = document.getElementById('trade-amount-inp');
-  var amt = amtInput ? parseFloat(amtInput.value) : 0;
+  // amtOverride: from sticky buttons; fallback to input field or default 5
+  var amtInput = document.getElementById('trade-amount-inp') || document.getElementById('sd-amt-inp');
+  var amt = amtOverride || (amtInput ? parseFloat(amtInput.value) : 0) || 5;
   if (!amt || amt < 0.5) { showToast('Введи сумму ставки'); return; }
 
   // Re-read wallet state — might have loaded after page init
@@ -3331,19 +3332,27 @@ function switchChartInterval(btn, interval) {
   
   if (!window._chartTokenId) return;
   
-  var chartEl = document.getElementById('detail-price-chart') || document.getElementById('bet-detail-chart');
-  var changeEl = document.getElementById('chart-change') || document.getElementById('bet-chart-change');
-  var chartId = chartEl ? chartEl.id : 'detail-price-chart';
+  // Detect which chart container is visible (signal detail, bet detail, or position detail)
+  var chartEl = document.getElementById('sd-price-chart')
+    || document.getElementById('pos-detail-chart')
+    || document.getElementById('bet-detail-chart')
+    || document.getElementById('detail-price-chart');
+  var changeEl = document.getElementById('sd-chart-change')
+    || document.getElementById('bet-chart-change')
+    || document.getElementById('chart-change');
+  var chartId = chartEl ? chartEl.id : 'sd-price-chart';
+  var changeId = changeEl ? changeEl.id : 'sd-chart-change';
   
   if (chartEl) chartEl.innerHTML = '<div style="text-align:center;padding:20px"><div class="spinner" style="width:20px;height:20px;margin:0 auto"></div></div>';
   
   fetchPriceHistory(window._chartTokenId, interval).then(function(history) {
-    renderPriceChart(chartId, history, 200, {
+    var h = Math.max(150, chartEl ? chartEl.offsetHeight : 200);
+    renderPriceChart(chartId, history, h || 200, {
       buyPrice: window._chartBuyPrice || null,
       buyTime: window._chartBuyTime || null,
       interval: interval
     });
-    _updateChartChange(history, changeEl ? changeEl.id : 'chart-change');
+    _updateChartChange(history, changeId);
   });
 }
 
@@ -3943,15 +3952,32 @@ function renderSignalDetail(s) {
   if (existingSticky) existingSticky.remove();
   var sticky = document.createElement('div');
   sticky.id = 'sd-sticky-cta';
-  sticky.style.cssText = 'position:fixed;bottom:56px;left:0;right:0;z-index:200;padding:8px 16px 12px;background:linear-gradient(transparent,rgba(13,8,32,.97) 25%)';
+  sticky.style.cssText = 'position:fixed;bottom:56px;left:0;right:0;z-index:200;padding:6px 16px 14px;background:linear-gradient(transparent,rgba(13,8,32,.98) 18%)';
+  window._sdBetAmt = 5;
   sticky.innerHTML = (
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:480px;margin:0 auto">'
-    + '<button onclick="placeBet(' + sEncoded2 + ',\'NO\')" style="height:52px;border-radius:14px;border:1px solid rgba(255,79,79,.3);background:rgba(255,79,79,.08);color:#FF4F4F;font-size:15px;font-weight:800;cursor:pointer">NO · ' + centsNo + '¢</button>'
-    + '<button onclick="placeBet(' + sEncoded2 + ',\'YES\')" style="height:52px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
-    + (sideRecommended==='YES' ? '<span>⚡</span>' : '')
+    '<div style="max-width:480px;margin:0 auto">'
+    // Quick amount buttons
+    + '<div style="display:flex;gap:5px;margin-bottom:7px">'
+    + '<button onclick="window._sdBetAmt=1;var i=document.getElementById(\'sd-amt-inp\');if(i)i.value=1" style="flex:1;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:12px;font-weight:700;cursor:pointer">$1</button>'
+    + '<button onclick="window._sdBetAmt=5;var i=document.getElementById(\'sd-amt-inp\');if(i)i.value=5" style="flex:1;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:12px;font-weight:700;cursor:pointer">$5</button>'
+    + '<button onclick="window._sdBetAmt=10;var i=document.getElementById(\'sd-amt-inp\');if(i)i.value=10" style="flex:1;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:12px;font-weight:700;cursor:pointer">$10</button>'
+    + '<button onclick="window._sdBetAmt=25;var i=document.getElementById(\'sd-amt-inp\');if(i)i.value=25" style="flex:1;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:12px;font-weight:700;cursor:pointer">$25</button>'
+    + '</div>'
+    // Amount input
+    + '<div style="position:relative;margin-bottom:7px">'
+    + '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:700;color:rgba(255,255,255,.25);pointer-events:none">$</span>'
+    + '<input id="sd-amt-inp" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="Сумма ставки" value="5" oninput="window._sdBetAmt=parseFloat(this.value)||5" style="width:100%;box-sizing:border-box;height:40px;padding:0 55px 0 26px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-size:16px;font-weight:700;outline:none">'
+    + '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:rgba(255,255,255,.25)">USDC</span>'
+    + '</div>'
+    // YES / NO buttons
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    + '<button onclick="placeBet(' + sEncoded2 + ',\'NO\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:1px solid rgba(255,79,79,.3);background:rgba(255,79,79,.08);color:#FF4F4F;font-size:15px;font-weight:800;cursor:pointer">NO · ' + centsNo + '¢</button>'
+    + '<button onclick="placeBet(' + sEncoded2 + ',\'YES\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
+    + (sideRecommended==='YES' ? '⚡ ' : '')
     + 'YES · ' + centsYes + '¢'
-    + (sideRecommended==='YES' ? '<span style="font-size:9px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">AI</span>' : '')
+    + (sideRecommended==='YES' ? ' <span style="font-size:9px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">AI</span>' : '')
     + '</button>'
+    + '</div>'
     + '</div>'
   );
   // Add to detail panel
