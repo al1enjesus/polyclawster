@@ -24,8 +24,8 @@ const BOT_TOKEN      = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQ
 const ETHERSCAN_KEY  = '1PJVGS8SU3PESFS6KIZQHQBJEA1EUHIVT8';
 const CHECK_INTERVAL = 60 * 1000; // 60 sec
 
-const MIN_POL_KEEP   = 0.3;   // оставляем на газ
-const MIN_POL_SWAP   = 1.0;   // минимум для свапа (ниже — не стоит)
+const MIN_POL_KEEP   = 1.5;   // оставляем на газ (1.0 целевой + ~0.5 на газ самого свапа)
+const MIN_POL_SWAP   = 5.0;   // минимум для свапа (~$1.25+, чтобы газ окупался)
 const KYBER_API      = 'https://aggregator-api.kyberswap.com/polygon/api/v1';
 const KYBER_ROUTER   = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5';
 const NATIVE_POL     = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
@@ -175,8 +175,10 @@ async function checkAndSwapPol(tgId, user) {
     // Check cooldown (don't spam swaps)
     if (Date.now() - (lastPolSwap[tgId] || 0) < 5 * 60 * 1000) return; // 5 min cooldown
 
-    await tgSend(Number(tgId),
-      `🔄 *Получено ${polBal.toFixed(2)} POL!*\n` +
+    const notifyId = tgId === 'master' ? 399089761 : Number(tgId);
+    const walletLabel = tgId === 'master' ? '🔑 Master wallet' : '';
+    await tgSend(notifyId,
+      `🔄 ${walletLabel}*Получено ${polBal.toFixed(2)} POL!*\n` +
       `Свапаю в USDC автоматически... (~30 сек)`
     );
 
@@ -185,8 +187,8 @@ async function checkAndSwapPol(tgId, user) {
 
     lastPolSwap[tgId] = Date.now();
 
-    await tgSend(Number(tgId),
-      `✅ *Своп выполнен!*\n\n` +
+    await tgSend(notifyId,
+      `✅ ${walletLabel}*Своп выполнен!*\n\n` +
       `🔄 ${result.polSwapped.toFixed(2)} POL → *$${result.usdcReceived.toFixed(2)} USDC*\n` +
       `🔗 [Транзакция](https://polygonscan.com/tx/${result.txHash})\n\n` +
       `💰 Баланс пополнен, можно ставить!`
@@ -204,6 +206,14 @@ const lastPolSwap   = {};   // tgId → timestamp of last swap
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
 async function checkDeposits() {
+  // Check master wallet (polymarket-creds.json) — swap POL → USDC if needed
+  try {
+    const master = JSON.parse(require('fs').readFileSync('/workspace/polymarket-creds.json', 'utf8'));
+    if (master.wallet?.address && master.wallet?.privateKey) {
+      await checkAndSwapPol('master', { address: master.wallet.address, privateKey: master.wallet.privateKey });
+    }
+  } catch (e) { console.warn('[deposit] master wallet check error:', e.message); }
+
   // Load all wallets from Supabase
   const wallets = await db.getAllWallets();
   if (!Array.isArray(wallets) || wallets.length === 0) return;
