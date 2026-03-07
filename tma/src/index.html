@@ -4411,9 +4411,10 @@ function buildWalletBalance(w, isDemoMode) {
   var totalDep = +(w.totalDeposited || 0);
   var totalPnl = +(w.totalPnl || 0);
   var polBal   = +(w.polBalance || 0);
-  var starsBal = +(w.starsBalance || window._starsBal || 0);
-  var freeReal = freeUsdc + starsBal; // CLOB free + Stars
-  var totalUsdc = freeReal + posVal;
+  var starsBal    = +(w.starsBalance || window._starsBal || 0);
+  var usdcOnChain = +(w.usdcOnChain || 0);
+  var freeReal    = freeUsdc + usdcOnChain; // CLOB free + on-chain wallet
+  var totalUsdc   = freeReal + posVal;
   var pnlPos   = totalPnl >= 0;
 
   if (isDemoMode) {
@@ -4444,7 +4445,8 @@ function buildWalletBalance(w, isDemoMode) {
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;text-align:center">'
       + '<div style="background:rgba(25,251,155,.08);border:1px solid rgba(25,251,155,.15);border-radius:12px;padding:10px">'
       + '<div style="font-size:14px;font-weight:700;color:#19fb9b">$' + freeReal.toFixed(2) + '</div>'
-      + (starsBal > 0 && freeUsdc === 0 ? '<div style="font-size:8px;color:rgba(25,251,155,.5);margin-top:1px">⭐ Stars баланс</div>' : '')
+      + (usdcOnChain > 0 && freeUsdc === 0 ? '<div style="font-size:8px;color:rgba(25,251,155,.5);margin-top:1px">💼 Кошелёк</div>' : '')
+      + (usdcOnChain > 0 && freeUsdc > 0 ? '<div style="font-size:8px;color:rgba(25,251,155,.5);margin-top:1px">💼+💹 Кошелёк + CLOB</div>' : '')
       + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">🔓 Свободно</div>'
       + '</div>'
       + '<div style="background:rgba(247,183,49,.07);border:1px solid rgba(247,183,49,.15);border-radius:12px;padding:10px">'
@@ -4465,14 +4467,15 @@ function walletDataHTML(w) {
   var addr        = _walletAddr;
   var demoBal     = +(w.demoBalance || 0);
   var starsBal    = +(w.starsBalance || 0);
+  var usdcOnChain = +(w.usdcOnChain || 0);
   var totalDep    = +(w.totalDeposited || 0);
   var freeUsdc    = +(w.freeUsdc || 0);
   var posVal      = +(w.positionsValue || 0);
   var polBal      = +(w.polBalance || 0);
-  var hasDeposit  = totalDep > 0 || freeUsdc > 0 || posVal > 0 || polBal > 0.01 || starsBal > 0;
+  var hasDeposit  = totalDep > 0 || freeUsdc > 0 || posVal > 0 || polBal > 0.01 || starsBal > 0 || usdcOnChain > 0;
 
-  window._walletBalance = freeUsdc + posVal + starsBal;
-  window._realBalance   = freeUsdc + starsBal;
+  window._walletBalance = freeUsdc + usdcOnChain + posVal;
+  window._realBalance   = freeUsdc + usdcOnChain;
   window._starsBal      = starsBal;
   window._demoBal       = demoBal;
   window._hasDeposited  = hasDeposit;
