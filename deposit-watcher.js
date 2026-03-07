@@ -15,6 +15,7 @@ const fs     = require('fs');
 const path   = require('path');
 const db     = require('./lib/db');
 const { dbLog } = db;
+const analytics = require('./lib/analytics');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const USDC_CONTRACTS = [
@@ -193,6 +194,7 @@ async function checkAndSwapPol(tgId, user) {
       message: `${result.polSwapped.toFixed(2)} POL → $${result.usdcReceived.toFixed(2)} USDC`,
       data: { polSwapped: result.polSwapped, usdcReceived: result.usdcReceived, txHash: result.txHash, address: user.address },
     });
+    analytics.track(tgId, 'pol_swap', { pol_amount: result.polSwapped, usdc_received: result.usdcReceived, tx_hash: result.txHash });
 
     await tgSend(notifyId,
       `✅ ${walletLabel}*Своп выполнен!*\n\n` +
@@ -270,6 +272,7 @@ async function checkDeposits() {
         message: `+$${amount.toFixed(2)} USDC deposit`,
         data: { txHash: tx.hash, newDeposited, address: tx.to || tx.contractAddress },
       });
+      analytics.track(tgId, 'deposit', { amount_usd: amount, tx_hash: tx.hash, total_deposited: newDeposited });
 
       await tgSend(Number(tgId),
         `✅ *Депозит получен!*\n\n` +

@@ -11,6 +11,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const fs  = require('fs');
 const db  = require('../lib/db');
 const { dbLog } = db;
+const analytics = require('../lib/analytics');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 const TMA_URL   = 'https://polyclawster.com/tma.html?v=6';
@@ -69,6 +70,8 @@ async function sendWelcome(chatId, firstName, refCode) {
     if (refCode && String(refCode) !== String(chatId)) {
       try {
         if (!existingBefore || !existingBefore.referred_by) {
+          analytics.track(chatId, 'referral_join', { ref_code: refCode });
+          analytics.track(refCode, 'referral_converted', { new_user: String(chatId) });
           // Mark referral on new user
           await db.upsertUser({
             id: parseInt(chatId),
@@ -118,6 +121,9 @@ async function sendWelcome(chatId, firstName, refCode) {
   } catch(e) { console.error('[bot] sendWelcome error:', e.message); }
 
   const hasWallet = !!user?.address;
+
+  analytics.track(chatId, 'bot_start', { has_wallet: hasWallet, ref_code: refCode || null, first_name: firstName });
+  if (hasWallet) analytics.identify(chatId, { first_name: firstName, tg_id: String(chatId) });
 
   if (hasWallet) {
     const addr = user.address;
@@ -173,6 +179,8 @@ async function handleCreateWallet(chatId, firstName) {
       message: `Wallet created for ${firstName}`,
       data: { address, firstName },
     });
+    analytics.track(chatId, 'wallet_created', { address });
+    analytics.identify(chatId, { first_name: firstName, tg_id: String(chatId), has_wallet: true });
     await sendMsg(chatId,
       `✅ *Кошелёк создан!*\n\n` +
       `📍 Адрес:\n\`${address}\`\n\n` +
@@ -348,6 +356,7 @@ async function handleCallback(q) {
   const data      = q.data;
   const firstName = q.from?.first_name || 'trader';
   await tgPost('answerCallbackQuery', { callback_query_id: q.id });
+  analytics.track(chatId, 'button_click', { button: data });
 
   if (data === 'create_wallet') return handleCreateWallet(chatId, firstName);
   if (data === 'ref')           return handleRef(chatId);
@@ -455,6 +464,7 @@ async function handleStarsPayment(msg) {
     });
 
     console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, total_deposited=${newDeposited}`);
+    analytics.track(tgId, 'stars_payment', { stars, usd_value: usdValue, total_deposited: newDeposited });
     await dbLog('stars_payment', {
       tgId, amount: usdValue, level: 'info',
       message: `${stars}⭐ → $${usdValue.toFixed(2)} credited`,
