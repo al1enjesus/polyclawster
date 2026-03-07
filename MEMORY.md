@@ -157,13 +157,13 @@
 - `tma/src/index.html` — отображает stars balance в UI
 - Бот рестартован на PM2, ошибок нет
 
-### 🔴 Починить пополнение юзерского кошелька (Deposit)
+### ✅ Починить пополнение юзерского кошелька (Deposit) — ГОТОВО
 **Проблема:** Нужно проверить и починить deposit flow.
 **Текущее состояние:**
 - Crypto deposit: юзер шлёт USDC/POL на свой Polygon адрес
 - `deposit-watcher.js` (PM2) — проверяет каждые 60 сек через Polygonscan API
 - POL → автосвап через KyberSwap → USDC
-- **PM2 процессы НЕ запущены** (pm2 list пуст!) — ничего не работает
+- PM2 процессы запущены и работают
 - TMA deposit sheet: 2 таба — Crypto (QR + адрес) и Stars
 - `_loadDepositAddr()` — подгружает адрес кошелька через `/api/wallet?tgId=`
 - `copyDepositAddr()` — копирование
