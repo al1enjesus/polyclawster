@@ -401,7 +401,17 @@ const STARS_COMMISSION = 0.35;
 const STARS_NET = STARS_TO_USD * (1 - STARS_COMMISSION); // user receives 65%
 
 async function handlePreCheckout(q) {
-  await tgPost('answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: true });
+  // Critical: must answer within 5 seconds or payment fails
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await tgPost('answerPreCheckoutQuery', { pre_checkout_query_id: q.id, ok: true });
+      if (res.ok) return;
+      console.error(`[stars] answerPreCheckoutQuery failed (attempt ${attempt}):`, res.description);
+    } catch (e) {
+      console.error(`[stars] answerPreCheckoutQuery error (attempt ${attempt}):`, e.message);
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, 500));
+  }
 }
 
 async function handleStarsPayment(msg) {
@@ -416,27 +426,38 @@ async function handleStarsPayment(msg) {
   } catch {}
   console.log(`[stars] ${stars}⭐ = $${usdValue} from tgId=${tgId}`);
   try {
+    // Fetch using node-fetch (consistent with rest of bot)
+    const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
     const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hlcwzuggblsvcofwphza.supabase.co';
     const SUPABASE_KEY = process.env.SUPABASE_KEY;
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
-      headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY }
-    });
+    const sbHeaders = { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY };
+
+    const r = await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, { headers: sbHeaders });
     const users = await r.json();
     const user = users && users[0];
-    if (!user) return;
-    const newDemo = parseFloat(user.demo_balance || 0) + usdValue;
+    if (!user) {
+      console.error(`[stars] user not found: tgId=${tgId}`);
+      return;
+    }
+
+    // Stars = real money → credit to total_deposited only (NOT demo_balance)
     const newDeposited = parseFloat(user.total_deposited || 0) + usdValue;
-    await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
+    await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
       method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ demo_balance: newDemo, total_deposited: newDeposited })
+      headers: { ...sbHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ total_deposited: newDeposited, updated_at: new Date().toISOString() })
     });
-    await sendMsg(tgId, `⭐ *${stars} звёзд получено!*
 
-💰 Зачислено *$${usdValue}* на баланс.
-
-Открой приложение и начинай ставить 🚀`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stars_payment') }]] } });
-  } catch (e) { console.error('[stars] error:', e.message); }
+    console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, total_deposited=${newDeposited}`);
+    await sendMsg(tgId,
+      `⭐ *${stars} звёзд получено!*\n\n` +
+      `💰 Зачислено *$${usdValue.toFixed(2)}* на реальный баланс.\n\n` +
+      `Открой приложение и начинай ставить 🚀`,
+      { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stars_payment') }]] } }
+    );
+  } catch (e) {
+    console.error('[stars] handleStarsPayment error:', e.message);
+  }
 }
 
 
@@ -445,7 +466,17 @@ async function poll() {
     try {
       const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
       const r = await (await fetch)(
-        `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${offset}&timeout=30&limit=50`
+        `https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            offset,
+            timeout: 30,
+            limit: 50,
+            allowed_updates: ['message', 'callback_query', 'pre_checkout_query'],
+          }),
+        }
       );
       const res = await r.json();
       if (!res.ok) { await new Promise(r => setTimeout(r, 5000)); continue; }
