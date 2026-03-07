@@ -2176,6 +2176,19 @@ const openExternal = (url) => {
 
 // ══ PORTFOLIO ════════════════════════════════════════════════════
 
+
+// ── Go to portfolio with immediate skeleton (called after placing a bet) ──
+function goToPortfolioFresh() {
+  // 1. Show skeleton immediately in portfolio-content
+  var el = document.getElementById('portfolio-content');
+  if (el) el.innerHTML = '<div class="skeleton-screen skeleton-portfolio"><div class="skeleton skeleton-hero" style="height:120px;border-radius:20px;margin-bottom:16px"></div><div style="display:flex;gap:10px;margin-bottom:16px"><div class="skeleton skeleton-pill" style="height:56px;flex:1"></div><div class="skeleton skeleton-pill" style="height:56px;flex:1"></div></div><div class="skeleton skeleton-card" style="height:76px;margin-bottom:10px"></div><div class="skeleton skeleton-card" style="height:76px;margin-bottom:10px"></div><div class="skeleton skeleton-card" style="height:76px"></div></div>';
+  // 2. Clear caches so showTab triggers fresh load
+  _portfolio = null;
+  window._mktInfoCache = null;
+  // 3. Navigate — showTab sees _portfolio===null and calls loadPortfolio()
+  showTab('portfolio');
+}
+
 // ── Global refresh — call after any state change (bet, sell, deposit) ──
 function refreshAll(delayMs) {
   var delay = delayMs || 0;
@@ -2327,7 +2340,7 @@ async function renderPortfolio(d) {
       <button onclick="showTab('signals')" style="flex:1;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:14px;padding:13px 8px;color:#a78bfa;font-size:13px;font-weight:700;cursor:pointer">
         ⚡ Сигналы
       </button>
-      <button onclick="showTab('wallet')" style="flex:1;background:rgba(25,251,155,.08);border:1px solid rgba(25,251,155,.2);border-radius:14px;padding:13px 8px;color:#19fb9b;font-size:13px;font-weight:700;cursor:pointer">
+      <button onclick="openDepositSheet()" style="flex:1;background:rgba(25,251,155,.08);border:1px solid rgba(25,251,155,.2);border-radius:14px;padding:13px 8px;color:#19fb9b;font-size:13px;font-weight:700;cursor:pointer">
         💰 Пополнить
       </button>
     </div>`;
@@ -2726,12 +2739,12 @@ async function placeBet(signal, side, amtOverride) {
   if (hasWallet && realBalance >= amt) {
     // REAL TRADE
     haptic.light();
-    var btnYes = document.getElementById('btn-yes');
-    var btnNo  = document.getElementById('btn-no');
+    var btnYes = document.getElementById('btn-yes') || document.getElementById('sd-yes-btn');
+    var btnNo  = document.getElementById('btn-no')  || document.getElementById('sd-no-btn');
     if (btnYes) btnYes.disabled = true;
     if (btnNo)  btnNo.disabled  = true;
     var activeBtn = side === 'YES' ? btnYes : btnNo;
-    if (activeBtn) activeBtn.textContent = '⏳';
+    if (activeBtn) { activeBtn.textContent = '⏳'; activeBtn.style.opacity = '0.6'; }
     try {
       var r = await fetch('/api/trade', {
         method: 'POST',
@@ -2768,6 +2781,13 @@ async function placeBet(signal, side, amtOverride) {
   if (demoBalance >= amt) {
     // DEMO BET — save to DB + update localStorage
     haptic.success ? haptic.success() : haptic.light();
+    // Show loading on YES/NO buttons
+    var _dYes = document.getElementById('btn-yes') || document.getElementById('sd-yes-btn');
+    var _dNo  = document.getElementById('btn-no')  || document.getElementById('sd-no-btn');
+    if (_dYes) { _dYes.disabled = true; _dYes.style.opacity = '0.6'; }
+    if (_dNo)  { _dNo.disabled  = true; _dNo.style.opacity  = '0.6'; }
+    var _dActive = side === 'YES' ? _dYes : _dNo;
+    if (_dActive) _dActive.textContent = '⏳';
     var newBal = Math.max(0, demoBalance - amt);
     localStorage.setItem('pc_demo_balance', newBal.toFixed(2));
     window._demoBal = newBal;
@@ -3004,7 +3024,7 @@ function showBetConfirm(signal, side, amt, isDemo) {
     + (isDemo ? '<div style="background:rgba(25,251,155,.06);border:1px solid rgba(25,251,155,.15);border-radius:12px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.6);margin-bottom:16px;line-height:1.5">🔓 Demo-ставка на твой бонусный баланс. Пополни кошелёк для реальных денег.</div>' : '')
 
     // CTA button
-    + '<button class="btn btn-primary" style="font-size:14px;width:100%;padding:15px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();showTab(\'portfolio\');refreshAll(100)">📊 Смотреть в портфеле</button>'
+    + '<button class="btn btn-primary" style="font-size:14px;width:100%;padding:15px" onclick="document.getElementById(\'bet-confirm-overlay\').remove();goToPortfolioFresh()">📊 Смотреть в портфеле</button>'
     + '</div>'
   );
   overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
@@ -4006,8 +4026,8 @@ function renderSignalDetail(s) {
     + '</div>'
     // YES / NO buttons
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    + '<button onclick="placeBet(' + sEncoded2 + ',\'NO\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:1px solid rgba(255,79,79,.3);background:rgba(255,79,79,.08);color:#FF4F4F;font-size:15px;font-weight:800;cursor:pointer">NO · ' + centsNo + '¢</button>'
-    + '<button onclick="placeBet(' + sEncoded2 + ',\'YES\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
+    + '<button id="sd-no-btn" onclick="placeBet(' + sEncoded2 + ',\'NO\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:1px solid rgba(255,79,79,.3);background:rgba(255,79,79,.08);color:#FF4F4F;font-size:15px;font-weight:800;cursor:pointer">NO · ' + centsNo + '¢</button>'
+    + '<button id="sd-yes-btn" onclick="placeBet(' + sEncoded2 + ',\'YES\',window._sdBetAmt||5)" style="height:50px;border-radius:14px;border:none;background:linear-gradient(135deg,#9945FF,#7B2FE0);color:#fff;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">'
     + (sideRecommended==='YES' ? '⚡ ' : '')
     + 'YES · ' + centsYes + '¢'
     + (sideRecommended==='YES' ? ' <span style="font-size:9px;background:rgba(255,255,255,.2);border-radius:4px;padding:1px 5px">AI</span>' : '')
