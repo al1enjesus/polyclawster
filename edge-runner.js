@@ -3,6 +3,7 @@
  * Runs edge/index.js every 20 minutes + exports state to data.json
  */
 'use strict';
+require('dotenv').config({ path: '/workspace/.env' });
 const { execFile } = require('child_process');
 const fs  = require('fs');
 const path = require('path');

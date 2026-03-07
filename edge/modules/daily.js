@@ -4,7 +4,7 @@
 const { getActiveUsers } = require('./users');
 const fs = require('fs');
 
-const BOT_TOKEN = '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 
 async function tg(method, params) {
   const fetch = (...a) => import('node-fetch').then(({default:f}) => f(...a));

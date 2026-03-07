@@ -12,7 +12,7 @@ function getCfg() {
 }
 
 module.exports = {
-  MY_WALLET:   '0x6f314d7d2f50808cec1d26c1092e7729d9378d75',
+  MY_WALLET:   '0xd58BE7E2Ac45ac822adFab5C1845e8016679a5eA',
   CHAT_ID:     '399089761',
   get BOT_TOKEN() { return getCfg()?.channels?.telegram?.botToken || ''; },
   PPLX_KEY:    'process.env.PERPLEXITY_API_KEY || ""',
