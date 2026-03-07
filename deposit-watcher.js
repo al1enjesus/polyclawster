@@ -279,13 +279,4 @@ async function run() {
 
 run();
 
-// ── Signal pusher — каждые 15 минут ──────────────────────────────────────────
-const { execFile } = require('child_process');
-function runSignalPusher() {
-  execFile('node', ['/workspace/signal-pusher.js'], (err, stdout) => {
-    if (stdout?.trim()) console.log('[pusher]', stdout.trim().slice(0, 120));
-    if (err && !stdout) console.log('[pusher] err:', err.message?.slice(0, 60));
-  });
-}
-setInterval(runSignalPusher, 15 * 60 * 1000);
-runSignalPusher();
+
