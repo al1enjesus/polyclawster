@@ -38,13 +38,21 @@ async function getPolBalance(address) {
 }
 
 async function getUsdcBalance(address) {
-  const USDC_n = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+  // Check both USDC.e (Polymarket) and native USDC (Circle)
+  const contracts = [
+    '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // USDC.e (bridged, Polymarket)
+    '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // native USDC (Circle)
+  ];
   const sel = '70a08231';
   const pad = address.toLowerCase().replace('0x', '').padStart(64, '0');
-  try {
-    const r = await rpcCall({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: USDC_n, data: '0x' + sel + pad }, 'latest'] });
-    return r && r !== '0x' ? Number(BigInt(r)) / 1e6 : 0;
-  } catch { return 0; }
+  let total = 0;
+  for (const addr of contracts) {
+    try {
+      const r = await rpcCall({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: addr, data: '0x' + sel + pad }, 'latest'] });
+      if (r && r !== '0x') total += Number(BigInt(r)) / 1e6;
+    } catch {}
+  }
+  return total;
 }
 
 module.exports = async (req, res) => {

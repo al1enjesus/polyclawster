@@ -429,61 +429,147 @@ async function handlePreCheckout(q) {
   }
 }
 
+// ── Send USDC from master wallet to user wallet ──────────────────
+async function sendUsdcFromMaster(toAddress, usdAmount) {
+  const ethers = require('/workspace/node_modules/ethers');
+  const POLYGON_RPC  = 'https://polygon-bor-rpc.publicnode.com';
+  const USDC_ADDR    = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC.e (Polymarket compatible)
+  const USDC_ABI     = [
+    'function transfer(address to, uint256 amount) returns (bool)',
+    'function balanceOf(address owner) view returns (uint256)'
+  ];
+
+  const provider = new ethers.providers.StaticJsonRpcProvider(
+    { url: POLYGON_RPC, skipFetchSetup: true },
+    { name: 'polygon', chainId: 137 }
+  );
+  const masterWallet = new ethers.Wallet(process.env.POLY_PRIVATE_KEY, provider);
+  const usdc = new ethers.Contract(USDC_ADDR, USDC_ABI, masterWallet);
+
+  const amountRaw = ethers.BigNumber.from(Math.round(usdAmount * 1e6));
+  const masterBal = await usdc.balanceOf(masterWallet.address);
+  if (masterBal.lt(amountRaw)) {
+    throw new Error(`Master USDC low: ${ethers.utils.formatUnits(masterBal, 6)} < ${usdAmount}`);
+  }
+
+  const feeData = await provider.getFeeData();
+  const maxFeePerGas = (feeData.maxFeePerGas || ethers.utils.parseUnits('100', 'gwei'))
+    .mul(150).div(100);
+
+  const tx = await usdc.transfer(toAddress, amountRaw, {
+    gasLimit: 100000,
+    maxFeePerGas,
+    maxPriorityFeePerGas: ethers.utils.parseUnits('30', 'gwei'),
+    type: 2
+  });
+  console.log(`[stars→usdc] TX sent: ${tx.hash}`);
+  const receipt = await tx.wait(1);
+  console.log(`[stars→usdc] Confirmed: ${receipt.transactionHash}`);
+  return receipt.transactionHash;
+}
+
 async function handleStarsPayment(msg) {
   const payment = msg.successful_payment;
   if (!payment || payment.currency !== 'XTR') return;
   const stars = payment.total_amount;
-  const usdValue = parseFloat((stars * STARS_NET).toFixed(4)); // net after 35% commission
+  const usdValue = parseFloat((stars * STARS_NET).toFixed(4));
   let tgId = String(msg.chat.id);
   try {
     const payload = JSON.parse(payment.invoice_payload);
     if (payload.tgId) tgId = String(payload.tgId);
   } catch {}
   console.log(`[stars] ${stars}⭐ = $${usdValue} from tgId=${tgId}`);
-  try {
-    // Fetch using node-fetch (consistent with rest of bot)
-    const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
-    const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hlcwzuggblsvcofwphza.supabase.co';
-    const SUPABASE_KEY = process.env.SUPABASE_KEY;
-    const sbHeaders = { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'apikey': SUPABASE_KEY };
 
-    const r = await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, { headers: sbHeaders });
-    const users = await r.json();
-    const user = users && users[0];
-    if (!user) {
-      console.error(`[stars] user not found: tgId=${tgId}`);
+  await sendMsg(tgId,
+    `⭐ *${stars} звёзд получено!*\n⏳ Конвертирую в USDC и отправляю на твой кошелёк...`,
+    { parse_mode: 'Markdown' }
+  );
+
+  try {
+    // 1. Get user's wallet address
+    const userWallet = await db.getWallet(tgId);
+    const toAddress = userWallet && userWallet.address;
+
+    if (!toAddress) {
+      // No wallet yet → credit stars_balance as pending, ask to create wallet
+      const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hlcwzuggblsvcofwphza.supabase.co';
+      const SUPABASE_KEY = process.env.SUPABASE_KEY;
+      const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
+      const sbH = { Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+      await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
+        method: 'PATCH',
+        headers: sbH,
+        body: JSON.stringify({ stars_balance: usdValue, updated_at: new Date().toISOString() })
+      });
+      await sendMsg(tgId,
+        `⭐ *${stars} звёзд сохранено!*\n\n` +
+        `💡 У тебя ещё нет кошелька. Создай кошелёк в приложении — и *$${usdValue.toFixed(2)} USDC* будут отправлены автоматически.`,
+        { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🔑 Создать кошелёк', url: TMA_LINK('stars_no_wallet') }]] } }
+      );
       return;
     }
 
-    // Stars = real money → credit to stars_balance (live trading) + total_deposited (stats)
-    const newDeposited = parseFloat(user.total_deposited || 0) + usdValue;
-    const newStarsBal = parseFloat(user.stars_balance || 0) + usdValue;
-    await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stars_balance: newStarsBal, total_deposited: newDeposited, updated_at: new Date().toISOString() })
+    // 2. Transfer real USDC from master wallet → user wallet
+    let txHash;
+    try {
+      txHash = await sendUsdcFromMaster(toAddress, usdValue);
+    } catch (txErr) {
+      console.error('[stars] USDC transfer failed:', txErr.message);
+      // Fallback: credit stars_balance so user isn't left with nothing
+      const SUPABASE_URL = process.env.SUPABASE_URL || 'https://hlcwzuggblsvcofwphza.supabase.co';
+      const SUPABASE_KEY = process.env.SUPABASE_KEY;
+      const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
+      const sbH = { Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY };
+      const ur = await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, { headers: sbH });
+      const users = await ur.json();
+      const curStars = parseFloat((users && users[0] && users[0].stars_balance) || 0);
+      await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
+        method: 'PATCH',
+        headers: { ...sbH, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stars_balance: curStars + usdValue, updated_at: new Date().toISOString() })
+      });
+      await sendMsg(tgId,
+        `⭐ *${stars} звёзд получено!*\n\n` +
+        `⚠️ Ошибка перевода USDC: ${txErr.message.slice(0,80)}\n\n` +
+        `💰 Зачислено $${usdValue.toFixed(2)} на баланс — торговля доступна.`,
+        { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть приложение', url: TMA_LINK('stars_fallback') }]] } }
+      );
+      await dbLog('stars_payment', { tgId, amount: usdValue, level: 'warn',
+        message: `Stars USDC transfer failed, credited to stars_balance`,
+        data: { stars, usdValue, error: txErr.message }
+      });
+      return;
+    }
+
+    // 3. Update total_deposited (deposit-watcher will also see TX, seenTxCache prevents double-credit if still running)
+    try {
+      const currentUser = await db.getUser(tgId);
+      const newDeposited = parseFloat((currentUser && currentUser.total_deposited) || 0) + usdValue;
+      await db.updateUser(tgId, { total_deposited: newDeposited, updated_at: new Date().toISOString() });
+    } catch (dbErr) {
+      console.warn('[stars] DB update error:', dbErr.message);
+    }
+
+    analytics.track(tgId, 'stars_payment', { stars, usd_value: usdValue, tx_hash: txHash, to: toAddress });
+    await dbLog('stars_payment', { tgId, amount: usdValue, level: 'info',
+      message: `${stars}⭐ → $${usdValue.toFixed(2)} USDC → ${toAddress.slice(0,10)}...`,
+      data: { stars, usdValue, txHash, toAddress }
     });
 
-    console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, stars_balance=${newStarsBal}, total_deposited=${newDeposited}`);
-    analytics.track(tgId, 'stars_payment', { stars, usd_value: usdValue, stars_balance: newStarsBal, total_deposited: newDeposited });
-    await dbLog('stars_payment', {
-      tgId, amount: usdValue, level: 'info',
-      message: `${stars}⭐ → $${usdValue.toFixed(2)} credited`,
-      data: { stars, usdValue, newStarsBal, newDeposited, currency: 'XTR', payload: payment.invoice_payload },
-    });
     await sendMsg(tgId,
-      `⭐ *${stars} звёзд получено!*\n\n` +
-      `💰 Зачислено *$${usdValue.toFixed(2)}* на реальный баланс.\n\n` +
-      `Открой приложение и начинай ставить 🚀`,
+      `⭐ *${stars} звёзд конвертированы!*\n\n` +
+      `💰 *$${usdValue.toFixed(2)} USDC* отправлены на твой кошелёк.\n` +
+      `🔗 [Транзакция](https://polygonscan.com/tx/${txHash})\n\n` +
+      `Открой приложение — баланс уже обновлён 🚀`,
       { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '🚀 Открыть PolyClawster', url: TMA_LINK('stars_payment') }]] } }
     );
   } catch (e) {
     console.error('[stars] handleStarsPayment error:', e.message);
-    await dbLog('stars_payment', {
-      tgId, level: 'error',
+    await dbLog('stars_payment', { tgId, level: 'error',
       message: `Stars payment error: ${e.message}`,
-      data: { stars: payment?.total_amount, error: e.message },
+      data: { stars: payment.total_amount, error: e.message }
     });
+    await sendMsg(tgId, `❌ Ошибка обработки платежа: ${e.message.slice(0,100)}\nОбратитесь в поддержку.`);
   }
 }
 

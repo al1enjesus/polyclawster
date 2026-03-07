@@ -2306,8 +2306,9 @@ async function renderPortfolio(d) {
   // Total = real val OR demo + inBets
   const inBets = activeBets.reduce((s,b) => s + parseFloat(b.amount||0), 0);
   window._inBets = inBets;
+  // stars_balance = fallback for old payments; new Stars → real USDC already in val (freeUsdc)
   const stars = parseFloat(d.starsBalance || window._starsBal || 0);
-  const realFree = val + stars; // CLOB value + Stars balance
+  const realFree = val + stars; // CLOB freeUsdc (incl. Stars USDC) + legacy stars_balance
   const free = realFree > 0 ? realFree : demo;
   const total = free + inBets;
   const isReal = val > 0 || dep > 0 || stars > 0;
