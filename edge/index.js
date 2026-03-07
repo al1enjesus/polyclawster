@@ -22,7 +22,7 @@ const { executeTrades } = require('./modules/trade');
 const signalsStore  = require('./modules/signals-store');
 const db            = require('../lib/db');
 const { scanRisk } = require('./modules/risk');
-const { checkResolutions } = require('./modules/tracker');
+const { checkResolutions, checkUserBets } = require('./modules/tracker');
 const { syncAll: syncBalances } = require('./modules/sync-balances');
 const { checkAndSwapAll } = require('./modules/auto-swap');
 
@@ -94,6 +94,7 @@ async function main() {
   // ── RISK MANAGEMENT (runs first) ─────────────────────────────
   try { await scanRisk(); } catch(e) { console.log('[risk] skip:', e.message?.slice(0,50)); }
   try { await checkResolutions(); } catch(e) { console.log('[tracker] skip:', e.message?.slice(0,50)); }
+  try { await checkUserBets(); } catch(e) { console.log('[userBets] skip:', e.message?.slice(0,50)); }
   try { await syncBalances(); } catch(e) { console.log('[sync] skip:', e.message?.slice(0,50)); }
   try { await checkAndSwapAll(); } catch(e) { console.log('[swap] skip:', e.message?.slice(0,50)); }
 

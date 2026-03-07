@@ -12,6 +12,7 @@ const fs  = require('fs');
 const db  = require('../lib/db');
 const { dbLog } = db;
 const analytics = require('../lib/analytics');
+const { addChannel, removeChannel, loadChannels } = require('../edge/modules/channels');
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 const TMA_URL   = 'https://polyclawster.com/tma.html?v=6';
@@ -314,6 +315,30 @@ async function handleCommand(msg) {
   const refMatch = text.match(/\/start\s+ref_(\d+)/);
   const refCode  = refMatch ? refMatch[1] : null;
 
+  // Channel management (owner only)
+  if (text === '/channels' || text === '/listchannels') {
+    if (String(chatId) !== OWNER_ID) return;
+    const channels = loadChannels();
+    if (!channels.length) {
+      return sendMsg(chatId, '📭 Нет каналов.\n\nДобавь бота в канал как *администратора* — зарегистрируется автоматически.\nИли вручную: `/addchannel -100XXXXXX Название`', { parse_mode: 'Markdown' });
+    }
+    const list = channels.map((c,i) => `${i+1}. *${c.title||'без названия'}* · \`${c.id}\`${c.username?' @'+c.username:''}`).join('\n');
+    return sendMsg(chatId, `📢 *Каналы (${channels.length}):*\n\n${list}`, { parse_mode: 'Markdown' });
+  }
+  if (text.startsWith('/addchannel ')) {
+    if (String(chatId) !== OWNER_ID) return;
+    const parts = text.split(' ');
+    const cid = parts[1]; const title = parts.slice(2).join(' ') || 'Канал';
+    if (!cid) return sendMsg(chatId, 'Использование: `/addchannel -100XXXXXX Название`', { parse_mode: 'Markdown' });
+    const added = addChannel(cid, title);
+    return sendMsg(chatId, added ? `✅ Канал *${title}* добавлен!` : `ℹ️ Уже есть.`, { parse_mode: 'Markdown' });
+  }
+  if (text.startsWith('/removechannel ')) {
+    if (String(chatId) !== OWNER_ID) return;
+    const removed = removeChannel(text.split(' ')[1]);
+    return sendMsg(chatId, removed ? '✅ Удалён.' : '❌ Не найден.');
+  }
+
   if (text.startsWith('/start'))   return sendWelcome(chatId, firstName, refCode);
   if (text.startsWith('/connect') || text.startsWith('/wallet')) return handleCreateWallet(chatId, firstName);
   if (text.startsWith('/ref'))     return handleRef(chatId);
@@ -587,7 +612,7 @@ async function poll() {
             offset,
             timeout: 30,
             limit: 50,
-            allowed_updates: ['message', 'callback_query', 'pre_checkout_query'],
+            allowed_updates: ['message', 'callback_query', 'pre_checkout_query', 'my_chat_member'],
           }),
         }
       );
@@ -603,6 +628,35 @@ async function poll() {
           const groups = loadGroups();
           const cid = upd.message.chat.id;
           if (!groups.includes(cid)) { groups.push(cid); saveGroups(groups); }
+        }
+        // Auto-register channel when bot is promoted to admin
+        if (upd.my_chat_member) {
+          const m = upd.my_chat_member;
+          const newStatus = m.new_chat_member?.status;
+          const oldStatus = m.old_chat_member?.status;
+          const chat = m.chat;
+          // Bot was added as admin to a channel/group
+          if ((newStatus === 'administrator' || newStatus === 'member') &&
+              (chat.type === 'channel' || chat.type === 'supergroup') &&
+              oldStatus !== 'administrator') {
+            const added = addChannel(String(chat.id), chat.title, chat.username);
+            if (added && newStatus === 'administrator') {
+              console.log(`[channels] Auto-registered: ${chat.title} (${chat.id})`);
+              // Notify owner
+              await sendMsg(OWNER_ID,
+                `📢 Канал зарегистрирован!\n\n` +
+                `*${chat.title || chat.username}*\n` +
+                `ID: \`${chat.id}\`\n\n` +
+                `Буду постить победные сделки сюда 🏆`,
+                { parse_mode: 'Markdown' }
+              );
+            }
+          }
+          // Bot was removed from channel
+          if (newStatus === 'left' || newStatus === 'kicked') {
+            const removed = removeChannel(String(chat.id));
+            if (removed) console.log(`[channels] Removed: ${chat.title} (${chat.id})`);
+          }
         }
       }
     } catch(e) {

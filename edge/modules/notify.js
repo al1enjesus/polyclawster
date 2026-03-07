@@ -4,6 +4,28 @@
  */
 const { post } = require('./http');
 const cfg = require('../config');
+const { loadChannels } = require('./channels');
+
+async function sendToAllChannels(msg, extra) {
+  const channels = loadChannels();
+  if (!cfg.BOT_TOKEN) { console.log('[channels] No BOT_TOKEN'); return; }
+  if (channels.length === 0) { console.log('[channels] No channels registered'); return; }
+  for (const ch of channels) {
+    try {
+      await post(`https://api.telegram.org/bot${cfg.BOT_TOKEN}/sendMessage`, {
+        chat_id: ch.id,
+        text: msg.substring(0, 4096),
+        parse_mode: 'Markdown',
+        disable_web_page_preview: false,
+        ...(extra || {}),
+      });
+      console.log(`[channels] ✅ Sent to "${ch.title || ch.id}"`);
+    } catch(e) {
+      console.error(`[channels] ❌ Failed ${ch.id}: ${e.message?.slice(0,60)}`);
+    }
+  }
+}
+
 
 async function sendTg(msg) {
   if (!cfg.BOT_TOKEN) { console.log('[TG]', msg.replace(/[*`[\]]/g, '')); return; }
@@ -111,4 +133,4 @@ function formatSignal(s) {
   }
 }
 
-module.exports = { sendTg, formatSignal };
+module.exports = { sendTg, formatSignal, sendToAllChannels };
