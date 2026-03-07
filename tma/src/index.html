@@ -2306,9 +2306,11 @@ async function renderPortfolio(d) {
   // Total = real val OR demo + inBets
   const inBets = activeBets.reduce((s,b) => s + parseFloat(b.amount||0), 0);
   window._inBets = inBets;
-  const free = val > 0 ? val : demo;
+  const stars = parseFloat(d.starsBalance || window._starsBal || 0);
+  const realFree = val + stars; // CLOB value + Stars balance
+  const free = realFree > 0 ? realFree : demo;
   const total = free + inBets;
-  const isReal = val > 0 || dep > 0;
+  const isReal = val > 0 || dep > 0 || stars > 0;
 
   // ─── Hero ───────────────────────────────────────
   const demoLabel = !isReal && demo >= 0
@@ -5499,9 +5501,12 @@ async function buyStars(stars) {
     if (tg && tg.openInvoice) {
       tg.openInvoice(d.link, function(status) {
         if (status === 'paid') {
-          showToast('⭐ Звёзды зачислены! Баланс обновится через секунду.');
-          refreshAll(500);
+          showToast('⭐ Оплата прошла! Баланс обновляется...');
           closeSheet('deposit');
+          // Retry refresh 3 times — bot may need a moment to process successful_payment
+          setTimeout(function() { _portfolio = null; loadPortfolio(); }, 1000);
+          setTimeout(function() { _portfolio = null; loadPortfolio(); }, 3000);
+          setTimeout(function() { _portfolio = null; loadPortfolio(); showToast('⭐ Баланс обновлён!'); }, 6000);
         } else if (status === 'cancelled') {
           if (statusEl) statusEl.textContent = 'Оплата отменена';
         } else {
