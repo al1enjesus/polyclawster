@@ -1882,7 +1882,7 @@ body {
 <nav class="nav">
   <button class="nav-btn active" id="nb-portfolio" onclick="showTab('portfolio')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    Port
+    My Bets
   </button>
   <button class="nav-btn" id="nb-signals" onclick="showTab('signals')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -2303,15 +2303,21 @@ async function renderPortfolio(d) {
     }
   } catch(e) {}
 
-  // Total = real val OR demo + inBets
-  const inBets = activeBets.reduce((s,b) => s + parseFloat(b.amount||0), 0);
+  // ── Разделяем real и demo ставки ──
+  const realBets = activeBets.filter(b => !b.is_demo);
+  const demoBets = activeBets.filter(b =>  b.is_demo);
+  const realInBets = realBets.reduce((s,b) => s + parseFloat(b.amount||0), 0);
+  const demoInBets = demoBets.reduce((s,b) => s + parseFloat(b.amount||0), 0);
+  // inBets для hero-баланса — только те ставки, что соответствуют режиму
+  const isReal = val > 0 || dep > 0;
+  const inBets = isReal ? realInBets : demoInBets;
   window._inBets = inBets;
-  // stars_balance = fallback for old payments; new Stars → real USDC already in val (freeUsdc)
+  // Stars — это credits, не USDC; не плюсуем к CLOB-балансу
   const stars = parseFloat(d.starsBalance || window._starsBal || 0);
-  const realFree = val + stars; // CLOB freeUsdc (incl. Stars USDC) + legacy stars_balance
-  const free = realFree > 0 ? realFree : demo;
+  window._starsBal = stars;
+  // free = CLOB/Polymarket free USDC (val уже содержит позиции)
+  const free = val > 0 ? val : demo;
   const total = free + inBets;
-  const isReal = val > 0 || dep > 0 || stars > 0;
 
   // ─── Hero ───────────────────────────────────────
   const demoLabel = !isReal && demo >= 0
@@ -2320,11 +2326,17 @@ async function renderPortfolio(d) {
       </div>` : '';
 
   // Unlocked (free) indicator top-right
-  const starLabel = (window._starsBal || 0) > 0 ? '⭐' : '💰';
-  const unlockedHTML = `<div style="position:absolute;top:16px;right:16px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px">
-    <span style="font-size:13px">${starLabel}</span>
-    <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6)">$${free.toFixed(2)}</span>
-  </div>`;
+  // Indicator: free USDC + Stars credits (отдельно)
+  const starsChip = stars > 0
+    ? `<div style="position:absolute;top:16px;left:16px;display:flex;align-items:center;gap:4px;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.25);border-radius:20px;padding:4px 10px">
+        <span style="font-size:11px">⭐</span>
+        <span style="font-size:10px;font-weight:600;color:rgba(255,215,0,.8)">${stars.toFixed(2)}</span>
+      </div>` : '';
+  const unlockedHTML = isReal
+    ? `<div style="position:absolute;top:16px;right:16px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px">
+        <span style="font-size:11px">💰</span>
+        <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6)">\$${free.toFixed(2)} free</span>
+      </div>` : '';
 
   const pnlRow = (isReal && pnl !== 0)
     ? `<div style="margin-top:6px;font-size:14px;font-weight:600;color:${isUp?'#19fb9b':'#FF4F4F'}">${isUp?'+':''}$${Math.abs(pnl).toFixed(2)} <span style="opacity:.5;font-weight:400;font-size:12px">${isUp?'▲':'▼'}${Math.abs(d.pnlPct||0).toFixed(1)}%</span></div>`
@@ -2332,6 +2344,7 @@ async function renderPortfolio(d) {
 
   const heroHTML = `
     <div style="position:relative;text-align:center;padding:28px 16px 20px">
+      ${starsChip}
       ${unlockedHTML}
       ${demoLabel}
       <div style="font-size:52px;font-weight:800;letter-spacing:-3px;line-height:1">$${total.toFixed(2)}</div>
@@ -4417,6 +4430,14 @@ function buildWalletBalance(w, isDemoMode) {
   var totalUsdc   = freeReal + posVal;
   var pnlPos   = totalPnl >= 0;
 
+  // Stars-строка (если есть credits)
+  var starsRow = starsBal > 0
+    ? '<div style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:6px 14px">'
+      + '<span style="font-size:13px">⭐</span>'
+      + '<span style="font-size:12px;font-weight:600;color:rgba(255,215,0,.85)">$' + starsBal.toFixed(2) + ' Stars</span>'
+      + '</div>'
+    : '';
+
   if (isDemoMode) {
     return '<div style="text-align:center;padding:28px 0 20px">'
       + '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(139,92,246,.2);border-radius:20px;padding:4px 12px;margin-bottom:14px">'
@@ -4425,6 +4446,7 @@ function buildWalletBalance(w, isDemoMode) {
       + '</div>'
       + '<div style="font-size:48px;font-weight:800;letter-spacing:-2px;color:#b08aff;line-height:1">$' + demoBal.toFixed(2) + '</div>'
       + '<div style="font-size:12px;color:rgba(255,255,255,.35);margin-top:8px;line-height:1.5">Виртуальный баланс · пополни POL чтобы торговать реально</div>'
+      + starsRow
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;text-align:center">'
       + '<div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.15);border-radius:12px;padding:10px">'
       + '<div style="font-size:14px;font-weight:700;color:#a78bfa">$' + demoBal.toFixed(2) + '</div>'
@@ -4442,6 +4464,7 @@ function buildWalletBalance(w, isDemoMode) {
       + '</div>'
       + '<div style="font-size:48px;font-weight:800;letter-spacing:-2px;line-height:1">$' + totalUsdc.toFixed(2) + '</div>'
       + (totalPnl !== 0 ? '<div style="font-size:13px;font-weight:600;color:' + (pnlPos ? '#19fb9b' : '#FF4F4F') + ';margin-top:6px">' + (pnlPos ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2) + ' за всё время</div>' : '')
+      + starsRow
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;text-align:center">'
       + '<div style="background:rgba(25,251,155,.08);border:1px solid rgba(25,251,155,.15);border-radius:12px;padding:10px">'
       + '<div style="font-size:14px;font-weight:700;color:#19fb9b">$' + freeReal.toFixed(2) + '</div>'
@@ -5417,23 +5440,27 @@ async function loadTxHistory(tgId) {
   try {
     var r = await fetch('/api/transactions?tgId=' + tgId);
     var data = await r.json();
-    var txs = data && data.data && data.transactions || [];
+    var txs = (data && data.data && data.data.transactions) || [];
     if (!txs.length) {
       el.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:16px 0">No transactions yet</div>';
       return;
     }
-    el.innerHTML = txs.slice(0,10).map(function(tx) {
-      var isIn = tx.type === 'deposit';
-      var color = isIn ? 'var(--green)' : 'var(--amber)';
-      var icon  = isIn ? '↓' : '↑';
-      var label = isIn ? 'Deposit' : 'Withdraw';
-      return '<a href="'+tx.explorerUrl+'" target="_blank" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);text-decoration:none;">'
-        + '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:'+color+';flex-shrink:0">'+icon+'</div>'
+    el.innerHTML = txs.slice(0,20).map(function(tx) {
+      var isIn   = tx.type === 'deposit';
+      var isStars = tx.source === 'stars';
+      var color  = isIn ? 'var(--green)' : 'var(--amber)';
+      var icon   = isStars ? '⭐' : (isIn ? '↓' : '↑');
+      var label  = isStars ? (tx.label || '⭐ Stars deposit') : (isIn ? 'Deposit (USDC)' : 'Withdraw');
+      var href   = tx.explorerUrl
+        ? 'href="' + tx.explorerUrl + '" target="_blank"'
+        : '';
+      return '<a ' + href + ' style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);text-decoration:none;">'
+        + '<div style="width:32px;height:32px;border-radius:50%;background:' + (isStars ? 'rgba(255,215,0,.12)' : 'rgba(255,255,255,.05)') + ';display:flex;align-items:center;justify-content:center;font-size:' + (isStars ? '16px' : '16px') + ';font-weight:700;color:' + color + ';flex-shrink:0">' + icon + '</div>'
         + '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:13px;font-weight:600;color:var(--text)">'+label+'</div>'
-        + '<div style="font-size:11px;color:var(--muted)">'+formatTxDate(tx.timestamp)+'</div>'
+        + '<div style="font-size:13px;font-weight:600;color:var(--text)">' + label + '</div>'
+        + '<div style="font-size:11px;color:var(--muted)">' + formatTxDate(tx.timestamp) + '</div>'
         + '</div>'
-        + '<div style="font-size:14px;font-weight:700;color:'+color+'">'+(isIn?'+':'-')+'$'+tx.amount.toFixed(2)+'</div>'
+        + '<div style="font-size:14px;font-weight:700;color:' + color + '">' + (isIn ? '+' : '-') + '$' + tx.amount.toFixed(2) + '</div>'
         + '</a>';
     }).join('');
   } catch(e) {

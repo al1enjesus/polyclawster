@@ -59,7 +59,7 @@ module.exports = async (req, res) => {
       }
     } catch(e) {}
 
-    // ── On-chain TX история (опционально) ──
+    // ── On-chain TX история (USDC/POL Polygon) ──
     var txs = [];
     try {
       var user = await db.getUser(tgId);
@@ -74,8 +74,30 @@ module.exports = async (req, res) => {
             amount: value,
             timestamp: Number(tx.timeStamp) * 1000,
             explorerUrl: 'https://polygonscan.com/tx/' + tx.hash,
+            source: 'onchain',
           };
         });
+      }
+    } catch(e) {}
+
+    // ── Stars-пополнения из bot_logs ──
+    try {
+      var logs = await db.getLogs({ type: 'stars_payment', tgId: tgId, limit: 20 });
+      if (Array.isArray(logs)) {
+        var starsTxs = logs.map(function(log) {
+          return {
+            hash: null,
+            type: 'deposit',
+            amount: parseFloat(log.amount || 0),
+            timestamp: new Date(log.created_at).getTime(),
+            explorerUrl: null,
+            source: 'stars',
+            label: '⭐ Stars ' + (log.message || ''),
+          };
+        });
+        txs = txs.concat(starsTxs);
+        // Сортируем по дате desc
+        txs.sort(function(a, b) { return b.timestamp - a.timestamp; });
       }
     } catch(e) {}
 
