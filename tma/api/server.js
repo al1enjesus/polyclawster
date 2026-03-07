@@ -14,7 +14,7 @@ try { require('dotenv').config({ path: path.join(__dirname, '../../.env') }); } 
 const db    = require('../../lib/db');
 
 const PORT   = 3456;
-const WALLET = '0x6f314d7d2f50808cec1d26c1092e7729d9378d75';
+const WALLET = '0xd58BE7E2Ac45ac822adFab5C1845e8016679a5eA';
 
 const fetch = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
 
