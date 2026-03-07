@@ -23,6 +23,7 @@ const signalsStore  = require('./modules/signals-store');
 const db            = require('../lib/db');
 const { scanRisk } = require('./modules/risk');
 const { checkResolutions, checkUserBets } = require('./modules/tracker');
+const { sendVoiceSignal } = require('./modules/wolfvoice');
 const { syncAll: syncBalances } = require('./modules/sync-balances');
 const { checkAndSwapAll } = require('./modules/auto-swap');
 
@@ -228,6 +229,11 @@ async function main() {
   for (const s of toSend) {
     const msg = formatSignal(s);
     await sendTg(msg);
+    // Wolf-style voice signal for STRONG alerts
+    if (s.score >= 7.5) {
+      const shortCaption = msg.split('\n').slice(0, 3).join('\n'); // first 3 lines as caption
+      await sendVoiceSignal(s, cfg.CHAT_ID, shortCaption);
+    }
     await sleep(700);
   }
 
