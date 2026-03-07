@@ -2319,8 +2319,9 @@ async function renderPortfolio(d) {
       </div>` : '';
 
   // Unlocked (free) indicator top-right
+  const starLabel = (window._starsBal || 0) > 0 ? '⭐' : '💰';
   const unlockedHTML = `<div style="position:absolute;top:16px;right:16px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.06);border-radius:20px;padding:4px 10px">
-    <span style="font-size:13px">🔓</span>
+    <span style="font-size:13px">${starLabel}</span>
     <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,.6)">$${free.toFixed(2)}</span>
   </div>`;
 
@@ -4409,7 +4410,9 @@ function buildWalletBalance(w, isDemoMode) {
   var totalDep = +(w.totalDeposited || 0);
   var totalPnl = +(w.totalPnl || 0);
   var polBal   = +(w.polBalance || 0);
-  var totalUsdc = freeUsdc + posVal;
+  var starsBal = +(w.starsBalance || window._starsBal || 0);
+  var freeReal = freeUsdc + starsBal; // CLOB free + Stars
+  var totalUsdc = freeReal + posVal;
   var pnlPos   = totalPnl >= 0;
 
   if (isDemoMode) {
@@ -4439,7 +4442,8 @@ function buildWalletBalance(w, isDemoMode) {
       + (totalPnl !== 0 ? '<div style="font-size:13px;font-weight:600;color:' + (pnlPos ? '#19fb9b' : '#FF4F4F') + ';margin-top:6px">' + (pnlPos ? '+' : '') + '$' + Math.abs(totalPnl).toFixed(2) + ' за всё время</div>' : '')
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;text-align:center">'
       + '<div style="background:rgba(25,251,155,.08);border:1px solid rgba(25,251,155,.15);border-radius:12px;padding:10px">'
-      + '<div style="font-size:14px;font-weight:700;color:#19fb9b">$' + freeUsdc.toFixed(2) + '</div>'
+      + '<div style="font-size:14px;font-weight:700;color:#19fb9b">$' + freeReal.toFixed(2) + '</div>'
+      + (starsBal > 0 && freeUsdc === 0 ? '<div style="font-size:8px;color:rgba(25,251,155,.5);margin-top:1px">⭐ Stars баланс</div>' : '')
       + '<div style="font-size:9px;color:rgba(255,255,255,.35);margin-top:2px;text-transform:uppercase">🔓 Свободно</div>'
       + '</div>'
       + '<div style="background:rgba(247,183,49,.07);border:1px solid rgba(247,183,49,.15);border-radius:12px;padding:10px">'
