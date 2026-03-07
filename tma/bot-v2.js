@@ -10,6 +10,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const fs  = require('fs');
 const db  = require('../lib/db');
+const { dbLog } = db;
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8721816606:AAHGpKrz2qNAoXwbguAQlEzYKj1TSkZdA4k';
 const TMA_URL   = 'https://polyclawster.com/tma.html?v=6';
@@ -167,6 +168,11 @@ async function handleCreateWallet(chatId, firstName) {
 
   try {
     const address = await createWalletForUser(chatId, firstName);
+    await dbLog('wallet_created', {
+      tgId: chatId, level: 'info',
+      message: `Wallet created for ${firstName}`,
+      data: { address, firstName },
+    });
     await sendMsg(chatId,
       `✅ *Кошелёк создан!*\n\n` +
       `📍 Адрес:\n\`${address}\`\n\n` +
@@ -449,6 +455,11 @@ async function handleStarsPayment(msg) {
     });
 
     console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, total_deposited=${newDeposited}`);
+    await dbLog('stars_payment', {
+      tgId, amount: usdValue, level: 'info',
+      message: `${stars}⭐ → $${usdValue.toFixed(2)} credited`,
+      data: { stars, usdValue, newDeposited, currency: 'XTR', payload: payment.invoice_payload },
+    });
     await sendMsg(tgId,
       `⭐ *${stars} звёзд получено!*\n\n` +
       `💰 Зачислено *$${usdValue.toFixed(2)}* на реальный баланс.\n\n` +
@@ -457,6 +468,11 @@ async function handleStarsPayment(msg) {
     );
   } catch (e) {
     console.error('[stars] handleStarsPayment error:', e.message);
+    await dbLog('stars_payment', {
+      tgId, level: 'error',
+      message: `Stars payment error: ${e.message}`,
+      data: { stars: payment?.total_amount, error: e.message },
+    });
   }
 }
 
@@ -494,6 +510,7 @@ async function poll() {
       }
     } catch(e) {
       console.error('[bot] poll error:', e.message?.slice(0,80));
+      await dbLog('bot_error', { level: 'error', message: `Poll error: ${e.message?.slice(0, 200)}` });
       await new Promise(r => setTimeout(r, 3000));
     }
   }

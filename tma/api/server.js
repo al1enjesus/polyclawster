@@ -200,6 +200,18 @@ const routes = {
     } catch { return null; }
   },
 
+  '/api/logs': async (req) => {
+    const url = new URL('http://x' + req.url);
+    const type   = url.searchParams.get('type')   || undefined;
+    const tgId   = url.searchParams.get('tgId')   || undefined;
+    const level  = url.searchParams.get('level')  || undefined;
+    const limit  = parseInt(url.searchParams.get('limit') || '100', 10);
+    try {
+      const logs = await db.getLogs({ type, tgId, level, limit });
+      return { logs: Array.isArray(logs) ? logs : [], count: Array.isArray(logs) ? logs.length : 0 };
+    } catch(e) { return { error: e.message, logs: [] }; }
+  },
+
   '/api/chat': async (req) => {
     return new Promise((resolve) => {
       let body = '';

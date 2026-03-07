@@ -14,6 +14,7 @@ const https  = require('https');
 const fs     = require('fs');
 const path   = require('path');
 const db     = require('./lib/db');
+const { dbLog } = db;
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const USDC_CONTRACTS = [
@@ -187,6 +188,12 @@ async function checkAndSwapPol(tgId, user) {
 
     lastPolSwap[tgId] = Date.now();
 
+    await dbLog('swap', {
+      tgId, amount: result.usdcReceived, level: 'info',
+      message: `${result.polSwapped.toFixed(2)} POL → $${result.usdcReceived.toFixed(2)} USDC`,
+      data: { polSwapped: result.polSwapped, usdcReceived: result.usdcReceived, txHash: result.txHash, address: user.address },
+    });
+
     await tgSend(notifyId,
       `✅ ${walletLabel}*Своп выполнен!*\n\n` +
       `🔄 ${result.polSwapped.toFixed(2)} POL → *$${result.usdcReceived.toFixed(2)} USDC*\n` +
@@ -258,6 +265,11 @@ async function checkDeposits() {
       }
 
       console.log(`[deposit] +$${amount.toFixed(2)} USDC → tgId:${tgId} | tx:${tx.hash.slice(0,12)}...`);
+      await dbLog('deposit', {
+        tgId, amount, level: 'info',
+        message: `+$${amount.toFixed(2)} USDC deposit`,
+        data: { txHash: tx.hash, newDeposited, address: tx.to || tx.contractAddress },
+      });
 
       await tgSend(Number(tgId),
         `✅ *Депозит получен!*\n\n` +
@@ -271,8 +283,12 @@ async function checkDeposits() {
 
 async function run() {
   console.log('💳 Deposit watcher started (USDC + POL auto-swap)');
+  await dbLog('bot_start', { level: 'info', message: 'deposit-watcher started' });
   while (true) {
-    try { await checkDeposits(); } catch(e) { console.error('[watcher] error:', e.message); }
+    try { await checkDeposits(); } catch(e) {
+      console.error('[watcher] error:', e.message);
+      await dbLog('bot_error', { level: 'error', message: `Watcher loop error: ${e.message?.slice(0, 200)}` });
+    }
     await new Promise(r => setTimeout(r, CHECK_INTERVAL));
   }
 }
