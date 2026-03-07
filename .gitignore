@@ -35,3 +35,7 @@ USER.md
 HEARTBEAT.md
 memory/
 KEYS.md
+data.json
+.vercel/
+*.bak4
+*.bak5
