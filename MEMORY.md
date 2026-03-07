@@ -149,16 +149,13 @@
 
 ## TODO — Активные задачи
 
-### 🔴 Починить оплату звёздами (Stars Payment)
-**Проблема:** Нужно проверить и починить flow оплаты Telegram Stars.
-**Текущее состояние:**
-- `api/stars-invoice.js` — создаёт инвойс через `createInvoiceLink` → возвращает link
-- `tma/src/index.html` → `buyStars(stars)` — вызывает `/api/stars-invoice`, открывает через `tg.openInvoice(link, callback)`
-- `tma/bot-v2.js` → `handlePreCheckout()` + `handleStarsPayment()` — обрабатывает `pre_checkout_query` и `successful_payment`
-- Stars зачисляются в `demo_balance` (НЕ real!) — строка 427-428 bot-v2.js
-- **Потенциальная проблема #1:** `getUpdates` НЕ передаёт `allowed_updates` — Telegram может не слать `pre_checkout_query`
-- **Потенциальная проблема #2:** Stars зачисляются в `demo_balance`, а юзер платит реальные деньги — нужно уточнить логику
-- **Потенциальная проблема #3:** Нет retry / error handling если `answerPreCheckoutQuery` не дошёл
+### ✅ Оплата звёздами (Stars Payment) — ГОТОВО (dd92916)
+- Stars теперь зачисляются в `stars_balance` (отдельное поле), НЕ в `demo_balance`
+- `tma/bot-v2.js` → `handleStarsPayment()` пишет в `stars_balance`
+- `api/trade.js` — поддержка `stars_balance` при торговле
+- `api/portfolio.js` / `api/wallet.js` — возвращают `stars_balance`
+- `tma/src/index.html` — отображает stars balance в UI
+- Бот рестартован на PM2, ошибок нет
 
 ### 🔴 Починить пополнение юзерского кошелька (Deposit)
 **Проблема:** Нужно проверить и починить deposit flow.
