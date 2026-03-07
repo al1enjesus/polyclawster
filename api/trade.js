@@ -76,6 +76,26 @@ module.exports = async (req, res) => {
       });
     }
 
+    // ── 2b. Stars balance path (real money from Telegram Stars) ─
+    const starsBalance = parseFloat(user.stars_balance || 0);
+    if (starsBalance >= amount) {
+      // Stars = real money, internal trade (not on-chain CLOB)
+      const newStarsBal = Math.max(0, starsBalance - amount);
+      await db.updateUser(tgId, { stars_balance: newStarsBal, updated_at: new Date().toISOString() })
+        .catch(e => console.error('[trade] stars_balance update fail:', e.message));
+      await db.insertBet({
+        tg_id: parseInt(tgId), market: market.slice(0, 200), market_id: conditionId || null,
+        side, amount, price: 0, status: 'open', is_demo: false,
+        signal_type: 'stars', signal_score: signalScore || null,
+      }).catch(e => console.error('[trade] stars insertBet fail:', e.message));
+      console.log(`[trade] Stars trade: ${side} $${amount} on "${market.slice(0, 50)}" for tgId=${tgId}, remaining stars_balance=$${newStarsBal.toFixed(2)}`);
+      return res.json({
+        ok: true, executed: true, status: 'open', isStars: true,
+        newBalance: newStarsBal,
+        message: `${side} $${amount} on "${market.slice(0, 50)}" (Stars balance)`,
+      });
+    }
+
     // ── 3. Get wallet with private key ──────────────────────────
     const wallet = await db.getWallet(tgId);
     if (!wallet?.address) {

@@ -130,6 +130,7 @@ module.exports = async (req, res) => {
       totalPnl,
       totalValue:      parseFloat(totalValue.toFixed(4)),
       demoBalance:     parseFloat(user.demo_balance || 0),
+      starsBalance:    parseFloat(user.stars_balance || 0),
       hasWallet:       !!address,
       trades:          user.trades || 0,
       // Debug

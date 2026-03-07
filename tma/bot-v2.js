@@ -455,20 +455,21 @@ async function handleStarsPayment(msg) {
       return;
     }
 
-    // Stars = real money → credit to total_deposited only (NOT demo_balance)
+    // Stars = real money → credit to stars_balance (live trading) + total_deposited (stats)
     const newDeposited = parseFloat(user.total_deposited || 0) + usdValue;
+    const newStarsBal = parseFloat(user.stars_balance || 0) + usdValue;
     await (await fetch)(`${SUPABASE_URL}/rest/v1/users?id=eq.${tgId}`, {
       method: 'PATCH',
       headers: { ...sbHeaders, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ total_deposited: newDeposited, updated_at: new Date().toISOString() })
+      body: JSON.stringify({ stars_balance: newStarsBal, total_deposited: newDeposited, updated_at: new Date().toISOString() })
     });
 
-    console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, total_deposited=${newDeposited}`);
-    analytics.track(tgId, 'stars_payment', { stars, usd_value: usdValue, total_deposited: newDeposited });
+    console.log(`[stars] ✅ credited $${usdValue} to tgId=${tgId}, stars_balance=${newStarsBal}, total_deposited=${newDeposited}`);
+    analytics.track(tgId, 'stars_payment', { stars, usd_value: usdValue, stars_balance: newStarsBal, total_deposited: newDeposited });
     await dbLog('stars_payment', {
       tgId, amount: usdValue, level: 'info',
       message: `${stars}⭐ → $${usdValue.toFixed(2)} credited`,
-      data: { stars, usdValue, newDeposited, currency: 'XTR', payload: payment.invoice_payload },
+      data: { stars, usdValue, newStarsBal, newDeposited, currency: 'XTR', payload: payment.invoice_payload },
     });
     await sendMsg(tgId,
       `⭐ *${stars} звёзд получено!*\n\n` +

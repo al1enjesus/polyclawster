@@ -2235,9 +2235,10 @@ async function loadPortfolio() {
     window._demoBal = syncedDemo;
     window._userWallet = (_portfolio.hasWallet && _portfolio.address) ? _portfolio.address : (window._userWallet || '');
     window._userDeposited = parseFloat(_portfolio.totalDeposited || 0);
-    window._hasDeposited = window._userDeposited > 0;
+    window._starsBal = parseFloat(_portfolio.starsBalance || 0);
+    window._hasDeposited = window._userDeposited > 0 || window._starsBal > 0;
     window._userValue = parseFloat(_portfolio.totalValue || 0);
-    window._realBalance = window._userValue; // real USDC only, no demo fallback
+    window._realBalance = window._userValue + window._starsBal; // CLOB + stars balance
     try {
       renderPortfolio(_portfolio);
     } catch(renderErr) {
@@ -2564,6 +2565,7 @@ async function createWalletFromPortfolio() {
       var grantedDemoVal = parseFloat(data.demoBalance || data.demo_balance || 1);
       window._demoBal = grantedDemoVal;
       window._realBalance = 0;
+      window._starsBal = 0;
       localStorage.setItem('pc_demo_balance', grantedDemoVal.toFixed(2));
       showToast('Кошелёк создан! 🎉');
       // Показываем красивый экран с CTA
@@ -2747,6 +2749,7 @@ async function placeBet(signal, side, amtOverride) {
       var d = await r.json();
       if (d.ok) {
         window._realBalance = Math.max(0, realBalance - amt); // optimistic update
+        if (d.isStars && typeof d.newBalance === 'number') window._starsBal = d.newBalance;
         showBetConfirm(signal, side, amt, false);
       } else {
         showToast(d.error || 'Ошибка ставки');
@@ -4434,14 +4437,16 @@ function walletDataHTML(w) {
 
   var addr        = _walletAddr;
   var demoBal     = +(w.demoBalance || 0);
+  var starsBal    = +(w.starsBalance || 0);
   var totalDep    = +(w.totalDeposited || 0);
   var freeUsdc    = +(w.freeUsdc || 0);
   var posVal      = +(w.positionsValue || 0);
   var polBal      = +(w.polBalance || 0);
-  var hasDeposit  = totalDep > 0 || freeUsdc > 0 || posVal > 0 || polBal > 0.01;
+  var hasDeposit  = totalDep > 0 || freeUsdc > 0 || posVal > 0 || polBal > 0.01 || starsBal > 0;
 
-  window._walletBalance = freeUsdc + posVal;
-  window._realBalance   = freeUsdc;
+  window._walletBalance = freeUsdc + posVal + starsBal;
+  window._realBalance   = freeUsdc + starsBal;
+  window._starsBal      = starsBal;
   window._demoBal       = demoBal;
   window._hasDeposited  = hasDeposit;
 
@@ -4534,6 +4539,7 @@ async function createWalletFlow(tgId) {
       var grantedDemo      = parseFloat(res.data.demoBalance || res.data.demo_balance || 1);
       window._demoBal      = grantedDemo;
       window._realBalance  = 0;
+      window._starsBal     = 0;
       window._userDeposited = 0;
       window._hasDeposited = false;
       localStorage.setItem('pc_demo_balance', grantedDemo.toFixed(2));
@@ -4954,7 +4960,8 @@ function initUserState(forceRefresh) {
       // ── Set ALL wallet globals from ONE fetch ──
       window._userWallet    = (p.hasWallet && p.address) ? p.address : (window._userWallet || '');
       window._userDeposited = parseFloat(p.totalDeposited || 0);
-      window._hasDeposited  = (window._userDeposited > 0);
+      window._starsBal      = parseFloat(p.starsBalance || 0);
+      window._hasDeposited  = (window._userDeposited > 0 || window._starsBal > 0);
       // Demo balance: server is source of truth, sync to localStorage
       var serverDemo = parseFloat(p.demoBalance || 0);
       if (serverDemo > 0) {
@@ -6114,6 +6121,7 @@ async function confirmBetSheet() {
     if (d.ok) {
       haptic.success && haptic.success();
       window._realBalance = Math.max(0, balance - amt);
+      if (d.isStars && typeof d.newBalance === 'number') window._starsBal = d.newBalance;
       closeBetSheet();
       // Обновляем hero-balance сразу
       var heroEl = document.getElementById('hero-balance-amount');
