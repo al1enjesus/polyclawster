@@ -1482,6 +1482,36 @@ body {
 }
 </style>
 
+<!-- PostHog Analytics -->
+<script>
+  !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var d=e;for(void 0!==a?d=e[a]=[]:a="posthog",d.people=d.people||[],d.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},d.people.toString=function(){return d.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "),n=0;n<o.length;n++)g(d,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+  posthog.init('phc_VHVdzWU7sO9QZ9SFFvGnrl2ap0ykEUn7nsVLCmV3YlF', {
+    api_host: 'https://app.posthog.com',
+    autocapture: true,
+    capture_pageview: true,
+  });
+
+  // Identify user once Telegram WebApp is ready
+  function _phIdentify() {
+    try {
+      var user = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+      var tgId = (user && user.id) || window._tgId || new URLSearchParams(location.search).get('tgId');
+      if (tgId && window.posthog) {
+        posthog.identify('tg_' + tgId, {
+          username: user && user.username,
+          first_name: user && user.first_name,
+          tg_id: String(tgId),
+        });
+      }
+    } catch(e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _phIdentify);
+  } else {
+    _phIdentify();
+  }
+</script>
+
 </head>
 <body>
 
@@ -1925,6 +1955,7 @@ function showTab(tab) {
   _tab = tab;
   _history = [tab];
   haptic.select();
+  try { if (window.posthog) posthog.capture('tma_tab_view', { tab: tab, tg_id: String(window._tgId || '') }); } catch(e) {}
   // Clean up signal detail sticky button when switching tabs
   var sdSticky = document.getElementById('sd-sticky-cta');
   if (sdSticky) sdSticky.remove();
@@ -2672,6 +2703,7 @@ function drawSparkline(snapshots, isSynthetic) {
 // ══ PLACE BET (demo + real) ═════════════════════════════════════
 async function placeBet(signal, side, amtOverride) {
   var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || '';
+  try { if (window.posthog) posthog.capture('place_bet_clicked', { side: side, market: signal && signal.title, score: signal && signal.score, tg_id: String(tgId) }); } catch(e) {}
   // amtOverride: from sticky buttons; fallback to input field or default 5
   var amtInput = document.getElementById('trade-amount-inp') || document.getElementById('sd-amt-inp');
   var amt = amtOverride || (amtInput ? parseFloat(amtInput.value) : 0) || 5;
@@ -3546,6 +3578,7 @@ let _liveRefreshCountdown = 30;
 // ── Tab switch ─────────────────────────────────────────────────
 function switchLiveTab(tab) {
   _liveTab = tab;
+  try { if (window.posthog) posthog.capture('live_tab_switch', { tab: tab, tg_id: String(window._tgId || '') }); } catch(e) {}
   ['signals','whales','movers'].forEach(t => {
     var _ltEl = document.getElementById('ltab-'+t); if(_ltEl) _ltEl.classList.toggle('active', t===tab);
     const pane = document.getElementById('live-'+t+'-pane');
@@ -5423,6 +5456,7 @@ async function buyStars(stars) {
   var statusEl = document.getElementById('stars-status');
   var tgId = window._tgId || (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) || '';
   if (!tgId) { showToast('Открой в Telegram'); return; }
+  try { if (window.posthog) posthog.capture('stars_purchase_clicked', { stars: stars, tg_id: String(tgId) }); } catch(e) {}
   if (statusEl) statusEl.textContent = 'Создаём инвойс...';
   try {
     var r = await fetch('/api/stars-invoice', {
@@ -5495,6 +5529,7 @@ async function _loadDepositAddr() {
 }
 
 async function openDepositSheet() {
+  try { if (window.posthog) posthog.capture('deposit_sheet_opened', { tg_id: String(window._tgId || '') }); } catch(e) {}
   openSheet('deposit');
 }
 
