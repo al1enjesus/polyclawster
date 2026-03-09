@@ -81,6 +81,13 @@ if (require.main === module) {
         console.log(`   ${mode} ${b.side} $${parseFloat(b.amount).toFixed(2)} — ${b.market || 'Unknown'}`);
       });
     }
+    // Hint when live balance is zero
+    if (parseFloat(r.cashBalance || 0) === 0 && parseFloat(r.totalDeposited || 0) === 0) {
+      console.log('💡 No live balance yet. To start live trading:');
+      console.log(`   1. Deposit USDC.e (Polygon) to your wallet:`);
+      console.log(`      ${r.walletAddress}`);
+      console.log(`   2. Then run: node scripts/approve.js`);
+    }
     console.log('');
     console.log(`🔗 Dashboard: ${config.dashboard || 'https://polyclawster.com/a/' + r.agentId}`);
   }).catch(e => {

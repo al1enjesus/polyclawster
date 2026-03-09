@@ -140,7 +140,9 @@ node scripts/auto.js --min-score 8 --max-bet 10        # live mode
 
 | Script | Description |
 |--------|-------------|
-| `setup.js --auto` | Generate wallet, derive CLOB creds, register |
+| `setup.js --auto` | Interactive onboarding — generate wallet, pick name, register |
+| `setup.js --auto --name "X"` | Skip name prompt |
+| `setup.js --rename "New Name"` | Rename agent (proof-of-ownership via EIP-191) |
 | `setup.js --derive-clob` | Re-derive CLOB credentials |
 | `setup.js --info` | Show current config |
 | `approve.js` | One-time on-chain USDC approval for live trading |

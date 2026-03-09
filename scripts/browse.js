@@ -34,14 +34,50 @@ function getJSON(url) {
   });
 }
 
+// ── Keyword aliases (expand generic terms → specific search queries) ──────────
+const KEYWORD_ALIASES = {
+  'crypto':   'bitcoin ethereum solana',
+  'btc':      'bitcoin',
+  'eth':      'ethereum',
+  'sol':      'solana',
+  'defi':     'defi ethereum uniswap',
+  'ai':       'artificial intelligence openai',
+  'stock':    'market stocks s&p nasdaq',
+  'politics': 'election president senate',
+  'election': 'election president',
+  'war':      'war ukraine russia middle east',
+  'sports':   'nba nfl soccer championship',
+  'nba':      'nba basketball',
+  'nfl':      'nfl football',
+  'ufc':      'ufc fight',
+  'weather':  'climate hurricane storm',
+};
+
+function expandQuery(q) {
+  if (!q) return q;
+  const lower = q.toLowerCase().trim();
+  return KEYWORD_ALIASES[lower] || q;
+}
+
 async function browseMarkets(query, opts = {}) {
   const { minVolume = 0, minPrice = 0, maxPrice = 1, limit = 10 } = opts;
 
+  const expandedQuery = expandQuery(query);
+
   const qs = new URLSearchParams({ limit: '50' });
-  if (query) qs.set('q', query);
+  if (expandedQuery) qs.set('q', expandedQuery);
 
   const result = await getJSON(`${API_BASE}/api/search-markets?${qs}`);
   if (!result.ok) throw new Error(result.error || 'Failed to fetch markets');
+
+  // If alias expansion gave no results, try original query
+  if (expandedQuery !== query && (!result.markets || result.markets.length === 0) && query) {
+    const qs2 = new URLSearchParams({ limit: '50', q: query });
+    const r2 = await getJSON(`${API_BASE}/api/search-markets?${qs2}`).catch(() => null);
+    if (r2?.ok && r2.markets?.length > 0) {
+      result.markets = r2.markets;
+    }
+  }
 
   let markets = result.markets || [];
 
@@ -76,8 +112,10 @@ if (require.main === module) {
     }
 
     console.log('');
-    if (query) console.log(`🔍 Markets matching "${query}":\n`);
-    else       console.log('📊 Top Polymarket markets:\n');
+    const expandedQ = expandQuery(query);
+    if (query && expandedQ !== query) console.log(`🔍 Markets matching "${query}" (expanded: "${expandedQ}"):\n`);
+    else if (query)                   console.log(`🔍 Markets matching "${query}":\n`);
+    else                              console.log('📊 Top Polymarket markets:\n');
 
     markets.forEach((m, i) => {
       const price   = parseFloat(m.bestAsk || m.bestBid || 0.5);

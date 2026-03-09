@@ -75,6 +75,26 @@ async function deriveClobCreds(wallet) {
   };
 }
 
+// ── Auto-generate agent name ──────────────────────────────────────────────────
+const NAME_POOL = [
+  'CryptoBro','MoonHunter','GigaChad','DiamondPaws','ApeBrain',
+  'SatoshiJr','PumpDetector','WhaleWatcher','Degen','BullRider',
+  'VibeTrader','NightOwl','AlphaSeeker','TokenShark','DeFiGhost',
+];
+
+function randomAgentName() {
+  const base   = NAME_POOL[Math.floor(Math.random() * NAME_POOL.length)];
+  const digits = String(Math.floor(1000 + Math.random() * 9000));
+  return base + '#' + digits;
+}
+
+// ── Readline prompt helper ────────────────────────────────────────────────────
+function prompt(question) {
+  const readline = require('readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(resolve => rl.question(question, ans => { rl.close(); resolve(ans.trim()); }));
+}
+
 // ── Main: auto setup ──────────────────────────────────────────────────────────
 async function autoSetup(opts = {}) {
   const existing = loadConfig();
@@ -87,6 +107,25 @@ async function autoSetup(opts = {}) {
     console.log('To reconfigure, delete ~/.polyclawster/config.json');
     return existing;
   }
+
+  // Welcome banner
+  console.log('');
+  console.log('👋 Привет! Сейчас создам тебе Polygon-кошелёк и подключу к Polymarket.');
+  console.log('   🔐 Приватный ключ останется только у тебя — на сервер не отправляется.');
+  console.log('   🎮 $10 demo-баланс — сразу можешь тренироваться без реальных денег.');
+  console.log('   💰 Для реальных ставок — пополни кошелёк USDC (Polygon).');
+  console.log('   🏆 Попадёшь в общий лидерборд на polyclawster.com');
+  console.log('');
+
+  // Ask for agent name (unless --name passed)
+  let agentName = opts.name || null;
+  if (!agentName) {
+    const auto = randomAgentName();
+    const ans = await prompt(`Придумать имя агенту? (Enter — придумаю сам, будет: ${auto}): `);
+    agentName = ans || auto;
+  }
+  console.log(`   Имя: ${agentName}`);
+  console.log('');
 
   // 1. Generate wallet locally
   console.log('🔐 Generating Polygon wallet locally...');
@@ -104,7 +143,7 @@ async function autoSetup(opts = {}) {
   console.log('📡 Registering on PolyClawster (wallet address only — no private key sent)...');
   const result = await postJSON(`${API_BASE}/api/agents`, {
     action:       'register',
-    name:         opts.name     || 'OpenClaw Agent',
+    name:         agentName || opts.name || randomAgentName(),
     emoji:        opts.emoji    || '🤖',
     strategy:     opts.strategy || '',
     walletAddress: wallet.address,
@@ -193,6 +232,39 @@ async function deriveClobOnly() {
   console.log('   Passphrase: derived ✅');
 }
 
+// ── Rename agent (EIP-191 proof-of-ownership) ─────────────────────────────────
+async function renameAgent(newName) {
+  const config = loadConfig();
+  if (!config?.privateKey || !config?.apiKey) {
+    throw new Error('Not configured. Run: node scripts/setup.js --auto');
+  }
+
+  const ethersModule = await import('ethers');
+  const ethers = ethersModule.default || ethersModule;
+  const wallet = new ethers.Wallet(config.privateKey);
+
+  const timestamp = String(Date.now());
+  const message   = `rename:${newName}:${timestamp}`;
+  const sig       = await wallet.signMessage(message);
+
+  console.log(`✍️  Signing rename proof (wallet: ${wallet.address.slice(0, 10)}...)...`);
+
+  const result = await postJSON(`${API_BASE}/api/agents`, {
+    action: 'rename',
+    newName,
+    sig,
+    timestamp,
+    apiKey: config.apiKey,
+  });
+
+  if (!result.ok) throw new Error(result.error || 'Rename failed');
+
+  saveConfig({ ...config, agentName: result.name });
+
+  console.log(`✅ Agent renamed to "${result.name}"`);
+  return result;
+}
+
 // ── Show info ─────────────────────────────────────────────────────────────────
 function showInfo() {
   const config = loadConfig();
@@ -207,7 +279,7 @@ function showInfo() {
   console.log(`   Created:      ${config.createdAt || 'unknown'}`);
 }
 
-module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE, API_BASE, RELAY_URL };
+module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE, API_BASE, RELAY_URL, randomAgentName };
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
 if (require.main === module) {
@@ -219,6 +291,10 @@ if (require.main === module) {
     showInfo();
   } else if (args.includes('--derive-clob')) {
     deriveClobOnly().catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
+  } else if (args.includes('--rename')) {
+    const newName = getArg('--rename');
+    if (!newName) { console.error('Usage: node setup.js --rename "New Name"'); process.exit(1); }
+    renameAgent(newName).catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
   } else if (args.includes('--auto') || args.length === 0) {
     autoSetup({
       name:      getArg('--name'),
@@ -226,9 +302,10 @@ if (require.main === module) {
     }).catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
   } else {
     console.log('Usage:');
-    console.log('  node setup.js --auto              # Create agent');
-    console.log('  node setup.js --auto --name "X"   # With name');
-    console.log('  node setup.js --info              # Show config');
-    console.log('  node setup.js --derive-clob       # Re-derive CLOB creds');
+    console.log('  node setup.js --auto                   # Create agent (interactive)');
+    console.log('  node setup.js --auto --name "X"        # Skip name prompt');
+    console.log('  node setup.js --rename "New Name"      # Rename agent (proof-of-ownership)');
+    console.log('  node setup.js --info                   # Show config');
+    console.log('  node setup.js --derive-clob            # Re-derive CLOB creds');
   }
 }
