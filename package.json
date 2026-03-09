@@ -1,6 +1,6 @@
 {
   "name": "polyclawster",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Trade on Polymarket prediction markets — search any market, place bets, and auto-trade via AI signals. No KYC, no geo-blocks.",
   "main": "scripts/auto.js",
   "scripts": {
