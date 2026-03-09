@@ -1,6 +1,6 @@
 {
   "name": "polyclawster",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Trade on Polymarket prediction markets. Non-custodial: your agent signs orders locally, private key never leaves your machine. Submits via polyclawster.com relay (geo-bypass).",
   "homepage": "https://polyclawster.com",
   "repository": {

@@ -34,50 +34,61 @@ function getJSON(url) {
   });
 }
 
-// ── Keyword aliases (expand generic terms → specific search queries) ──────────
+// ── Keyword aliases — each key maps to array of single search terms ───────────
+// search-markets only handles one word at a time, so we send parallel requests
 const KEYWORD_ALIASES = {
-  'crypto':   'bitcoin ethereum solana',
-  'btc':      'bitcoin',
-  'eth':      'ethereum',
-  'sol':      'solana',
-  'defi':     'defi ethereum uniswap',
-  'ai':       'artificial intelligence openai',
-  'stock':    'market stocks s&p nasdaq',
-  'politics': 'election president senate',
-  'election': 'election president',
-  'war':      'war ukraine russia middle east',
-  'sports':   'nba nfl soccer championship',
-  'nba':      'nba basketball',
-  'nfl':      'nfl football',
-  'ufc':      'ufc fight',
-  'weather':  'climate hurricane storm',
+  'crypto':   ['bitcoin', 'ethereum', 'solana'],
+  'btc':      ['bitcoin'],
+  'eth':      ['ethereum'],
+  'sol':      ['solana'],
+  'defi':     ['defi', 'uniswap'],
+  'ai':       ['artificial intelligence', 'openai'],
+  'stock':    ['nasdaq', 'sp500'],
+  'politics': ['election', 'president'],
+  'election': ['election', 'president'],
+  'war':      ['ukraine', 'russia', 'middle east'],
+  'sports':   ['nba', 'nfl', 'soccer'],
+  'nba':      ['nba'],
+  'nfl':      ['nfl'],
+  'ufc':      ['ufc'],
+  'weather':  ['climate', 'hurricane'],
 };
 
-function expandQuery(q) {
-  if (!q) return q;
+function getAliasTerms(q) {
+  if (!q) return [q];
   const lower = q.toLowerCase().trim();
-  return KEYWORD_ALIASES[lower] || q;
+  return KEYWORD_ALIASES[lower] || [q];
 }
 
 async function browseMarkets(query, opts = {}) {
   const { minVolume = 0, minPrice = 0, maxPrice = 1, limit = 10 } = opts;
 
-  const expandedQuery = expandQuery(query);
+  const terms = getAliasTerms(query);
 
-  const qs = new URLSearchParams({ limit: '50' });
-  if (expandedQuery) qs.set('q', expandedQuery);
+  // Parallel requests for each alias term
+  const results = await Promise.all(terms.map(term => {
+    const qs = new URLSearchParams({ limit: '30' });
+    if (term) qs.set('q', term);
+    return getJSON(`${API_BASE}/api/search-markets?${qs}`).catch(() => null);
+  }));
 
-  const result = await getJSON(`${API_BASE}/api/search-markets?${qs}`);
-  if (!result.ok) throw new Error(result.error || 'Failed to fetch markets');
-
-  // If alias expansion gave no results, try original query
-  if (expandedQuery !== query && (!result.markets || result.markets.length === 0) && query) {
-    const qs2 = new URLSearchParams({ limit: '50', q: query });
-    const r2 = await getJSON(`${API_BASE}/api/search-markets?${qs2}`).catch(() => null);
-    if (r2?.ok && r2.markets?.length > 0) {
-      result.markets = r2.markets;
+  // Merge + deduplicate by conditionId/slug
+  const seen = new Set();
+  const allMarkets = [];
+  for (const result of results) {
+    if (!result?.ok) continue;
+    for (const m of (result.markets || [])) {
+      const key = m.conditionId || m.slug || m.question;
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        allMarkets.push(m);
+      }
     }
   }
+
+  // Wrap in result-like object for downstream filters
+  const result = { ok: true, markets: allMarkets };
+  if (!result.ok) throw new Error('Failed to fetch markets');
 
   let markets = result.markets || [];
 
@@ -112,10 +123,11 @@ if (require.main === module) {
     }
 
     console.log('');
-    const expandedQ = expandQuery(query);
-    if (query && expandedQ !== query) console.log(`🔍 Markets matching "${query}" (expanded: "${expandedQ}"):\n`);
-    else if (query)                   console.log(`🔍 Markets matching "${query}":\n`);
-    else                              console.log('📊 Top Polymarket markets:\n');
+    const terms = getAliasTerms(query);
+    const expanded = terms.length > 1 || (terms[0] !== query);
+    if (query && expanded) console.log(`🔍 Markets matching "${query}" (→ ${terms.join(', ')}):\n`);
+    else if (query)        console.log(`🔍 Markets matching "${query}":\n`);
+    else                   console.log('📊 Top Polymarket markets:\n');
 
     markets.forEach((m, i) => {
       const price   = parseFloat(m.bestAsk || m.bestBid || 0.5);
