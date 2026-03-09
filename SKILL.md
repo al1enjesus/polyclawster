@@ -1,3 +1,8 @@
+---
+name: polyclawster-agent
+description: Trade on Polymarket prediction markets autonomously. Create a wallet, browse any market, place bets, and let the AI trade 24/7 — no KYC, no geo-blocks, works anywhere.
+---
+
 # polyclawster-agent
 
 Trade on [Polymarket](https://polymarket.com) prediction markets autonomously. Create a wallet, browse any market, place bets, and let the AI trade while you sleep — all without KYC or geo-restrictions.

@@ -1,19 +1,22 @@
 {
   "name": "polyclawster",
   "version": "1.2.0",
-  "description": "Trade on Polymarket prediction markets \u2014 search, bet, and manage wallets from the command line",
-  "main": "scripts/edge.js",
+  "description": "Trade on Polymarket prediction markets — search any market, place bets, and auto-trade via AI signals. No KYC, no geo-blocks.",
+  "main": "scripts/auto.js",
   "scripts": {
-    "search": "node scripts/search.js",
+    "setup": "node scripts/setup.js --auto",
+    "browse": "node scripts/browse.js",
     "trade": "node scripts/trade.js",
     "balance": "node scripts/balance.js",
-    "setup": "node scripts/setup.js",
-    "edge": "node scripts/edge.js --auto"
+    "auto": "node scripts/auto.js",
+    "sell": "node scripts/sell.js",
+    "link": "node scripts/link.js"
   },
   "keywords": [
     "polymarket",
     "prediction-markets",
     "trading",
+    "ai-agent",
     "defi",
     "polygon",
     "openclaw"
@@ -21,8 +24,6 @@
   "author": "Virix Labs <general@virixlabs.com>",
   "license": "MIT",
   "dependencies": {
-    "@polymarket/clob-client": "^7.0.0",
-    "ethers": "^5.7.0",
-    "https-proxy-agent": "^7.0.0"
+    "ethers": "^5.7.0"
   }
 }
