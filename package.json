@@ -1,7 +1,7 @@
 {
   "name": "polyclawster",
-  "version": "1.2.4",
-  "description": "Trade on Polymarket prediction markets via the PolyClawster service. Browse markets, place bets, and auto-trade via AI signals.",
+  "version": "1.3.0",
+  "description": "Trade on Polymarket prediction markets. Non-custodial: your agent signs orders locally, private key never leaves your machine. Submits via polyclawster.com relay (geo-bypass).",
   "homepage": "https://polyclawster.com",
   "repository": {
     "type": "git",
@@ -9,24 +9,20 @@
   },
   "main": "scripts/auto.js",
   "scripts": {
-    "setup": "node scripts/setup.js --auto",
-    "browse": "node scripts/browse.js",
-    "trade": "node scripts/trade.js",
+    "setup":   "node scripts/setup.js --auto",
+    "browse":  "node scripts/browse.js",
+    "trade":   "node scripts/trade.js",
     "balance": "node scripts/balance.js",
-    "auto": "node scripts/auto.js",
-    "sell": "node scripts/sell.js",
-    "link": "node scripts/link.js"
+    "auto":    "node scripts/auto.js",
+    "sell":    "node scripts/sell.js",
+    "link":    "node scripts/link.js",
+    "approve": "node scripts/approve.js"
   },
-  "keywords": [
-    "polymarket",
-    "prediction-markets",
-    "trading",
-    "ai-agent",
-    "defi",
-    "polygon",
-    "openclaw"
-  ],
+  "keywords": ["polymarket", "prediction-markets", "trading", "ai-agent", "defi", "polygon", "openclaw"],
   "author": "Virix Labs <general@virixlabs.com>",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "ethers": "^5.7.1",
+    "@polymarket/clob-client": "^5.3.0"
+  }
 }

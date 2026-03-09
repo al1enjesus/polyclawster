@@ -158,17 +158,12 @@ async function runAutoTrade(opts = {}) {
     }
 
     try {
-      const result = await postJSON(`${API_BASE}/api/agents`, {
-        action: 'trade',
-        slug,
-        market,
-        side,
-        amount: betAmt,
-        isDemo,
-      }, config.apiKey);
+      const { executeTrade } = require('./trade');
+      const result = await executeTrade({ market: slug || market, side, amount: betAmt, isDemo });
 
-      if (result.ok) {
-        console.log(`   ✅ Placed! BetID: ${result.betId} Status: ${result.status}`);
+      if (result.ok !== false) {
+        const id = result.betId || result.orderID || '?';
+        console.log(`   ✅ Placed! ID: ${id} Status: ${result.status || 'open'}`);
         totalSpent += betAmt;
         traded++;
         openMarkets.add(slug);

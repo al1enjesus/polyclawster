@@ -1,14 +1,28 @@
 # polyclawster-agent
 
-Trade on [Polymarket](https://polymarket.com) prediction markets via your OpenClaw agent.
+Trade on [Polymarket](https://polymarket.com) prediction markets with your OpenClaw AI agent.
 
-## How It Works
+**Non-custodial.** Your private key is generated and stays on your machine. polyclawster.com acts as a geo-bypass relay and signal provider — it never holds your keys or controls your funds.
 
-This skill is a client for [PolyClawster](https://polyclawster.com) — a trading service for Polymarket.
+## Architecture
 
-**Custody model:** When you register, PolyClawster creates a Polygon wallet **server-side** and returns the address + an API key. The private key is stored encrypted on PolyClawster servers. Your agent stores only the `apiKey` locally (`~/.polyclawster/config.json`) and uses it to authorize trades. All orders are signed and submitted by the server on your behalf.
+```
+[Your Agent Container]               [polyclawster.com]         [Polymarket]
+  ethers.Wallet.createRandom()  →    register(walletAddress)
+  sign order (EIP-712)          →    relay → clob.polymarket.com  →  filled
+  sign request (HMAC)           →    record trade in DB
+  private key: stays here ✅         no private key stored ✅
+```
 
-> Only deposit funds you are comfortable entrusting to the PolyClawster service. The private key does not leave their servers.
+**What polyclawster.com does:**
+- Geo-bypass relay: forwards signed orders to Tokyo → Polymarket CLOB (not geo-blocked)
+- Signal generation: AI scans 200+ markets, scores opportunities
+- Trade tracking: records bets in Supabase, tracks PnL per agent
+- TMA interface: Telegram Mini App shows your agents, balances, and positions
+
+**What polyclawster.com cannot do:**
+- Access your funds (no private key)
+- Place unauthorized orders (orders require your EIP-712 signature)
 
 ## Install
 
@@ -16,51 +30,56 @@ This skill is a client for [PolyClawster](https://polyclawster.com) — a tradin
 clawhub install polyclawster-agent
 ```
 
-Then tell your agent: **"Set up Polymarket trading"**
-
-## What can it do?
-
-| You say | Agent does |
-|---------|-----------|
-| "Search for bitcoin markets" | Finds active markets on Polymarket |
-| "Bet $5 YES on Trump winning" | Places a bet via PolyClawster API |
-| "What's my balance?" | Shows balance, open positions, P&L |
-| "Start auto-trading" | Runs signal scanner, auto-trades on AI signals |
-
 ## Setup
 
 ```bash
 node scripts/setup.js --auto
 ```
 
-Registers an agent on PolyClawster. Saves `agentId`, `apiKey`, and wallet address to `~/.polyclawster/config.json`. You get a **$10 demo balance** to test with — no deposit required.
+Generates a Polygon wallet locally, derives Polymarket CLOB credentials through the relay, registers your wallet address on polyclawster.com.
 
-## Deposit (for live trading)
+Config saved to `~/.polyclawster/config.json` (chmod 600).
 
-Send USDC on Polygon network to the wallet address shown after setup. Deposits are detected automatically within ~1 minute.
+## Live Trading
+
+1. **Deposit USDC** (Polygon) to your wallet address
+2. **Approve** (one-time on-chain tx, needs ~0.01 POL for gas):
+   ```bash
+   node scripts/approve.js
+   ```
+3. **Trade**:
+   ```bash
+   node scripts/trade.js --market "bitcoin-100k" --side YES --amount 5
+   ```
+
+## Demo Mode
+
+Starts immediately with $10 demo balance — no deposit, no gas:
+```bash
+node scripts/trade.js --market "bitcoin-100k" --side YES --amount 2 --demo
+node scripts/auto.js --demo --min-score 7 --max-bet 5
+```
 
 ## Scripts
 
 | Script | Description |
 |--------|-------------|
-| `setup.js --auto` | Register agent |
+| `setup.js --auto` | Generate wallet + register |
+| `approve.js` | One-time USDC approval for live trading |
 | `browse.js [topic]` | Search Polymarket markets |
-| `trade.js --market X --side YES --amount N` | Place a bet |
-| `trade.js ... --demo` | Demo trade (no real funds) |
+| `trade.js` | Place a trade (live or demo) |
 | `balance.js` | Check balance and positions |
-| `sell.js --bet-id N` | Close a position |
+| `sell.js` | Close a position |
 | `auto.js` | Autonomous trading loop |
-| `auto.js --dry-run` | Simulate trades |
-| `link.js PC-XXXXX` | Link to TMA account |
+| `link.js PC-XXXXX` | Link to Telegram Mini App |
 
-## Signal Scoring
+## Config
 
-| Score | Meaning |
-|-------|---------|
-| 9–10 | Very high conviction |
-| 7–8 | Strong signal |
-| 5–6 | Moderate |
-| < 5 | Skip |
+`~/.polyclawster/config.json` contains:
+- `walletAddress` — your Polygon wallet (public)
+- `privateKey` — your private key (local only, chmod 600)
+- `clobApiKey/Secret/Passphrase` — derived CLOB credentials (local only)
+- `agentId` / `apiKey` — polyclawster.com tracking identifiers
 
 ## Fees
 

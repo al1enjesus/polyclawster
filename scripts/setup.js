@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 /**
- * PolyClawster Setup
+ * PolyClawster Setup — Option C (Non-Custodial)
+ *
+ * Generates a Polygon wallet locally, derives Polymarket CLOB credentials,
+ * and registers the wallet address on polyclawster.com.
+ *
+ * Private key stays on THIS machine only. polyclawster.com never sees it.
  *
  * Usage:
- *   node setup.js --auto                      # Auto-create agent wallet
- *   node setup.js --auto --name "My Agent"    # With custom name
- *   node setup.js --auto --ref REF_CODE       # With referral code
+ *   node setup.js --auto                    # Create agent wallet
+ *   node setup.js --auto --name "My Agent"  # With custom name
+ *   node setup.js --derive-clob             # Re-derive CLOB creds (if missing)
+ *   node setup.js --info                    # Show current config
  */
 'use strict';
 const fs   = require('fs');
@@ -15,25 +21,38 @@ const https = require('https');
 const CONFIG_DIR  = path.join(process.env.HOME || '/root', '.polyclawster');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const API_BASE    = 'https://polyclawster.com';
+const RELAY_URL   = 'https://polyclawster.com/api/clob-relay';
 
+// ── Config helpers ────────────────────────────────────────────────────────────
+function loadConfig() {
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return null; }
+}
+
+function saveConfig(cfg) {
+  fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  try { fs.chmodSync(CONFIG_FILE, 0o600); } catch {} // restrict read permissions
+}
+
+// ── HTTP helpers ──────────────────────────────────────────────────────────────
 function postJSON(url, body) {
   return new Promise((resolve, reject) => {
-    const u = new URL(url);
+    const u       = new URL(url);
     const payload = JSON.stringify(body);
-    const req = https.request({
+    const req     = https.request({
       hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      path:     u.pathname + (u.search || ''),
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
         'Content-Length': Buffer.byteLength(payload),
-        'User-Agent': 'polyclawster-skill/1.2',
+        'User-Agent':     'polyclawster-skill/2.0',
       },
-      timeout: 15000,
+      timeout: 20000,
     }, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON: ' + d.slice(0, 100))); } });
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON: ' + d.slice(0, 80))); } });
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
@@ -42,99 +61,172 @@ function postJSON(url, body) {
   });
 }
 
-function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return null; }
+// ── Derive Polymarket CLOB credentials via relay (geo-bypass) ─────────────────
+// createApiKey uses L1 auth (wallet signs a timestamp message) — private key stays local
+async function deriveClobCreds(wallet) {
+  const { ClobClient } = await import('@polymarket/clob-client');
+  // ClobClient with no creds → L1-only (createApiKey uses L1)
+  const client = new ClobClient(RELAY_URL, 137, wallet);
+  const creds  = await client.createApiKey(0); // nonce=0
+  return {
+    clobApiKey:        creds.key,
+    clobApiSecret:     creds.secret,
+    clobApiPassphrase: creds.passphrase,
+  };
 }
 
-function saveConfig(cfg) {
-  fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
-}
-
+// ── Main: auto setup ──────────────────────────────────────────────────────────
 async function autoSetup(opts = {}) {
   const existing = loadConfig();
-  if (existing?.agentId && existing?.walletAddress) {
+  if (existing?.agentId && existing?.walletAddress && existing?.privateKey) {
     console.log('✅ Already configured!');
-    console.log(`   Agent ID: ${existing.agentId}`);
-    console.log(`   Wallet:   ${existing.walletAddress}`);
+    console.log(`   Wallet:    ${existing.walletAddress}`);
+    console.log(`   Agent ID:  ${existing.agentId}`);
     console.log(`   Dashboard: ${existing.dashboard}`);
     console.log('');
-    console.log('Delete ~/.polyclawster/config.json to reconfigure.');
+    console.log('To reconfigure, delete ~/.polyclawster/config.json');
     return existing;
   }
 
-  const name     = opts.name     || 'OpenClaw Agent';
-  const strategy = opts.strategy || '';
-  const claimCode = opts.claimCode || undefined;
+  // 1. Generate wallet locally
+  console.log('🔐 Generating Polygon wallet locally...');
+  const { ethers } = await import('ethers');
+  const wallet = ethers.Wallet.createRandom();
+  console.log(`   Address:    ${wallet.address}`);
+  console.log(`   PrivKey:    ${wallet.privateKey.slice(0, 10)}... (stored locally only)`);
 
-  console.log('🤖 Creating agent on PolyClawster...');
+  // 2. Sign ownership proof
+  const ownershipSig = await wallet.signMessage('polyclawster-register');
 
+  // 3. Register wallet address on polyclawster.com
+  console.log('');
+  console.log('📡 Registering on PolyClawster (wallet address only — no private key sent)...');
   const result = await postJSON(`${API_BASE}/api/agents`, {
-    action: 'register',
-    name,
-    emoji: '🤖',
-    strategy,
-    claimCode,
+    action:       'register',
+    name:         opts.name     || 'OpenClaw Agent',
+    emoji:        opts.emoji    || '🤖',
+    strategy:     opts.strategy || '',
+    walletAddress: wallet.address,
+    ownershipSig,
+    claimCode:    opts.claimCode,
   });
 
   if (!result.ok) {
-    throw new Error('Registration failed: ' + (result.error || 'unknown'));
+    throw new Error('Registration failed: ' + (result.error || JSON.stringify(result)));
   }
 
+  // 4. Derive CLOB API credentials via relay
+  console.log('');
+  console.log('🔑 Deriving Polymarket CLOB credentials (via relay for geo-bypass)...');
+  let clobCreds = { clobApiKey: null, clobApiSecret: null, clobApiPassphrase: null };
+  try {
+    clobCreds = await deriveClobCreds(wallet);
+    console.log('   CLOB key:        ' + clobCreds.clobApiKey?.slice(0, 12) + '...');
+    console.log('   CLOB secret:     derived ✅');
+    console.log('   CLOB passphrase: derived ✅');
+  } catch (e) {
+    console.warn('   ⚠️  CLOB derivation failed — demo mode works, live trading needs fix.');
+    console.warn('   Error:', e.message);
+    console.warn('   Retry later: node scripts/setup.js --derive-clob');
+  }
+
+  // 5. Save config locally (private key + CLOB creds — never sent anywhere)
   const config = {
-    agentId:       result.agentId,
-    apiKey:        result.apiKey,
-    walletAddress: result.walletAddress,
-    dashboard:     result.dashboard,
-    createdAt:     new Date().toISOString(),
+    // Identity
+    walletAddress: wallet.address,
+    privateKey:    wallet.privateKey,   // ← stays on THIS machine ONLY
+
+    // polyclawster.com tracking
+    agentId:  result.agentId,
+    apiKey:   result.apiKey,            // for signals/portfolio/demo calls
+    dashboard: result.dashboard,
+
+    // Polymarket CLOB access (derived from private key, used for request signing)
+    clobRelayUrl:      RELAY_URL,       // geo-bypass proxy
+    clobApiKey:        clobCreds.clobApiKey,
+    clobApiSecret:     clobCreds.clobApiSecret,
+    clobApiPassphrase: clobCreds.clobApiPassphrase,
+
+    createdAt: new Date().toISOString(),
   };
 
   saveConfig(config);
 
   console.log('');
-  console.log('✅ Agent created!');
-  console.log(`   Name:      ${name}`);
-  console.log(`   Wallet:    ${result.walletAddress}`);
-  console.log(`   API Key:   ${result.apiKey}`);
+  console.log('✅ Agent ready!');
+  console.log(`   Wallet:    ${wallet.address}`);
+  console.log(`   Agent ID:  ${result.agentId}`);
   console.log(`   Dashboard: ${result.dashboard}`);
+  console.log(`   Config:    ${CONFIG_FILE} (permissions: 600)`);
   console.log('');
-  console.log('💰 Deposit USDC (Polygon network) to start live trading:');
-  console.log(`   ${result.walletAddress}`);
+  console.log('💰 Deposit USDC (Polygon network) for live trading:');
+  console.log(`   ${wallet.address}`);
   console.log('');
-  console.log('🎮 You have $10 demo balance to start with.');
+  console.log('⚠️  First live trade needs on-chain USDC approval (requires POL for gas):');
+  console.log('   node scripts/approve.js');
   console.log('');
-  console.log('📋 Next steps:');
-  console.log('   Browse markets:  node scripts/browse.js "crypto"');
-  console.log('   Trade (demo):    node scripts/trade.js --market "bitcoin-100k" --side YES --amount 2 --demo');
-  console.log('   Check balance:   node scripts/balance.js');
-  console.log('   Auto-trade:      node scripts/auto.js --min-score 7 --max-bet 5 --dry-run');
+  console.log('🎮 $10 demo balance ready:');
+  console.log('   node scripts/browse.js "crypto"');
+  console.log('   node scripts/trade.js --market "bitcoin-100k" --side YES --amount 2 --demo');
 
   return config;
 }
 
-module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE };
+// ── Re-derive CLOB creds ──────────────────────────────────────────────────────
+async function deriveClobOnly() {
+  const config = loadConfig();
+  if (!config?.privateKey) {
+    throw new Error('No config found. Run: node scripts/setup.js --auto');
+  }
 
+  console.log('🔑 Re-deriving Polymarket CLOB credentials...');
+  const { ethers } = await import('ethers');
+  const wallet = new ethers.Wallet(config.privateKey);
+  const creds  = await deriveClobCreds(wallet);
+
+  saveConfig({ ...config, ...creds });
+  console.log('✅ CLOB credentials updated:');
+  console.log('   Key:        ' + creds.clobApiKey?.slice(0, 12) + '...');
+  console.log('   Secret:     derived ✅');
+  console.log('   Passphrase: derived ✅');
+}
+
+// ── Show info ─────────────────────────────────────────────────────────────────
+function showInfo() {
+  const config = loadConfig();
+  if (!config) { console.log('No config. Run: node scripts/setup.js --auto'); return; }
+  console.log('📋 PolyClawster Agent Config:');
+  console.log(`   Wallet:       ${config.walletAddress}`);
+  console.log(`   Agent ID:     ${config.agentId}`);
+  console.log(`   Dashboard:    ${config.dashboard}`);
+  console.log(`   CLOB relay:   ${config.clobRelayUrl || '(not set)'}`);
+  console.log(`   CLOB key:     ${config.clobApiKey ? config.clobApiKey.slice(0, 12) + '...' : '(not derived)'}`);
+  console.log(`   Private key:  ${config.privateKey ? config.privateKey.slice(0, 10) + '... (local)' : '(missing!)'}`);
+  console.log(`   Created:      ${config.createdAt || 'unknown'}`);
+}
+
+module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE, API_BASE, RELAY_URL };
+
+// ── CLI ───────────────────────────────────────────────────────────────────────
 if (require.main === module) {
   const args = process.argv.slice(2);
 
-  if (args.includes('--auto') || args.length === 0) {
-    const nameIdx = args.indexOf('--name');
-    const name = nameIdx >= 0 ? args[nameIdx + 1] : undefined;
-    const refIdx = args.indexOf('--ref');
-    const ref = refIdx >= 0 ? args[refIdx + 1] : undefined;
-    const claimIdx = args.indexOf('--claim');
-    const claimCode = claimIdx >= 0 ? args[claimIdx + 1] : undefined;
+  const getArg = f => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
 
-    autoSetup({ name, claimCode }).catch(e => {
-      console.error('❌ Error:', e.message);
-      process.exit(1);
-    });
+  if (args.includes('--info')) {
+    showInfo();
+  } else if (args.includes('--derive-clob')) {
+    deriveClobOnly().catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
+  } else if (args.includes('--auto') || args.length === 0) {
+    autoSetup({
+      name:      getArg('--name'),
+      claimCode: getArg('--claim') || getArg('--ref'),
+    }).catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
   } else {
-    console.log('PolyClawster Setup');
-    console.log('');
     console.log('Usage:');
-    console.log('  node setup.js --auto                   # Create agent');
-    console.log('  node setup.js --auto --name "Trader"   # With name');
-    console.log('  node setup.js --auto --claim PC-XXXXX  # Link to TMA account');
+    console.log('  node setup.js --auto              # Create agent');
+    console.log('  node setup.js --auto --name "X"   # With name');
+    console.log('  node setup.js --info              # Show config');
+    console.log('  node setup.js --derive-clob       # Re-derive CLOB creds');
   }
 }
