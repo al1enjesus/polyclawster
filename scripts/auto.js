@@ -135,11 +135,14 @@ async function runAutoTrade(opts = {}) {
       break;
     }
 
-    const slug   = signal.slug || signal.market_slug || '';
-    const market = signal.question || signal.market || slug;
-    const side   = signal.side || signal.recommended_side || 'YES';
-    const score  = parseFloat(signal.score || signal.signal_score || 0);
-    const betAmt = Math.min(maxBet, balance - totalSpent);
+    const slug        = signal.slug || signal.market_slug || '';
+    const market      = signal.question || signal.market || slug;
+    const side        = (signal.side || signal.recommended_side || 'YES').toUpperCase();
+    const score       = parseFloat(signal.score || signal.signal_score || 0);
+    const betAmt      = Math.min(maxBet, balance - totalSpent);
+    const conditionId = signal.conditionId || signal.marketId || null;
+    const tokenIdYes  = signal.tokenIdYes || null;
+    const tokenIdNo   = signal.tokenIdNo  || null;
 
     // Skip if already have open bet on this market
     if (openMarkets.has(slug) || openMarkets.has(market)) {
@@ -159,7 +162,15 @@ async function runAutoTrade(opts = {}) {
 
     try {
       const { executeTrade } = require('./trade');
-      const result = await executeTrade({ market: slug || market, side, amount: betAmt, isDemo });
+      const result = await executeTrade({
+        market: slug || market,
+        conditionId,
+        tokenIdYes,
+        tokenIdNo,
+        side,
+        amount: betAmt,
+        isDemo,
+      });
 
       if (result.ok !== false) {
         const id = result.betId || result.orderID || '?';

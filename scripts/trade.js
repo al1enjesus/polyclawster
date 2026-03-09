@@ -104,7 +104,7 @@ async function demoTrade({ market, side, amount, config }) {
 }
 
 // ── Live trade (local signing → relay → Polymarket CLOB) ─────────────────────
-async function liveTrade({ market, conditionId, side, amount, config }) {
+async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, config }) {
   if (!config.privateKey) {
     throw new Error('No private key in config. Run: node scripts/setup.js --auto');
   }
@@ -133,11 +133,17 @@ async function liveTrade({ market, conditionId, side, amount, config }) {
   const client = new ClobClient(config.clobRelayUrl, 137, wallet, creds, SignatureType.EOA);
 
   // Resolve tokenId for the side we want to trade
+  // Priority: 1) direct tokenId from signal, 2) CLOB lookup by conditionId, 3) Gamma lookup by slug
   const sideUpper = side.toUpperCase();
   let tokenId;
 
-  if (conditionId) {
-    // Fetch market from CLOB via relay (uses conditionId)
+  if (tokenIdYes || tokenIdNo) {
+    // Fast path: signal already includes token IDs — no extra API call needed
+    tokenId = sideUpper === 'NO' ? tokenIdNo : tokenIdYes;
+    if (!tokenId) throw new Error(`Signal missing tokenId${sideUpper === 'NO' ? 'No' : 'Yes'}`);
+    console.log('   Token ID from signal (no lookup needed)');
+  } else if (conditionId) {
+    // Fetch market from CLOB via relay
     console.log('   Resolving market from CLOB...');
     const mkt = await client.getMarket(conditionId).catch(() => null);
     if (!mkt?.tokens) throw new Error('Market not found on CLOB: ' + conditionId);
@@ -187,7 +193,7 @@ async function liveTrade({ market, conditionId, side, amount, config }) {
 }
 
 // ── Main entry point (used by auto.js and CLI) ──────────────────────────────
-async function executeTrade({ market, conditionId, side, amount, isDemo }) {
+async function executeTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, isDemo }) {
   const config = loadConfig();
   if (!config?.agentId) throw new Error('Not configured. Run: node scripts/setup.js --auto');
 
@@ -212,7 +218,7 @@ async function executeTrade({ market, conditionId, side, amount, isDemo }) {
   }
 
   // Live trade
-  const r = await liveTrade({ market, conditionId, side: sideUpper, amount: amt, config });
+  const r = await liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side: sideUpper, amount: amt, config });
   if (!r.ok) throw new Error(r.error || 'Live trade failed');
 
   console.log('');

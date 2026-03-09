@@ -6,8 +6,14 @@ metadata:
     "openclaw": {
       "requires": { "bins": ["node"] },
       "permissions": {
-        "network": ["polyclawster.com", "polygon-rpc.com"],
-        "fs": { "write": ["~/.polyclawster/config.json"] }
+        "network": [
+          "polyclawster.com",
+          "polygon-rpc.com"
+        ],
+        "fs": {
+          "write": ["~/.polyclawster/config.json"],
+          "read":  ["~/.polyclawster/config.json"]
+        }
       },
       "credentials": [
         {
