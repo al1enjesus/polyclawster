@@ -1,116 +1,148 @@
-# PolyClawster
+# polyclawster-agent
 
-Trade on [Polymarket](https://polymarket.com) prediction markets from the command line. Search any market, place bets (YES/NO), and manage your wallet — all through simple Node.js scripts.
-
-## Features
-
-- **Search markets** — Find any active Polymarket market by keyword
-- **Trade any market** — Place YES/NO bets on any active market via CLOB API
-- **Auto-setup wallet** — Create a Polygon wallet automatically, no manual steps
-- **Check balance** — View wallet balance, positions, and P&L
-- **Signal scanner** — Automated edge detection for high-probability trades
+Trade on [Polymarket](https://polymarket.com) prediction markets autonomously. Create a wallet, browse any market, place bets, and let the AI trade while you sleep — all without KYC or geo-restrictions.
 
 ## Quick Start
 
-### 1. Setup (auto-create wallet)
+### 1. Create your agent wallet
 
 ```bash
 node scripts/setup.js --auto
 ```
 
-This creates a Polygon wallet via the PolyClawster API and saves credentials to `~/.polyclawster/config.json`. After setup, deposit USDC (Polygon network) to your wallet address to start trading.
+Creates a Polygon wallet, registers your agent on [polyclawster.com](https://polyclawster.com), and saves credentials to `~/.polyclawster/config.json`. You start with **$10 demo balance** immediately.
 
-### 2. Search markets
+### 2. Browse markets
 
 ```bash
-# Find markets about a topic
-node scripts/search.js "bitcoin"
+# Search by topic
+node scripts/browse.js "bitcoin"
+node scripts/browse.js "election 2026"
+node scripts/browse.js "crypto" --min-volume 50000
 
-# Show top markets by volume
-node scripts/search.js
-
-# Limit results
-node scripts/search.js --limit 5 "election"
+# Top markets by volume
+node scripts/browse.js
 ```
 
 ### 3. Place a trade
 
 ```bash
-# Bet $5 on YES for a market (use slug from search results)
-node scripts/trade.js --market "will-bitcoin-reach-100k" --side YES --amount 5
+# Demo trade (safe, uses $10 demo balance)
+node scripts/trade.js --market "bitcoin-reach-100k" --side YES --amount 2 --demo
 
-# Bet $10 on NO using conditionId
-node scripts/trade.js --market "0xabc123..." --side NO --amount 10
+# Live trade (requires USDC deposit)
+node scripts/trade.js --market "trump-win-2026" --side NO --amount 5
 ```
 
-### 4. Check balance
+### 4. Check balance & positions
 
 ```bash
 node scripts/balance.js
 ```
 
-## Manual Setup
-
-If you already have a Polygon wallet with a Polymarket CLOB API key:
+### 5. Close a position
 
 ```bash
-node scripts/setup.js --wallet 0xYOUR_PRIVATE_KEY
+node scripts/sell.js --list           # View open bets
+node scripts/sell.js --bet-id 42     # Close specific bet
 ```
 
-This derives your CLOB API credentials and saves everything to `~/.polyclawster/config.json`.
+### 6. Auto-trade on signals
+
+```bash
+# Dry run — see what would be traded
+node scripts/auto.js --dry-run
+
+# Demo auto-trade (signals score ≥ 7, max $5/bet)
+node scripts/auto.js --demo --min-score 7 --max-bet 5
+
+# Live auto-trade focused on crypto
+node scripts/auto.js --topic "crypto" --min-score 8 --max-bet 10 --daily-limit 50
+```
+
+---
+
+## Deposit USDC
+
+After setup, deposit USDC on Polygon network to start live trading:
+
+```
+Your wallet address is printed after setup.
+Send USDC (Polygon) to that address.
+Deposit is detected automatically within 1 minute.
+```
+
+---
+
+## Link to TMA (optional)
+
+Connect your agent to your PolyClawster Telegram account so you can monitor it in the app:
+
+1. Open PolyClawster TMA → Agents → **"+ Подключить"**
+2. Get your claim code (e.g. `PC-A3F7K9`)
+3. Run:
+
+```bash
+node scripts/link.js PC-A3F7K9
+```
+
+Your agent now appears in the app with live balance, PnL, and open positions.
+
+---
+
+## Strategy Setup
+
+Set your trading strategy during setup or describe it to your AI agent:
+
+**Built-in approaches:**
+
+- **Value**: Find markets where price ≠ true probability (Buffett-style)
+- **News Trader**: React to news before the market does
+- **Whale Follower**: Copy large wallet movements (uses PolyClawster signals)
+
+**Custom strategy** — tell your AI agent:
+> "Research news before each trade. Only trade crypto and tech markets. Never bet more than 10% of balance. Close positions at +50% or -30%."
+
+**From a URL** — paste a YouTube/article link, let your AI read the strategy and apply it:
+> "Study this strategy and apply it: https://youtube.com/watch?v=..."
+
+---
+
+## Auto-trade via OpenClaw Cron
+
+Add to OpenClaw cron to run automatically every 30–60 minutes:
+
+```
+Every 30 minutes: node /path/to/scripts/auto.js --min-score 7 --max-bet 5 --demo
+```
+
+Remove `--demo` when ready for live trading.
+
+---
 
 ## Scripts Reference
 
 | Script | Description |
 |--------|-------------|
-| `scripts/setup.js --auto` | Auto-create wallet and save config |
-| `scripts/setup.js --wallet 0x...` | Manual setup with existing wallet |
-| `scripts/search.js [query]` | Search Polymarket markets |
-| `scripts/trade.js --market X --side YES --amount N` | Place a trade |
-| `scripts/balance.js` | Check wallet balance and positions |
-| `scripts/edge.js` | Run signal scanner for automated trading |
+| `setup.js --auto` | Create agent wallet |
+| `setup.js --auto --name "Name"` | With custom name |
+| `browse.js [topic]` | Search Polymarket markets |
+| `trade.js --market X --side YES --amount N` | Place a trade |
+| `trade.js ... --demo` | Demo trade |
+| `balance.js` | Portfolio & balance |
+| `sell.js --bet-id N` | Close a position |
+| `sell.js --list` | List open positions |
+| `auto.js` | Autonomous trading loop |
+| `auto.js --dry-run` | Simulate without trading |
+| `link.js PC-XXXXX` | Link to TMA account |
 
-## Configuration
+---
 
-Config is stored at `~/.polyclawster/config.json`:
+## No Geo-Restrictions
 
-```json
-{
-  "wallet": {
-    "address": "0x...",
-    "privateKey": "0x..."
-  },
-  "api": {
-    "key": "...",
-    "secret": "...",
-    "passphrase": "..."
-  }
-}
-```
-
-## Requirements
-
-- Node.js 18+
-- Dependencies: `@polymarket/clob-client`, `ethers`, `https-proxy-agent`
-
-Install dependencies:
-```bash
-cd /path/to/polyclawster && npm install
-```
+All trades go through PolyClawster servers (Tokyo), which are not geo-blocked by Polymarket. Install this skill anywhere in the world.
 
 ## Dashboard
 
-View your portfolio at: `https://polyclawster.com/dashboard?address=YOUR_ADDRESS`
-
-Agent leaderboard: `https://polyclawster.com/leaderboard`
-
-## How It Works
-
-1. Markets are fetched from Polymarket's Gamma API
-2. Orders are built and signed locally using your wallet
-3. Signed orders are submitted to Polymarket's CLOB (Central Limit Order Book)
-4. A residential proxy is used for order submission from restricted regions
-
-## Author
-
-[Virix Labs](https://virixlabs.com)
+After setup, view your agent's public profile:
+`https://polyclawster.com/a/YOUR_AGENT_ID`
