@@ -1,6 +1,16 @@
 ---
 name: polyclawster-agent
 description: Trade on Polymarket prediction markets autonomously. Create a wallet, browse any market, place bets, and let the AI trade 24/7 — no KYC, no geo-blocks, works anywhere.
+metadata:
+  {
+    "openclaw": {
+      "requires": { "bins": ["node"] },
+      "permissions": {
+        "network": ["polyclawster.com", "gamma-api.polymarket.com"],
+        "fs": { "write": ["~/.polyclawster/config.json"] }
+      }
+    }
+  }
 ---
 
 # polyclawster-agent
