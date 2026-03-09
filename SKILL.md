@@ -8,7 +8,14 @@ metadata:
       "permissions": {
         "network": ["polyclawster.com"],
         "fs": { "write": ["~/.polyclawster/config.json"] }
-      }
+      },
+      "credentials": [
+        {
+          "key": "POLYCLAWSTER_API_KEY",
+          "description": "Agent API key from ~/.polyclawster/config.json. Generated automatically during setup. Authorizes all trade, portfolio, and sell operations on polyclawster.com.",
+          "required": false
+        }
+      ]
     }
   }
 ---

@@ -1,7 +1,12 @@
 {
   "name": "polyclawster",
-  "version": "1.2.3",
-  "description": "Trade on Polymarket prediction markets — search any market, place bets, and auto-trade via AI signals. No KYC, no geo-blocks.",
+  "version": "1.2.4",
+  "description": "Trade on Polymarket prediction markets via the PolyClawster service. Browse markets, place bets, and auto-trade via AI signals.",
+  "homepage": "https://polyclawster.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/al1enjesus/polyclawster.git"
+  },
   "main": "scripts/auto.js",
   "scripts": {
     "setup": "node scripts/setup.js --auto",
