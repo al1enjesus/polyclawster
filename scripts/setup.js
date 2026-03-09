@@ -90,7 +90,8 @@ async function autoSetup(opts = {}) {
 
   // 1. Generate wallet locally
   console.log('🔐 Generating Polygon wallet locally...');
-  const { ethers } = await import('ethers');
+  const ethersModule = await import('ethers');
+  const ethers = ethersModule.default || ethersModule;
   const wallet = ethers.Wallet.createRandom();
   console.log(`   Address:    ${wallet.address}`);
   console.log(`   PrivKey:    ${wallet.privateKey.slice(0, 10)}... (stored locally only)`);
@@ -180,7 +181,8 @@ async function deriveClobOnly() {
   }
 
   console.log('🔑 Re-deriving Polymarket CLOB credentials...');
-  const { ethers } = await import('ethers');
+  const ethersModule = await import('ethers');
+  const ethers = ethersModule.default || ethersModule;
   const wallet = new ethers.Wallet(config.privateKey);
   const creds  = await deriveClobCreds(wallet);
 

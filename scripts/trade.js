@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PolyClawster Trade
+ * PolyClawster Trade — Option C (Non-Custodial)
  *
  * Demo mode:  calls polyclawster.com API — fast, no gas, uses $10 demo balance
  * Live mode:  signs order LOCALLY with your private key → submits via relay → Polymarket CLOB
@@ -9,6 +9,14 @@
  *   node trade.js --market "bitcoin-100k" --side YES --amount 2 --demo
  *   node trade.js --market "trump-win"    --side NO  --amount 5
  *   node trade.js --condition 0xABC123    --side YES --amount 3
+ *
+ * How live trading works:
+ *   1. Resolve market → get conditionId + tokenYes/tokenNo
+ *   2. Create wallet from local private key (~/.polyclawster/config.json)
+ *   3. Sign order locally (EIP-712 + HMAC)
+ *   4. Submit via polyclawster.com/api/clob-relay (Tokyo, geo-bypass)
+ *   5. Relay records trade in Supabase (identified by wallet address)
+ *   Private key NEVER leaves this machine.
  */
 'use strict';
 const https = require('https');
@@ -35,7 +43,7 @@ function postJSON(url, body, apiKey) {
     }, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON')); } });
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON: ' + d.slice(0, 100))); } });
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
@@ -60,14 +68,16 @@ function getJSON(url) {
   });
 }
 
-// ── Resolve market data (tokenId, conditionId, price) ────────────────────────
+// ── Resolve market data ──────────────────────────────────────────────────────
+// Returns { conditionId, question, tokenYes, tokenNo }
 async function resolveMarket(slug) {
+  // polyclawster.com/api/market-lookup wraps Gamma API (handles CORS + caching)
   const url = `${API_BASE}/api/market-lookup?slug=${encodeURIComponent(slug)}`;
   const data = await getJSON(url);
   const mkt = data?.market;
   if (!mkt?.conditionId) throw new Error(`Market not found: "${slug}"`);
 
-  // Parse tokenIds from clobTokenIds JSON string: "[\"tokenYes\",\"tokenNo\"]"
+  // clobTokenIds is a JSON string: '["tokenYes","tokenNo"]'
   let tokenIds = [];
   try { tokenIds = JSON.parse(mkt.clobTokenIds || '[]'); } catch {}
 
@@ -105,10 +115,10 @@ async function liveTrade({ market, conditionId, side, amount, config }) {
   const { ethers }                              = await import('ethers');
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
-  // Reconstruct wallet from local private key
+  // Reconstruct wallet from local private key (never sent anywhere)
   const wallet = new ethers.Wallet(config.privateKey);
 
-  // Build CLOB credentials (used for L2 request auth — HMAC signing happens locally)
+  // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {
     key:        config.clobApiKey,
     secret:     config.clobApiSecret,
@@ -116,47 +126,55 @@ async function liveTrade({ market, conditionId, side, amount, config }) {
   };
 
   // ClobClient pointed at relay for geo-bypass
-  // All API calls (tick-size, fee-rate, price discovery) go: agent → relay → clob.polymarket.com
-  // Order signing (EIP-712): done locally by wallet
-  // Request signing (HMAC): done locally by creds.secret
-  // Private key: NEVER sent anywhere
+  // - API calls: agent → relay (Tokyo) → clob.polymarket.com
+  // - EIP-712 signing: done locally by wallet private key
+  // - HMAC signing: done locally by creds.secret
+  // - Private key: NEVER sent to relay or anywhere else
   const client = new ClobClient(config.clobRelayUrl, 137, wallet, creds, SignatureType.EOA);
 
-  // Resolve tokenId
+  // Resolve tokenId for the side we want to trade
+  const sideUpper = side.toUpperCase();
   let tokenId;
+
   if (conditionId) {
-    // Fetch tokens from CLOB via relay
+    // Fetch market from CLOB via relay (uses conditionId)
+    console.log('   Resolving market from CLOB...');
     const mkt = await client.getMarket(conditionId).catch(() => null);
-    if (!mkt?.tokens) throw new Error('Market not found by conditionId: ' + conditionId);
-    const sideUpper = side.toUpperCase();
+    if (!mkt?.tokens) throw new Error('Market not found on CLOB: ' + conditionId);
     const yesToken = mkt.tokens.find(t => t.outcome === 'Yes');
     const noToken  = mkt.tokens.find(t => t.outcome === 'No');
     tokenId = sideUpper === 'NO' ? noToken?.token_id : yesToken?.token_id;
-    if (!tokenId) throw new Error('Could not resolve tokenId from market');
+    if (!tokenId) throw new Error('Could not resolve tokenId from CLOB market');
   } else {
-    // Resolve via polyclawster.com
+    // Resolve via polyclawster.com → Gamma API
+    console.log('   Resolving market from Gamma...');
     const mkt = await resolveMarket(market);
-    tokenId = side.toUpperCase() === 'NO' ? mkt.tokenNo : mkt.tokenYes;
-    if (!tokenId) throw new Error(`No tokenId for ${side} on "${market}"`);
+    tokenId = sideUpper === 'NO' ? mkt.tokenNo : mkt.tokenYes;
+    if (!tokenId) throw new Error(`No tokenId for ${sideUpper} on "${market}"`);
+    console.log(`   Market: ${mkt.question}`);
   }
 
   console.log(`   Token ID: ${tokenId.slice(0, 20)}...`);
 
-  // Create market order and sign locally (EIP-712 signing with local private key)
+  // Polymarket CLOB order mechanics:
+  //   - To bet YES: BUY the YES token (tokenYes, Side.BUY)
+  //   - To bet NO:  BUY the NO token  (tokenNo,  Side.BUY)
+  // Both sides are BUY orders — you're buying outcome tokens.
+  // SELL is only for closing/exiting an existing position.
   console.log('   Signing order locally (private key stays on your machine)...');
-  const clob_side = side.toUpperCase() === 'NO' ? Side.SELL : Side.BUY;
   const order = await client.createMarketOrder({
     tokenID: tokenId,
-    side:    clob_side,
+    side:    Side.BUY,   // Always BUY — we select which token (YES/NO) via tokenId
     amount,
   });
 
-  // Submit order via relay (relay forwards to clob.polymarket.com + records in Supabase)
+  // Submit signed order via relay
+  // FOK = Fill-or-Kill: either fully fills or cancels (no partial fills)
   console.log('   Submitting via relay (Tokyo, geo-bypass)...');
   const response = await client.postOrder(order, OrderType.FOK);
 
   const orderID = response?.orderID || response?.orderId || '';
-  if (!orderID && response?.error) {
+  if (!orderID && (response?.error || response?.errorMsg)) {
     throw new Error('CLOB rejected order: ' + (response.error || response.errorMsg || JSON.stringify(response)));
   }
 
@@ -168,7 +186,7 @@ async function liveTrade({ market, conditionId, side, amount, config }) {
   };
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
+// ── Main entry point (used by auto.js and CLI) ──────────────────────────────
 async function executeTrade({ market, conditionId, side, amount, isDemo }) {
   const config = loadConfig();
   if (!config?.agentId) throw new Error('Not configured. Run: node scripts/setup.js --auto');
@@ -178,7 +196,7 @@ async function executeTrade({ market, conditionId, side, amount, isDemo }) {
   if (!amt || amt < 0.5) throw new Error('Invalid amount (min $0.5)');
   if (!market && !conditionId) throw new Error('--market or --condition required');
 
-  console.log(`📤 ${isDemo ? 'DEMO ' : 'LIVE '}trade: ${sideUpper} $${amt} on "${market || conditionId}"`);
+  console.log(`📤 ${isDemo ? 'DEMO' : 'LIVE'} trade: ${sideUpper} $${amt} on "${market || conditionId}"`);
 
   if (isDemo) {
     const r = await demoTrade({ market, side: sideUpper, amount: amt, config });
@@ -188,11 +206,12 @@ async function executeTrade({ market, conditionId, side, amount, isDemo }) {
     console.log(`   Market:  ${r.market || market}`);
     console.log(`   Side:    ${r.side || sideUpper}`);
     console.log(`   Amount:  $${r.amount || amt}`);
+    console.log(`   Price:   ${r.price || '?'}`);
     console.log(`   Bet ID:  ${r.betId}`);
     return r;
   }
 
-  // Live trade: local signing
+  // Live trade
   const r = await liveTrade({ market, conditionId, side: sideUpper, amount: amt, config });
   if (!r.ok) throw new Error(r.error || 'Live trade failed');
 
@@ -200,11 +219,11 @@ async function executeTrade({ market, conditionId, side, amount, isDemo }) {
   console.log('✅ Live trade placed!');
   console.log(`   Order ID: ${r.orderID}`);
   console.log(`   Status:   ${r.status}`);
-  console.log('   (Trade recorded on polyclawster.com via relay)');
+  console.log('   (Trade auto-recorded on polyclawster.com via relay)');
   return r;
 }
 
-module.exports = { executeTrade };
+module.exports = { executeTrade, resolveMarket };
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
 if (require.main === module) {
@@ -222,6 +241,9 @@ if (require.main === module) {
     console.log('  node trade.js --market "bitcoin-100k" --side YES --amount 5 --demo');
     console.log('  node trade.js --market "trump-win"    --side NO  --amount 10');
     console.log('  node trade.js --condition 0xABC...    --side YES --amount 3');
+    console.log('');
+    console.log('Live: signs locally, submits via geo-bypass relay. Private key stays on your machine.');
+    console.log('Demo: $10 free balance, no real funds needed.');
     process.exit(0);
   }
 
