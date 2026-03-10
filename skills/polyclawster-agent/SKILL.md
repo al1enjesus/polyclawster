@@ -25,96 +25,74 @@ metadata:
 
 Trade on [Polymarket](https://polymarket.com) prediction markets with your OpenClaw agent.
 
-## Quick Start
+## How to talk to users
 
-```
-"Set me up to trade Polymarket"
-→ runs: node scripts/setup.js --auto
-→ shows wallet address — send POL to fund it
-```
+When a user asks you to trade, check markets, or manage their Polymarket account — handle it yourself. Run the right script, interpret the output, and reply in plain language.
 
-## How It Works
+**Good example:**
+> User: "Bet $5 on Bitcoin above 100k"
+> You: "Done — placed a $5 YES bet on Bitcoin above $100k. Your position is now live. Current price was $0.62."
 
-1. **Setup** → generates Polygon wallet + registers agent on polyclawster.com
-2. **Fund** → send POL (Polygon native token) to agent wallet address
-3. **Trade** → agent auto-swaps POL → USDC.e, approves contracts, places orders
+**Bad example:**
+> User: "Bet $5 on Bitcoin above 100k"
+> You: "Run this command: `node scripts/trade.js --market bitcoin-above-100k --side YES --amount 5`"
 
-All signing happens locally. Private key never leaves the machine.
-Orders go through polyclawster.com relay (Tokyo) for Polymarket geo-bypass.
+Users don't need to see commands, file paths, or technical details. They want results.
 
-## Scripts
+**When to explain what's happening:**
+- First-time setup: "I'm creating your wallet now..." → "Your wallet is ready. Send POL to `0x...` to fund it."
+- Swaps/approvals: "Converting your POL to trading tokens..." (no need to mention USDC.e, Uniswap, or contract addresses unless asked)
+- Errors: explain what went wrong in plain terms, suggest next steps
 
-### `setup.js --auto`
-Generate wallet, register agent, derive CLOB API credentials.
-```bash
-node scripts/setup.js --auto
-```
+**Wallet address is the exception** — always share it when the user needs to send funds.
 
-### `balance.js`
-Check all balances: POL, USDC.e, CLOB available.
-```bash
-node scripts/balance.js
-```
+## Setup flow
 
-### `swap.js`
-Convert POL or native USDC to USDC.e (Polymarket's trading token).
-```bash
-node scripts/swap.js              # auto-detect and swap
-node scripts/swap.js --pol 10     # swap 10 POL → USDC.e
-node scripts/swap.js --check      # check balances only
-```
+When a user wants to start trading Polymarket:
 
-### `approve.js`
-One-time on-chain approvals for Polymarket contracts.
-Called automatically by `trade.js` when needed.
-```bash
-node scripts/approve.js           # approve all
-node scripts/approve.js --check   # check status only
-```
+1. Run `setup.js --auto` — creates a local wallet and registers on polyclawster.com
+2. Share the wallet address and tell the user to send POL (Polygon) to it
+3. Once funded, the agent is ready to trade
 
-### `browse.js`
-Search Polymarket markets.
-```bash
-node scripts/browse.js "bitcoin"
-node scripts/browse.js "politics"
-```
+Config is stored in `~/.polyclawster/config.json`.
 
-### `trade.js`
-Place a trade. Live by default — add `--demo` for paper trading.
-Before live trades, auto-checks: USDC.e balance, swaps if needed, approves if needed.
-```bash
-node scripts/trade.js --market "bitcoin-100k" --side YES --amount 5
-node scripts/trade.js --market "trump-win" --side NO --amount 2 --demo
-```
+## Scripts reference
 
-### `sell.js`
-Close/sell an existing position.
-```bash
-node scripts/sell.js --bet-id 123
-```
+All scripts are in the `scripts/` directory. Run with `node scripts/<name>.js`.
+
+| Script | Purpose | Key flags |
+|--------|---------|-----------|
+| `setup.js` | Create wallet + register agent | `--auto` (non-interactive), `--info` (show config), `--derive-clob` (re-derive API keys) |
+| `balance.js` | Check POL, USDC.e, and CLOB balances | — |
+| `swap.js` | Convert POL or native USDC → USDC.e | `--pol N`, `--usdc N`, `--check` (balances only) |
+| `approve.js` | One-time Polymarket contract approvals | `--check` (read-only) |
+| `browse.js` | Search markets by topic | Pass search term as argument |
+| `trade.js` | Place a bet (live or demo) | `--market`, `--side YES/NO`, `--amount N`, `--demo` |
+| `sell.js` | Close a position | `--bet-id N`, `--list` (show open positions) |
+| `auto.js` | Autonomous trading on AI signals | `--demo`, `--min-score N`, `--max-bet N`, `--dry-run` |
+| `link.js` | Link agent to Telegram Mini App | Pass claim code as argument |
+
+## Live trading
+
+`trade.js` handles the full flow automatically before placing a live bet:
+1. Checks USDC.e balance
+2. Swaps POL → USDC.e if needed (keeps 1 POL for gas)
+3. Runs one-time contract approvals if missing
+4. Refreshes CLOB balance
+5. Places the order (signed locally, submitted via relay)
+
+No manual steps needed — just run `trade.js` with the market and amount.
 
 ## Architecture
 
-```
-Agent (your machine)          polyclawster.com           Polymarket
-─────────────────           ─────────────────          ──────────────
-Private key (local)    →    /api/clob-relay (Tokyo)  → CLOB order book
-Signs orders locally        Geo-bypass proxy            Matches + settles
-                            Records in Supabase
-                            Leaderboard / dashboard
-```
+- **Wallet**: Polygon EOA generated locally — private key stays on this machine
+- **Trading token**: USDC.e (bridged USDC on Polygon)
+- **Funding**: user sends POL → agent swaps to USDC.e via Uniswap
+- **Relay**: orders go through polyclawster.com (Tokyo) for geo-bypass
+- **Dashboard**: polyclawster.com/a/{agent_id}
 
-- **Wallet**: Polygon EOA, generated locally
-- **Trading token**: USDC.e (bridged USDC on Polygon) — `0x2791Bca1...`
-- **Funding**: send POL → agent swaps to USDC.e via Uniswap
-- **Relay**: polyclawster.com/api/clob-relay (deployed in Tokyo, not geo-blocked)
-- **Dashboard**: polyclawster.com/a/{wallet_address}
+## Important notes
 
-## Funding
-
-Send **POL** (Polygon native token) to your agent's wallet address.
-The agent automatically converts POL → USDC.e when placing live trades.
-
-You can also send USDC.e directly if you prefer — no swap needed.
-
-**Do NOT send native USDC** — Polymarket uses USDC.e (bridged). If you accidentally send native USDC, run `node scripts/swap.js` to convert it.
+- **USDC.e ≠ native USDC** — Polymarket uses bridged USDC.e (`0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`). If user sends native USDC, use `swap.js` to convert.
+- Demo mode (`--demo`) uses a free $10 paper balance — good for testing.
+- All orders are signed locally with EIP-712 + HMAC. The relay never sees the private key.
