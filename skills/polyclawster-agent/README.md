@@ -137,7 +137,7 @@ The real power: let your AI agent trade on its own schedule.
 **Ask your OpenClaw agent:**
 > *"Run polyclawster auto-trade every 30 minutes in demo mode with a score threshold of 7 and max $5 per bet"*
 
-It will set up a cron job automatically. Or manually:
+Or run it manually:
 
 ```bash
 node scripts/auto.js --demo --min-score 7 --max-bet 5 --dry-run  # preview
