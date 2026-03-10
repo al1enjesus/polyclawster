@@ -1,6 +1,6 @@
 ---
 name: polyclawster-agent
-description: Trade on Polymarket prediction markets. Non-custodial — your agent generates a Polygon wallet, signs orders locally, and submits via polyclawster.com relay (geo-bypass). Signing key never leaves your machine. Fund with POL — agent auto-swaps to USDC.e.
+description: Trade on Polymarket prediction markets. Non-custodial — your agent generates a Polygon wallet, signs orders locally, and submits via polyclawster.com relay (geo-bypass). Private key never leaves your machine. Fund with POL — agent auto-swaps to USDC.e.
 metadata:
   {
     "openclaw": {
@@ -49,7 +49,7 @@ When a user wants to start trading Polymarket:
 2. Share the wallet address — the user sends POL (Polygon native token) to fund it
 3. Once funded, the agent can place trades
 
-Config is stored in `~/.polyclawster/config.json` (signing key, CLOB API credentials).
+Config is stored in `~/.polyclawster/config.json` (private key, CLOB API credentials).
 
 ## Scripts reference
 
@@ -83,10 +83,10 @@ All scripts are in the `scripts/` directory. Run with `node scripts/<name>.js`.
 
 ## Architecture
 
-- **Wallet**: Polygon EOA generated locally — signing key stays on this machine in `~/.polyclawster/config.json`
+- **Wallet**: Polygon EOA generated locally — private key stays on this machine in `~/.polyclawster/config.json`
 - **Trading token**: USDC.e (bridged USDC on Polygon, `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`)
 - **Funding**: user sends POL → agent swaps to USDC.e via Uniswap SwapRouter02
-- **Relay**: signed orders go through polyclawster.com (Tokyo) for geo-bypass — the relay never sees the signing key
+- **Relay**: signed orders go through polyclawster.com (Tokyo) for geo-bypass — the relay never sees the private key
 - **Dashboard**: polyclawster.com/a/{agent_id}
 
 ## Important notes

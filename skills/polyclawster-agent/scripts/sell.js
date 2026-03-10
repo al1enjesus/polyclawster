@@ -86,7 +86,7 @@ async function closePosition({ betId, isDemo }) {
   }
 
   // ── Live close: sign SELL order locally → submit via relay ──────────────
-  if (!config.signerKey) throw new Error('No private key. Run: node scripts/setup.js --auto');
+  if (!config.privateKey) throw new Error('No private key. Run: node scripts/setup.js --auto');
   if (!config.clobApiKey || !config.clobApiSecret) throw new Error('No CLOB creds. Run: node scripts/setup.js --derive-clob');
 
   // Get bet details from polyclawster.com
@@ -123,7 +123,7 @@ async function closePosition({ betId, isDemo }) {
   const { ethers } = await import('ethers');
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
-  const wallet = new ethers.Wallet(config.signerKey);
+  const wallet = new ethers.Wallet(config.privateKey);
   const creds  = {
     key:        config.clobApiKey,
     secret:     config.clobApiSecret,
