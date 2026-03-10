@@ -96,8 +96,21 @@ async function closePosition({ betId, isDemo }) {
   const bet = (portfolio.openBets || []).find(b => b.id === parseInt(betId));
   if (!bet) throw new Error(`Bet #${betId} not found or already closed`);
 
-  // market_id stores the tokenId (the CLOB token we hold)
-  const tokenId = bet.market_id;
+  // market_id may store conditionId (0x...) or actual tokenId
+  // If conditionId, resolve the actual tokenId from CLOB
+  let tokenId = bet.token_id || bet.market_id;
+  if (tokenId && tokenId.startsWith('0x')) {
+    console.log('   Resolving tokenId from conditionId...');
+    const mkt = await client.getMarket(tokenId).catch(() => null);
+    if (mkt?.tokens) {
+      const sideUpper = (bet.side || 'YES').toUpperCase();
+      const token = mkt.tokens.find(t => t.outcome.toUpperCase() === sideUpper);
+      if (token) {
+        tokenId = token.token_id;
+        console.log('   Resolved token for ' + sideUpper);
+      }
+    }
+  }
   if (!tokenId || tokenId.length < 10) {
     throw new Error('No tokenId stored for this bet — cannot sell. You may need to sell manually on Polymarket.');
   }
