@@ -29,14 +29,14 @@ const ERC20_ABI = [
 
 async function run(checkOnly = false) {
   const config = loadConfig();
-  if (!config?.privateKey) {
+  if (!config?.signerKey) {
     throw new Error('No config. Run: node scripts/setup.js --auto');
   }
 
   const { ethers } = await import('ethers');
 
   const provider = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const wallet   = new ethers.Wallet(config.privateKey, provider);
+  const wallet   = new ethers.Wallet(config.signerKey, provider);
 
   console.log(`📋 Wallet: ${wallet.address}`);
   console.log('');
@@ -55,7 +55,7 @@ async function run(checkOnly = false) {
     return;
   }
 
-  const INFINITY = ethers.constants.MaxUint256;
+  const INFINITY = ethers.BigNumber.from(2).pow(256).sub(1);
   const contracts = [
     { label: 'USDC (native)', address: USDC_CONTRACT },
     { label: 'USDC.e',        address: USDC_E_CONTRACT },
