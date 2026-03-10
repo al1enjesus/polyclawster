@@ -25,11 +25,11 @@ const ERC20_ABI = [
 
 async function run() {
   const config = loadConfig();
-  if (!config?.signerKey) throw new Error('No config. Run: node scripts/setup.js --auto');
+  if (!config?.privateKey) throw new Error('No config. Run: node scripts/setup.js --auto');
 
   const { ethers } = await import('ethers');
   const provider = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const wallet = new ethers.Wallet(config.signerKey, provider);
+  const wallet = new ethers.Wallet(config.privateKey, provider);
 
   const polBal = await provider.getBalance(wallet.address);
   const usdcNative = new ethers.Contract(USDC_NATIVE, ERC20_ABI, wallet);

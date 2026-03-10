@@ -29,14 +29,14 @@ const ERC20_ABI = [
 
 async function run(checkOnly = false) {
   const config = loadConfig();
-  if (!config?.signerKey) {
+  if (!config?.privateKey) {
     throw new Error('No config. Run: node scripts/setup.js --auto');
   }
 
   const { ethers } = await import('ethers');
 
   const provider = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const wallet   = new ethers.Wallet(config.signerKey, provider);
+  const wallet   = new ethers.Wallet(config.privateKey, provider);
 
   console.log(`📋 Wallet: ${wallet.address}`);
   console.log('');

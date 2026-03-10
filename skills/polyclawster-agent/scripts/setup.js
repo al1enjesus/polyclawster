@@ -25,7 +25,8 @@ const RELAY_URL   = 'https://polyclawster.com/api/clob-relay';
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return null; }
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); }
+  catch { return null; }
 }
 
 function saveConfig(cfg) {
@@ -98,7 +99,7 @@ function prompt(question) {
 // ── Main: auto setup ──────────────────────────────────────────────────────────
 async function autoSetup(opts = {}) {
   const existing = loadConfig();
-  if (existing?.agentId && existing?.walletAddress && existing?.signerKey) {
+  if (existing?.agentId && existing?.walletAddress && existing?.privateKey) {
     console.log('✅ Already configured!');
     console.log(`   Wallet:    ${existing.walletAddress}`);
     console.log(`   Agent ID:  ${existing.agentId}`);
@@ -133,7 +134,7 @@ async function autoSetup(opts = {}) {
   const ethers = ethersModule.default || ethersModule;
   const wallet = ethers.Wallet.createRandom();
   console.log(`   Address:    ${wallet.address}`);
-  console.log(`   Signer:    ${wallet.privateKey.slice(0, 10)}... (stored locally only)`);
+  console.log(`   PrivKey:    ${wallet.privateKey.slice(0, 10)}... (stored locally only)`);
 
   // 2. Sign ownership proof
   const ownershipSig = await wallet.signMessage('polyclawster-register');
@@ -174,7 +175,7 @@ async function autoSetup(opts = {}) {
   const config = {
     // Identity
     walletAddress: wallet.address,
-    signerKey:    wallet.privateKey,   // ← stays on THIS machine ONLY
+    privateKey:    wallet.privateKey,   // ← stays on THIS machine ONLY
 
     // polyclawster.com tracking
     agentId:  result.agentId,
@@ -215,14 +216,14 @@ async function autoSetup(opts = {}) {
 // ── Re-derive CLOB creds ──────────────────────────────────────────────────────
 async function deriveClobOnly() {
   const config = loadConfig();
-  if (!config?.signerKey) {
+  if (!config?.privateKey) {
     throw new Error('No config found. Run: node scripts/setup.js --auto');
   }
 
   console.log('🔑 Re-deriving Polymarket CLOB credentials...');
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
-  const wallet = new ethers.Wallet(config.signerKey);
+  const wallet = new ethers.Wallet(config.privateKey);
   const creds  = await deriveClobCreds(wallet);
 
   saveConfig({ ...config, ...creds });
@@ -235,13 +236,13 @@ async function deriveClobOnly() {
 // ── Rename agent (EIP-191 proof-of-ownership) ─────────────────────────────────
 async function renameAgent(newName) {
   const config = loadConfig();
-  if (!config?.signerKey || !config?.apiKey) {
+  if (!config?.privateKey || !config?.apiKey) {
     throw new Error('Not configured. Run: node scripts/setup.js --auto');
   }
 
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
-  const wallet = new ethers.Wallet(config.signerKey);
+  const wallet = new ethers.Wallet(config.privateKey);
 
   const timestamp = String(Date.now());
   const message   = `rename:${newName}:${timestamp}`;
@@ -275,7 +276,7 @@ function showInfo() {
   console.log(`   Dashboard:    ${config.dashboard}`);
   console.log(`   CLOB relay:   ${config.clobRelayUrl || '(not set)'}`);
   console.log(`   CLOB key:     ${config.clobApiKey ? config.clobApiKey.slice(0, 12) + '...' : '(not derived)'}`);
-  console.log(`   Signer key:  ${config.signerKey ? config.signerKey.slice(0, 10) + '... (local)' : '(missing!)'}`);
+  console.log(`   Private key:  ${config.privateKey ? config.privateKey.slice(0, 10) + '... (local)' : '(missing!)'}`);
   console.log(`   Created:      ${config.createdAt || 'unknown'}`);
 }
 

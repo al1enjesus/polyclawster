@@ -105,7 +105,7 @@ async function demoTrade({ market, side, amount, config }) {
 
 // ── Live trade (local signing → relay → Polymarket CLOB) ─────────────────────
 async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, config }) {
-  if (!config.signerKey) {
+  if (!config.privateKey) {
     throw new Error('No private key in config. Run: node scripts/setup.js --auto');
   }
   if (!config.clobApiKey || !config.clobApiSecret) {
@@ -116,7 +116,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
 
   // ── Auto-setup: ensure USDC.e balance + approvals ──────────────────
   const provider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
-  const signerWallet = new ethers.Wallet(config.signerKey, provider);
+  const signerWallet = new ethers.Wallet(config.privateKey, provider);
 
   var USDC_E = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
   var USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
@@ -228,7 +228,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
   // Reconstruct wallet from local private key (never sent anywhere)
-  const wallet = new ethers.Wallet(config.signerKey);
+  const wallet = new ethers.Wallet(config.privateKey);
 
   // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {
