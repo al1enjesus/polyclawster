@@ -105,7 +105,7 @@ async function demoTrade({ market, side, amount, config }) {
 
 // ── Live trade (local signing → relay → Polymarket CLOB) ─────────────────────
 async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, config }) {
-  if (!config.privateKey) {
+  if (!config.signerKey) {
     throw new Error('No private key in config. Run: node scripts/setup.js --auto');
   }
   if (!config.clobApiKey || !config.clobApiSecret) {
@@ -116,7 +116,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
 
   // ── Auto-setup: ensure USDC.e balance + approvals ──────────────────
   const provider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
-  const signerWallet = new ethers.Wallet(config.privateKey, provider);
+  const signerWallet = new ethers.Wallet(config.signerKey, provider);
 
   var USDC_E = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
   var USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
@@ -150,7 +150,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
       console.log('   Auto-swapping USDC -> USDC.e...');
       var allow = await usdcNative.allowance(signerWallet.address, SWAP_ROUTER);
       if (allow.lt(nativeBal)) {
-        await (await usdcNative.approve(SWAP_ROUTER, ethers.constants.MaxUint256, txOpts)).wait();
+        await (await usdcNative.approve(SWAP_ROUTER, ethers.BigNumber.from(2).pow(256).sub(1), txOpts)).wait();
       }
       var router = new ethers.Contract(SWAP_ROUTER, [
         'function exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) external payable returns (uint256)',
@@ -205,7 +205,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
     if (al.lt(amountNeeded)) {
       console.log('   Approving USDC.e for ' + ex.slice(0,10) + '...');
       var gp = await provider.getGasPrice();
-      await (await usdceContract.approve(ex, ethers.constants.MaxUint256, { gasLimit: 100000, gasPrice: gp.mul(2), type: 0 })).wait();
+      await (await usdceContract.approve(ex, ethers.BigNumber.from(2).pow(256).sub(1), { gasLimit: 100000, gasPrice: gp.mul(2), type: 0 })).wait();
     }
   }
 
@@ -228,7 +228,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
   // Reconstruct wallet from local private key (never sent anywhere)
-  const wallet = new ethers.Wallet(config.privateKey);
+  const wallet = new ethers.Wallet(config.signerKey);
 
   // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {

@@ -86,7 +86,7 @@ async function closePosition({ betId, isDemo }) {
   }
 
   // ── Live close: sign SELL order locally → submit via relay ──────────────
-  if (!config.privateKey) throw new Error('No private key. Run: node scripts/setup.js --auto');
+  if (!config.signerKey) throw new Error('No private key. Run: node scripts/setup.js --auto');
   if (!config.clobApiKey || !config.clobApiSecret) throw new Error('No CLOB creds. Run: node scripts/setup.js --derive-clob');
 
   // Get bet details from polyclawster.com
@@ -123,7 +123,7 @@ async function closePosition({ betId, isDemo }) {
   const { ethers } = await import('ethers');
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
-  const wallet = new ethers.Wallet(config.privateKey);
+  const wallet = new ethers.Wallet(config.signerKey);
   const creds  = {
     key:        config.clobApiKey,
     secret:     config.clobApiSecret,
@@ -156,11 +156,16 @@ async function closePosition({ betId, isDemo }) {
     throw new Error('CLOB rejected sell: ' + (response.error || response.errorMsg || JSON.stringify(response)));
   }
 
-  // Mark bet as closed on polyclawster.com
+  // Calculate return amount from the sell
+  // shares * fill_price approximation: use market order so we assume near current price
+  const returnEstimate = +(shares * (response?.avgPrice || buyPrice)).toFixed(4);
+
+  // Mark bet as closed on polyclawster.com with real return amount
   await apiCall('POST', '/api/agents', {
     action:  'close_bet',
     betId:   parseInt(betId),
     orderID,
+    returnAmount: returnEstimate,
   }, config.apiKey).catch(e => {
     console.warn('   ⚠️ Failed to update bet status on polyclawster.com:', e.message);
   });
