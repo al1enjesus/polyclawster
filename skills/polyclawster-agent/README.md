@@ -251,6 +251,14 @@ Shows: wallet address, total deposited, PnL, win rate, recent trades, leaderboar
 
 ---
 
+## 📱 Not using OpenClaw? Trade via Telegram
+
+Don't have an AI agent? Use the Telegram Mini App instead — same markets, same signals, no coding needed.
+
+👉 [@PolyClawsterBot](https://t.me/PolyClawsterBot/app)
+
+---
+
 ## Contributors
 
 <table>

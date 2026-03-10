@@ -95,3 +95,9 @@ All scripts are in the `scripts/` directory. Run with `node scripts/<name>.js`.
 - **Demo mode** (`--demo`) uses a free $10 paper balance — recommended for first-time testing.
 - All orders are signed locally with EIP-712 + HMAC. The relay forwards signed payloads without access to keys.
 - **Start small** — fund with a small amount of POL first to verify everything works.
+
+## 📱 Not using OpenClaw? Trade via Telegram
+
+Don't have an AI agent? Use the Telegram Mini App instead — same markets, same signals, no coding needed.
+
+👉 [@PolyClawsterBot](https://t.me/PolyClawsterBot/app)
