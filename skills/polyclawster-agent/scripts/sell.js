@@ -100,16 +100,21 @@ async function closePosition({ betId, isDemo }) {
   // If conditionId, resolve the actual tokenId from CLOB
   let tokenId = bet.token_id || bet.market_id;
   if (tokenId && tokenId.startsWith('0x')) {
-    console.log('   Resolving tokenId from conditionId...');
-    const mkt = await client.getMarket(tokenId).catch(() => null);
-    if (mkt?.tokens) {
-      const sideUpper = (bet.side || 'YES').toUpperCase();
-      const token = mkt.tokens.find(t => t.outcome.toUpperCase() === sideUpper);
-      if (token) {
-        tokenId = token.token_id;
-        console.log('   Resolved token for ' + sideUpper);
+    console.log('   Resolving tokenId from conditionId via CLOB...');
+    try {
+      const mktResp = await fetch(config.clobRelayUrl + '/markets/' + tokenId, {
+        headers: { 'User-Agent': 'polyclawster-skill/2.0' }
+      });
+      const mkt = await mktResp.json();
+      if (mkt?.tokens) {
+        const sideUpper = (bet.side || 'YES').toUpperCase();
+        const token = mkt.tokens.find(t => t.outcome.toUpperCase() === sideUpper);
+        if (token) {
+          tokenId = token.token_id;
+          console.log('   Resolved ' + sideUpper + ' token');
+        }
       }
-    }
+    } catch(e) { console.log('   Resolution failed:', e.message); }
   }
   if (!tokenId || tokenId.length < 10) {
     throw new Error('No tokenId stored for this bet — cannot sell. You may need to sell manually on Polymarket.');
