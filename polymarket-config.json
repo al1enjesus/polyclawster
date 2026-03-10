@@ -1,0 +1,38 @@
+{
+  "strategies": {
+    "marketMaker": {
+      "enabled": false,
+      "maxPositionUSDC": 200,
+      "orderSize": 20,
+      "targetSpreadPct": 0.02
+    },
+    "smartMoney": {
+      "enabled": true,
+      "copyTrading": false,
+      "maxCopyUSDC": 20,
+      "minTradeSize": 100,
+      "pollMs": 30000,
+      "wallets": [
+        { "name": "HourlyTrader", "addr": "0xf247584e41117bbbe4cc06e4d2c95741792a5216" },
+        { "name": "IranWhale",    "addr": "0x2974bd0059e48f215c391882976e0f1b4c8c9c23" }
+      ]
+    },
+    "priceMonitor": {
+      "enabled": true,
+      "spikeThresholdPct": 15,
+      "minLiquidity": 2000,
+      "safeBetThreshold": 0.94,
+      "safeBetMaxHours": 72,
+      "pollMs": 60000
+    }
+  },
+  "riskManagement": {
+    "maxDailyLossUSDC": 50,
+    "maxOpenPositions": 5,
+    "maxSingleBetPct": 0.15
+  },
+  "notifications": {
+    "telegram": false,
+    "console": true
+  }
+}

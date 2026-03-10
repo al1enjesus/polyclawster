@@ -1,0 +1,18 @@
+{
+  "wallet": {
+    "address": "0x6f314d7d2f50808cec1d26c1092e7729d9378d75",
+    "privateKey": "0x59b3f36eb08386106dfa5279d68cd8b5f65abed5b9cfa6009e9836b4a9ef85c5",
+    "createdAt": "2026-03-05T02:57:37.689Z"
+  },
+  "api": {
+    "key": null,
+    "secret": null,
+    "passphrase": null,
+    "note": "Will be auto-derived on first use"
+  },
+  "balance_usdc": 100.000099,
+  "created": "2026-02-28",
+  "perplexity": {
+    "apiKey": "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"
+  }
+}

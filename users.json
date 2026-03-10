@@ -1,0 +1,35 @@
+{
+  "446266116": {
+    "telegramId": "446266116",
+    "username": "Ballista_premium",
+    "firstName": "Ballista",
+    "createdAt": "2026-03-03T11:37:36.487Z",
+    "referredBy": "399089761"
+  },
+  "7576704052": {
+    "telegramId": "7576704052",
+    "address": "0x47Eb62010B2112F056695a9E9AF15Fc219E34fEa",
+    "privateKey": "0x2cdeb8831af670e6c99514dd02c439a079b4ae0d72a9820ea5069db78208162e",
+    "totalDeposited": 0,
+    "totalValue": 0,
+    "totalPnl": 0,
+    "totalProfit": 0,
+    "totalFeesPaid": 0,
+    "trades": [],
+    "active": true,
+    "createdAt": "2026-03-03T06:26:48.786Z",
+    "history": [
+      {
+        "hash": "0xd45d32df1dac463b89581443ce3d415f30cf6242a202e66d0bdc73be33b0ef07",
+        "type": "deposit",
+        "amount": 11,
+        "timestamp": 1772524395000,
+        "explorerUrl": "https://polygonscan.com/tx/0xd45d32df1dac463b89581443ce3d415f30cf6242a202e66d0bdc73be33b0ef07"
+      }
+    ],
+    "seenTxs": [],
+    "username": "virixlabs",
+    "firstName": "Virix",
+    "lastPolSwap": null
+  }
+}
