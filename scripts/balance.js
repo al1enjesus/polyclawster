@@ -1,97 +1,54 @@
 #!/usr/bin/env node
 /**
- * PolyClawster Balance
- *
- * Usage:
- *   node balance.js
+ * PolyClawster Balance — check all balances
  */
 'use strict';
-const https = require('https');
 const { loadConfig } = require('./setup');
 
-const API_BASE = 'https://polyclawster.com';
-
-function getJSON(url, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const req = https.request({
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: {
-        'User-Agent': 'polyclawster-skill/1.2',
-        ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 10000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
-  });
-}
-
-async function getWalletBalance() {
+async function run() {
   const config = loadConfig();
-  if (!config?.apiKey) {
-    throw new Error('Not configured. Run: node scripts/setup.js --auto');
+  if (!config?.privateKey) throw new Error('Not configured. Run: node scripts/setup.js --auto');
+
+  const { ethers } = await import('ethers');
+  const provider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+  const wallet = new ethers.Wallet(config.privateKey, provider);
+
+  const USDC_E = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+  const USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+
+  const usdce = new ethers.Contract(USDC_E, ['function balanceOf(address) view returns (uint256)'], provider);
+  const usdc = new ethers.Contract(USDC_NATIVE, ['function balanceOf(address) view returns (uint256)'], provider);
+
+  const polBal = await provider.getBalance(wallet.address);
+  const usdceBal = await usdce.balanceOf(wallet.address);
+  const usdcBal = await usdc.balanceOf(wallet.address);
+
+  console.log('💰 ' + wallet.address);
+  console.log('');
+  console.log('   POL:        ' + parseFloat(ethers.utils.formatEther(polBal)).toFixed(4));
+  console.log('   USDC.e:     $' + ethers.utils.formatUnits(usdceBal, 6) + '  ← trading token');
+  if (usdcBal.gt(0)) {
+    console.log('   USDC:       $' + ethers.utils.formatUnits(usdcBal, 6) + '  ← run swap.js to convert');
   }
 
-  const result = await getJSON(`${API_BASE}/api/agents?action=portfolio`, config.apiKey);
-
-  if (!result.ok) {
-    throw new Error(result.error || 'Failed to get portfolio');
+  // CLOB balance
+  if (config.clobApiKey && config.clobApiSecret) {
+    try {
+      const { ClobClient, SignatureType } = await import('@polymarket/clob-client');
+      const signer = new ethers.Wallet(config.privateKey);
+      const creds = { key: config.clobApiKey, secret: config.clobApiSecret, passphrase: config.clobApiPassphrase };
+      const client = new ClobClient('https://clob.polymarket.com', 137, signer, creds, SignatureType.EOA, signer.address);
+      await client.updateBalanceAllowance({ asset_type: 'COLLATERAL' });
+      const bal = await client.getBalanceAllowance({ asset_type: 'COLLATERAL' });
+      console.log('   CLOB:       $' + (parseInt(bal.balance) / 1e6).toFixed(2) + '  ← available for orders');
+    } catch {}
   }
 
-  return result;
+  console.log('');
+  console.log('📋 Polygonscan: https://polygonscan.com/address/' + wallet.address);
+  console.log('');
+  console.log('To fund: send POL (Polygon) to ' + wallet.address);
+  console.log('Then run: node scripts/swap.js');
 }
 
-module.exports = { getWalletBalance };
-
-if (require.main === module) {
-  const config = loadConfig();
-  if (!config?.apiKey) {
-    console.error('❌ Not configured. Run: node scripts/setup.js --auto');
-    process.exit(1);
-  }
-
-  getWalletBalance().then(r => {
-    const pnlSign = r.totalPnl >= 0 ? '+' : '';
-    console.log('');
-    console.log(`🤖 ${r.emoji || '🤖'} ${r.name}`);
-    console.log(`📍 ${r.walletAddress}`);
-    console.log('');
-    console.log('💰 Live Balance:');
-    console.log(`   Available:  $${parseFloat(r.cashBalance || 0).toFixed(2)}`);
-    console.log(`   Deposited:  $${parseFloat(r.totalDeposited || 0).toFixed(2)}`);
-    console.log(`   Total PnL:  ${pnlSign}$${parseFloat(r.totalPnl || 0).toFixed(2)}`);
-    console.log(`   Win Rate:   ${(parseFloat(r.winRate || 0) * 100).toFixed(0)}%`);
-    console.log(`   Trades:     ${r.totalBets || 0}`);
-    console.log('');
-    console.log('🎮 Demo Balance:');
-    console.log(`   Available:  $${parseFloat(r.demoBal || 0).toFixed(2)}`);
-    if (r.openBets && r.openBets.length > 0) {
-      console.log('');
-      console.log('📋 Open Bets:');
-      r.openBets.forEach(b => {
-        const mode = b.is_demo ? '[DEMO]' : '[LIVE]';
-        console.log(`   ${mode} ${b.side} $${parseFloat(b.amount).toFixed(2)} — ${b.market || 'Unknown'}`);
-      });
-    }
-    // Hint when live balance is zero
-    if (parseFloat(r.cashBalance || 0) === 0 && parseFloat(r.totalDeposited || 0) === 0) {
-      console.log('💡 No live balance yet. To start live trading:');
-      console.log(`   1. Deposit USDC.e (Polygon) to your wallet:`);
-      console.log(`      ${r.walletAddress}`);
-      console.log(`   2. Then run: node scripts/approve.js`);
-    }
-    console.log('');
-    console.log(`🔗 Dashboard: ${config.dashboard || 'https://polyclawster.com/a/' + r.agentId}`);
-  }).catch(e => {
-    console.error('❌ Error:', e.message);
-    process.exit(1);
-  });
-}
+run().catch(e => { console.error('❌', e.message); process.exit(1); });

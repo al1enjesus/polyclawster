@@ -25,7 +25,8 @@ const RELAY_URL   = 'https://polyclawster.com/api/clob-relay';
 
 // ── Config helpers ────────────────────────────────────────────────────────────
 function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return null; }
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); }
+  catch { return null; }
 }
 
 function saveConfig(cfg) {
@@ -199,11 +200,11 @@ async function autoSetup(opts = {}) {
   console.log(`   Dashboard: ${result.dashboard}`);
   console.log(`   Config:    ${CONFIG_FILE} (permissions: 600)`);
   console.log('');
-  console.log('💰 Deposit USDC (Polygon network) for live trading:');
+  console.log('💰 To fund for live trading, send POL (Polygon) to:');
   console.log(`   ${wallet.address}`);
+  console.log('   Agent auto-swaps POL → USDC.e and approves contracts on first trade.');
   console.log('');
-  console.log('⚠️  First live trade needs on-chain USDC approval (requires POL for gas):');
-  console.log('   node scripts/approve.js');
+  console.log('📊 Check balances:  node scripts/balance.js');
   console.log('');
   console.log('🎮 $10 demo balance ready:');
   console.log('   node scripts/browse.js "crypto"');
