@@ -131,6 +131,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
     'function balanceOf(address) view returns (uint256)',
     'function allowance(address,address) view returns (uint256)',
     'function approve(address,uint256) returns (bool)',
+    'function transfer(address,uint256) returns (bool)',
   ];
 
   var usdceContract = new ethers.Contract(USDC_E, ERC20_ABI, signerWallet);
