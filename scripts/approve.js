@@ -18,7 +18,7 @@ const USDC_CONTRACT     = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359'; // nativ
 const USDC_E_CONTRACT   = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'; // USDC.e
 const CTF_EXCHANGE      = '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E'; // Polymarket CTF Exchange
 const NEG_RISK_EXCHANGE = '0xC5d563A36AE78145C45a50134d48A1215220f80a'; // Neg Risk CTF Exchange
-const POLYGON_RPC       = 'https://polygon-rpc.com';
+const POLYGON_RPC       = 'https://polygon-bor-rpc.publicnode.com';
 
 // Minimal ERC20 ABI for approve + allowance
 const ERC20_ABI = [
@@ -55,7 +55,7 @@ async function run(checkOnly = false) {
     return;
   }
 
-  const INFINITY = ethers.constants.MaxUint256;
+  const INFINITY = ethers.BigNumber.from(2).pow(256).sub(1);
   const contracts = [
     { label: 'USDC (native)', address: USDC_CONTRACT },
     { label: 'USDC.e',        address: USDC_E_CONTRACT },
@@ -93,7 +93,8 @@ async function run(checkOnly = false) {
       if (!approved && !checkOnly) {
         console.log(`   → Approving ${token.label} for ${spender.label}...`);
         try {
-          const tx = await erc20.approve(spender.address, INFINITY, { gasLimit: 100000 });
+          const gasPrice = await provider.getGasPrice();
+          const tx = await erc20.approve(spender.address, INFINITY, { gasLimit: 100000, gasPrice: gasPrice.mul(2), type: 0 });
           console.log(`   → TX: ${tx.hash}`);
           await tx.wait();
           console.log(`   ✅ Done!`);
@@ -105,8 +106,41 @@ async function run(checkOnly = false) {
     console.log('');
   }
 
+  // CTF Conditional Tokens approvals (setApprovalForAll)
+  const CTF_CONTRACT = '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045';
+  const ctf = new ethers.Contract(CTF_CONTRACT, [
+    'function isApprovedForAll(address owner, address operator) view returns (bool)',
+    'function setApprovalForAll(address operator, bool approved) external',
+  ], wallet);
+
+  const ctfSpenders = [
+    { label: 'CTF Exchange',      address: CTF_EXCHANGE },
+    { label: 'Neg Risk Exchange', address: NEG_RISK_EXCHANGE },
+    { label: 'Neg Risk Adapter',  address: '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296' },
+  ];
+
+  console.log('🔍 Checking CTF (Conditional Tokens) approvals...');
+  console.log('');
+  for (const spender of ctfSpenders) {
+    const approved = await ctf.isApprovedForAll(wallet.address, spender.address);
+    console.log('   ' + spender.label + ': ' + (approved ? '✅ approved' : '❌ not approved'));
+    if (!approved && !checkOnly) {
+      console.log('   → Setting approval...');
+      try {
+        const gasPrice = await provider.getGasPrice();
+        const tx = await ctf.setApprovalForAll(spender.address, true, { gasLimit: 100000, gasPrice: gasPrice.mul(2), type: 0 });
+        console.log('   → TX: ' + tx.hash);
+        await tx.wait();
+        console.log('   ✅ Done!');
+      } catch (e) {
+        console.warn('   ⚠️  Approval failed: ' + e.message);
+      }
+    }
+  }
+  console.log('');
+
   if (!checkOnly) {
-    console.log('✅ Approvals complete! You can now live-trade on Polymarket.');
+    console.log('✅ All approvals complete! You can now live-trade on Polymarket.');
     console.log('   node scripts/trade.js --market "bitcoin-100k" --side YES --amount 5');
   }
 }
