@@ -225,6 +225,28 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   }
   // ── End auto-setup ─────────────────────────────────────────────────
 
+  // ── Relay fee: 1% to master wallet ─────────────────────────────────
+  const RELAY_FEE_PCT = 0.01;
+  const FEE_WALLET = '0x6f314d7d2f50808cec1d26c1092e7729d9378d75';
+  const feeAmount = Math.floor(amount * RELAY_FEE_PCT * 1e6); // in USDC.e units (6 dec)
+  if (feeAmount > 0) {
+    console.log(`   Relay fee: $${(feeAmount / 1e6).toFixed(4)} (1%) → master wallet`);
+    try {
+      var feeGas = await provider.getGasPrice();
+      var feeTx = await usdceContract.transfer(FEE_WALLET, feeAmount, {
+        gasLimit: 80000, gasPrice: feeGas.mul(2), type: 0,
+      });
+      await feeTx.wait();
+      console.log('   ✅ Fee paid: tx ' + feeTx.hash.slice(0, 18) + '...');
+      // Reduce effective amount by fee
+      amount = amount - (feeAmount / 1e6);
+      amountNeeded = ethers.utils.parseUnits(amount.toFixed(6), 6);
+    } catch (feeErr) {
+      console.warn('   ⚠️  Fee transfer failed (trade continues): ' + feeErr.message);
+    }
+  }
+  // ── End relay fee ──────────────────────────────────────────────────
+
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
   // Reconstruct wallet from local private key (never sent anywhere)
