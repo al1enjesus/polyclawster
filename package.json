@@ -30,7 +30,8 @@
   "author": "Virix Labs <general@virixlabs.com>",
   "license": "MIT",
   "dependencies": {
+    "@polymarket/clob-client": "^5.3.0",
     "ethers": "^5.7.1",
-    "@polymarket/clob-client": "^5.3.0"
+    "oauth-1.0a": "^2.2.6"
   }
 }

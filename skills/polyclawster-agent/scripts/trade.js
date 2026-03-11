@@ -180,11 +180,11 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
           'function wrapETH(uint256)',
         ]);
         var wrapData = iface.encodeFunctionData('wrapETH', [swapAmount]);
-        var swapData = iface.encodeFunctionData('exactInputSingle', [{
-          tokenIn: WMATIC, tokenOut: USDC_E, fee: 500,
-          recipient: signerWallet.address, amountIn: swapAmount,
-          amountOutMinimum: 0, sqrtPriceLimitX96: 0,
-        }]);
+        var swapData = iface.encodeFunctionData('exactInputSingle', [[
+          WMATIC, USDC_E, 500,
+          signerWallet.address, swapAmount,
+          0, 0
+        ]]);
         await (await router2.multicall(Math.floor(Date.now()/1000)+300, [wrapData, swapData], {
           ...txOpts, value: swapAmount,
         })).wait();
