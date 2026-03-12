@@ -1,1 +1,12 @@
+# Environment files with secrets
 .env
+.env.*
+!.env.example
+
+# Agent config files with API keys and private keys
+agent3/config.json
+agent2/.env
+
+# Logs and state
+*.log
+node_modules/
