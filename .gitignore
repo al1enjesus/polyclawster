@@ -6,6 +6,8 @@
 # Agent config files with API keys and private keys
 agent3/config.json
 agent2/.env
+KEYS.md
+**/wallet.json
 
 # Logs and state
 *.log
