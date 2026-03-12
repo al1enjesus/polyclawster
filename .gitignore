@@ -1,14 +1,65 @@
-# Environment files with secrets
+# ===== SECRETS / CREDENTIALS =====
 .env
 .env.*
 !.env.example
-
-# Agent config files with API keys and private keys
 agent3/config.json
 agent2/.env
 KEYS.md
 **/wallet.json
+polymarket-creds.json
+ton_wallet.json
+users.json
 
-# Logs and state
-*.log
+# ===== PERSONAL AI AGENT FILES =====
+AGENTS.md
+SOUL.md
+USER.md
+IDENTITY.md
+HEARTBEAT.md
+BOOTSTRAP.md
+TOOLS.md
+MEMORY.md
+memory/
+
+# ===== OPENCLAW INTERNALS =====
+.openclaw/
+.clawhub/
+.browser-profiles/
+.agents/
+.vercel/
+.pi/
+*.jsonl
+
+# ===== MARKETING / PRIVATE DOCS =====
+POLYCLAWSTER_GROWTH_PLAN.md
+POLYMARKET_STRATEGY.md
+awesome-lists-targets.md
+devto-article.md
+hackernews-post.md
+producthunt-prep.md
+reddit-post-draft.md
+reddit-posts/
+
+# ===== MEDIA / TEMP =====
+*.mp4
+*.jpg
+*.png
+*.gif
+!skills/polyclawster-agent/*.png
+screenshot_*.jpg
+slide*.jpg
+make_video.sh
+output_*.flag
+view_screenshot.html
+hb_index.html
+hb_init.js
+hb_main.css
+
+# ===== SUBPROJECTS (separate repos) =====
+polyclawster-app/
+hb-next/
+tma/
+
+# ===== NODE =====
 node_modules/
+*.log
