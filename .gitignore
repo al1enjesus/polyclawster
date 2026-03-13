@@ -1,65 +1,52 @@
-# ===== SECRETS / CREDENTIALS =====
-.env
-.env.*
+# ====================================================
+# WHITELIST STRATEGY: ignore everything by default
+# Only explicitly allowed files can be committed
+# ====================================================
+
+# Block everything
+*
+
+# Allow only specific files/dirs
+!.gitignore
 !.env.example
-agent3/config.json
-agent2/.env
-KEYS.md
-**/wallet.json
-polymarket-creds.json
-ton_wallet.json
-users.json
+!README.md
+!SECURITY.md
+!SKILL.md
+!EXTERNAL_AGENT_PROTOCOL.md
+!CHANGELOG.md
+!package.json
+!package-lock.json
 
-# ===== PERSONAL AI AGENT FILES =====
-AGENTS.md
-SOUL.md
-USER.md
-IDENTITY.md
-HEARTBEAT.md
-BOOTSTRAP.md
-TOOLS.md
-MEMORY.md
-memory/
+# Allow scripts/ folder (but not secrets inside)
+!scripts/
+scripts/*
+!scripts/*.js
 
-# ===== OPENCLAW INTERNALS =====
-.openclaw/
-.clawhub/
-.browser-profiles/
-.agents/
-.vercel/
-.pi/
-*.jsonl
+# Allow skills/ folder
+!skills/
+!skills/polyclawster-agent/
+skills/polyclawster-agent/*
+!skills/polyclawster-agent/.gitignore
+!skills/polyclawster-agent/SKILL.md
+!skills/polyclawster-agent/README.md
+!skills/polyclawster-agent/SECURITY.md
+!skills/polyclawster-agent/CHANGELOG.md
+!skills/polyclawster-agent/package.json
+!skills/polyclawster-agent/package-lock.json
+!skills/polyclawster-agent/_meta.json
+!skills/polyclawster-agent/scripts/
+skills/polyclawster-agent/scripts/*
+!skills/polyclawster-agent/scripts/*.js
+!skills/polyclawster-agent/.clawhub/
+skills/polyclawster-agent/.clawhub/*
+!skills/polyclawster-agent/.clawhub/origin.json
 
-# ===== MARKETING / PRIVATE DOCS =====
-POLYCLAWSTER_GROWTH_PLAN.md
-POLYMARKET_STRATEGY.md
-awesome-lists-targets.md
-devto-article.md
-hackernews-post.md
-producthunt-prep.md
-reddit-post-draft.md
-reddit-posts/
-
-# ===== MEDIA / TEMP =====
-*.mp4
-*.jpg
-*.png
-*.gif
-!skills/polyclawster-agent/*.png
-screenshot_*.jpg
-slide*.jpg
-make_video.sh
-output_*.flag
-view_screenshot.html
-hb_index.html
-hb_init.js
-hb_main.css
-
-# ===== SUBPROJECTS (separate repos) =====
-polyclawster-app/
-hb-next/
-tma/
-
-# ===== NODE =====
+# Always block these even if matched above
 node_modules/
-*.log
+*.env
+*.env.*
+*.key
+*.pem
+config.json
+*config*.json
+wallet.json
