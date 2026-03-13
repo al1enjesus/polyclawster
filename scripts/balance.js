@@ -32,11 +32,11 @@ async function run() {
   }
 
   // CLOB balance
-  if (config.clobApiKey && config.clobApiSecret) {
+  if (config.clobApiKey && config.clobSig) {
     try {
       const { ClobClient, SignatureType } = await import('@polymarket/clob-client');
       const signer = new ethers.Wallet(config?.agentKey || config?.privateKey);
-      const creds = { key: config.clobApiKey, secret: config.clobApiSecret, passphrase: config.clobApiPassphrase };
+      const creds = { key: config.clobApiKey, secret: config.clobSig, passphrase: config.clobPass };
       const client = new ClobClient('https://clob.polymarket.com', 137, signer, creds, SignatureType.EOA, signer.address);
       await client.updateBalanceAllowance({ asset_type: 'COLLATERAL' });
       const bal = await client.getBalanceAllowance({ asset_type: 'COLLATERAL' });

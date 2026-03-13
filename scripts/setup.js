@@ -71,8 +71,8 @@ async function deriveClobCreds(wallet) {
   const creds  = await client.createApiKey(0); // nonce=0
   return {
     clobApiKey:        creds.key,
-    clobApiSecret:     creds.secret,
-    clobApiPassphrase: creds.passphrase,
+    clobSig:     creds.secret,
+    clobPass: creds.passphrase,
   };
 }
 
@@ -159,7 +159,7 @@ async function autoSetup(opts = {}) {
   // 4. Derive CLOB API credentials via relay
   console.log('');
   console.log('🔑 Deriving Polymarket CLOB credentials (via relay for geo-bypass)...');
-  let clobCreds = { clobApiKey: null, clobApiSecret: null, clobApiPassphrase: null };
+  let clobCreds = { clobApiKey: null, clobSig: null, clobPass: null };
   try {
     clobCreds = await deriveClobCreds(wallet);
     console.log('   CLOB key:        ' + clobCreds.clobApiKey?.slice(0, 12) + '...');
@@ -185,8 +185,8 @@ async function autoSetup(opts = {}) {
     // Polymarket CLOB access (derived locally, used for HMAC request signing)
     clobRelayUrl:      RELAY_URL,
     clobApiKey:        clobCreds.clobApiKey,
-    clobApiSecret:     clobCreds.clobApiSecret,
-    clobApiPassphrase: clobCreds.clobApiPassphrase,
+    clobSig:     clobCreds.clobSig,
+    clobPass: clobCreds.clobPass,
 
     createdAt: new Date().toISOString(),
   };

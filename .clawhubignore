@@ -2,6 +2,12 @@ node_modules/
 scripts/twitter-post.js
 scripts/twitter-reply.js
 scripts/whale-monitor.js
+scripts/batch-monitor.js
+scripts/hourly-status.js
+scripts/news-dryrun-cron.js
+scripts/record-external.js
+scripts/strategy-card.js
+EXTERNAL_AGENT_PROTOCOL.md
 .git/
 *.mp4
 *.jpg

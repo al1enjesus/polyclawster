@@ -108,7 +108,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   if (!config.agentKey && !config.privateKey) {
     throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
   }
-  if (!config.clobApiKey || !config.clobApiSecret) {
+  if (!config.clobApiKey || !config.clobSig) {
     throw new Error('No CLOB credentials. Run: node scripts/setup.js --derive-clob');
   }
 
@@ -205,8 +205,8 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {
     key:        config.clobApiKey,
-    secret:     config.clobApiSecret,
-    passphrase: config.clobApiPassphrase,
+    secret:     config.clobSig,
+    passphrase: config.clobPass,
   };
 
   // ClobClient pointed at relay for geo-bypass

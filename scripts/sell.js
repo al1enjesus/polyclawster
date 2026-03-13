@@ -87,7 +87,7 @@ async function closePosition({ betId, isDemo }) {
 
   // ── Live close: sign SELL order locally → submit via relay ──────────────
   if (!(config?.agentKey || config?.privateKey)) throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
-  if (!config.clobApiKey || !config.clobApiSecret) throw new Error('No CLOB creds. Run: node scripts/setup.js --derive-clob');
+  if (!config.clobApiKey || !config.clobSig) throw new Error('No CLOB creds. Run: node scripts/setup.js --derive-clob');
 
   // Get bet details from polyclawster.com
   const portfolio = await apiCall('GET', '/api/agents?action=portfolio', null, config.apiKey);
@@ -126,8 +126,8 @@ async function closePosition({ betId, isDemo }) {
   const wallet = new ethers.Wallet(config?.agentKey || config?.privateKey);
   const creds  = {
     key:        config.clobApiKey,
-    secret:     config.clobApiSecret,
-    passphrase: config.clobApiPassphrase,
+    secret:     config.clobSig,
+    passphrase: config.clobPass,
   };
   const client = new ClobClient(config.clobRelayUrl, 137, wallet, creds, SignatureType.EOA);
 
