@@ -18,62 +18,15 @@
  *   5. Relay records trade in Supabase (identified by wallet address)
  */
 'use strict';
-const https = require('https');
-const { loadConfig } = require('./setup');
+const { loadConfig, getSigningKey, apiRequest, httpGet, API_BASE } = require('./setup');
 const { ensureApprovals } = require('./approve');
-
-const API_BASE = 'https://polyclawster.com';
-
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
-function postJSON(url, body, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u       = new URL(url);
-    const payload = JSON.stringify(body);
-    const req     = https.request({
-      hostname: u.hostname,
-      path:     u.pathname + (u.search || ''),
-      method:   'POST',
-      headers:  {
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent':     'polyclawster-skill/2.0',
-        ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 25000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON: ' + d.slice(0, 100))); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
-    req.write(payload);
-    req.end();
-  });
-}
-
-function getJSON(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    https.get({
-      hostname: u.hostname,
-      path:     u.pathname + u.search,
-      headers:  { 'User-Agent': 'polyclawster-skill/2.0' },
-      timeout:  12000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
-    }).on('error', reject).on('timeout', function() { this.destroy(); reject(new Error('timeout')); });
-  });
-}
 
 // ── Resolve market data ──────────────────────────────────────────────────────
 // Returns { conditionId, question, tokenYes, tokenNo }
 async function resolveMarket(slug) {
   // polyclawster.com/api/market-lookup wraps Gamma API (handles CORS + caching)
   const url = `${API_BASE}/api/market-lookup?slug=${encodeURIComponent(slug)}`;
-  const data = await getJSON(url);
+  const data = await httpGet(url);
   const mkt = data?.market;
   if (!mkt?.conditionId) throw new Error(`Market not found: "${slug}"`);
 
@@ -91,21 +44,21 @@ async function resolveMarket(slug) {
 
 // ── Demo trade (no CLOB, no gas) ─────────────────────────────────────────────
 async function demoTrade({ market, side, amount, config }) {
-  const result = await postJSON(`${API_BASE}/api/agents`, {
+  const result = await apiRequest('POST', `${API_BASE}/api/agents`, {
     action:  'trade',
     market:  market || '',
     slug:    market || '',
     side:    side.toUpperCase(),
     amount,
     isDemo:  true,
-  }, config.apiKey);
+  }, { 'X-Api-Key': config.apiKey });
 
   return result;
 }
 
 // ── Live trade (local signing → relay → Polymarket CLOB) ─────────────────────
 async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, config }) {
-  if (!config.agentKey && !config.privateKey) {
+  if (!getSigningKey(config)) {
     throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
   }
   if (!config.clobApiKey || !config.clobSig) {
@@ -127,7 +80,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   ];
 
   const provider     = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const signerWallet = new ethers.Wallet(config.agentKey || config.privateKey, provider);
+  const signerWallet = new ethers.Wallet(getSigningKey(config), provider);
   const usdce        = new ethers.Contract(USDC_E_ADDR, ERC20_ABI, signerWallet);
   const amountNeeded = ethers.utils.parseUnits(amount.toString(), 6);
 
@@ -200,7 +153,7 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
   // Reconstruct local wallet for order signing (never transmitted)
-  const wallet = new ethers.Wallet(config.agentKey || config.privateKey);
+  const wallet = new ethers.Wallet(getSigningKey(config));
 
   // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {

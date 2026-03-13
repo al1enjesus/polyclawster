@@ -3,15 +3,15 @@
  * PolyClawster Balance — check all balances
  */
 'use strict';
-const { loadConfig } = require('./setup');
+const { loadConfig, getSigningKey } = require('./setup');
 
 async function run() {
   const config = loadConfig();
-  if (!(config?.agentKey || config?.privateKey)) throw new Error('Not configured. Run: node scripts/setup.js --auto');
+  if (!(getSigningKey(config))) throw new Error('Not configured. Run: node scripts/setup.js --auto');
 
   const { ethers } = await import('ethers');
   const provider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
-  const wallet = new ethers.Wallet(config?.agentKey || config?.privateKey, provider);
+  const wallet = new ethers.Wallet(getSigningKey(config), provider);
 
   const USDC_E = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
   const USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
@@ -35,7 +35,7 @@ async function run() {
   if (config.clobApiKey && config.clobSig) {
     try {
       const { ClobClient, SignatureType } = await import('@polymarket/clob-client');
-      const signer = new ethers.Wallet(config?.agentKey || config?.privateKey);
+      const signer = new ethers.Wallet(getSigningKey(config));
       const creds = { key: config.clobApiKey, secret: config.clobSig, passphrase: config.clobPass };
       const client = new ClobClient('https://clob.polymarket.com', 137, signer, creds, SignatureType.EOA, signer.address);
       await client.updateBalanceAllowance({ asset_type: 'COLLATERAL' });

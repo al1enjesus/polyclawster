@@ -6,37 +6,7 @@
  *   node link.js PC-A3F7K9
  */
 'use strict';
-const https = require('https');
-const { loadConfig } = require('./setup');
-
-const API_BASE = 'https://polyclawster.com';
-
-function postJSON(url, body, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const payload = JSON.stringify(body);
-    const req = https.request({
-      hostname: u.hostname,
-      path: u.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent': 'polyclawster-skill/1.2',
-        ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 10000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.write(payload);
-    req.end();
-  });
-}
+const { loadConfig, postJSON, API_BASE } = require('./setup');
 
 async function linkAgent(claimCode) {
   const config = loadConfig();
@@ -49,7 +19,8 @@ async function linkAgent(claimCode) {
   const result = await postJSON(`${API_BASE}/api/agents`, {
     action: 'link',
     claimCode,
-  }, config.apiKey);
+    apiKey: config.apiKey,
+  });
 
   if (!result.ok) {
     throw new Error(result.error || 'Link failed');

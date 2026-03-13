@@ -11,36 +11,10 @@
  *   node sell.js --bet-id 42 --demo   # Close demo position
  */
 'use strict';
-const https = require('https');
-const { loadConfig } = require('./setup');
+const { loadConfig, getSigningKey, apiRequest, API_BASE } = require('./setup');
 
-const API_BASE = 'https://polyclawster.com';
-
-function apiCall(method, path, body, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u       = new URL(`${API_BASE}${path}`);
-    const payload = body ? JSON.stringify(body) : null;
-    const req     = https.request({
-      hostname: u.hostname,
-      path:     u.pathname + (u.search || ''),
-      method,
-      headers: {
-        'Content-Type':   'application/json',
-        'User-Agent':     'polyclawster-skill/2.0',
-        ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
-        ...(apiKey  ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 20000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    if (payload) req.write(payload);
-    req.end();
-  });
+function api(method, path, body, apiKey) {
+  return apiRequest(method, `${API_BASE}${path}`, body, apiKey ? { 'X-Api-Key': apiKey } : {});
 }
 
 // ── List open positions ───────────────────────────────────────────────────────
@@ -48,7 +22,7 @@ async function listPositions(isDemo) {
   const config = loadConfig();
   if (!config?.agentId) throw new Error('Not configured. Run: node scripts/setup.js --auto');
 
-  const portfolio = await apiCall('GET', '/api/agents?action=portfolio', null, config.apiKey);
+  const portfolio = await api('GET', '/api/agents?action=portfolio', null, config.apiKey);
   if (!portfolio?.ok) throw new Error(portfolio?.error || 'Failed to load portfolio');
 
   const bets = (portfolio.openBets || []).filter(b => !!b.is_demo === !!isDemo);
@@ -75,7 +49,7 @@ async function closePosition({ betId, isDemo }) {
 
   // ── Demo close: call close_bet on agents API ────────────────────────────
   if (isDemo) {
-    const r = await apiCall('POST', '/api/agents', {
+    const r = await api('POST', '/api/agents', {
       action: 'close_bet',
       betId:  parseInt(betId),
       isDemo: true,
@@ -86,11 +60,11 @@ async function closePosition({ betId, isDemo }) {
   }
 
   // ── Live close: sign SELL order locally → submit via relay ──────────────
-  if (!(config?.agentKey || config?.privateKey)) throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
+  if (!(getSigningKey(config))) throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
   if (!config.clobApiKey || !config.clobSig) throw new Error('No CLOB creds. Run: node scripts/setup.js --derive-clob');
 
   // Get bet details from polyclawster.com
-  const portfolio = await apiCall('GET', '/api/agents?action=portfolio', null, config.apiKey);
+  const portfolio = await api('GET', '/api/agents?action=portfolio', null, config.apiKey);
   if (!portfolio?.ok) throw new Error(portfolio?.error || 'Failed to load portfolio');
 
   const bet = (portfolio.openBets || []).find(b => b.id === parseInt(betId));
@@ -102,15 +76,12 @@ async function closePosition({ betId, isDemo }) {
   if (tokenId && tokenId.startsWith('0x')) {
     console.log('   Resolving tokenId from conditionId via CLOB...');
     try {
-      const mktResp = await fetch(config.clobRelayUrl + '/markets/' + tokenId, {
-        headers: { 'User-Agent': 'polyclawster-skill/2.0' }
-      });
-      const mkt = await mktResp.json();
+      const mkt = await apiRequest('GET', config.clobRelayUrl + '/markets/' + tokenId);
       if (mkt?.tokens) {
         const sideUpper = (bet.side || 'YES').toUpperCase();
-        const token = mkt.tokens.find(t => t.outcome.toUpperCase() === sideUpper);
-        if (token) {
-          tokenId = token.token_id;
+        const tk = mkt.tokens.find(t => t.outcome.toUpperCase() === sideUpper);
+        if (tk) {
+          tokenId = tk.token_id;
           console.log('   Resolved ' + sideUpper + ' token');
         }
       }
@@ -123,7 +94,7 @@ async function closePosition({ betId, isDemo }) {
   const { ethers } = await import('ethers');
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
-  const wallet = new ethers.Wallet(config?.agentKey || config?.privateKey);
+  const wallet = new ethers.Wallet(getSigningKey(config));
   const creds  = {
     key:        config.clobApiKey,
     secret:     config.clobSig,
@@ -132,8 +103,6 @@ async function closePosition({ betId, isDemo }) {
   const client = new ClobClient(config.clobRelayUrl, 137, wallet, creds, SignatureType.EOA);
 
   // To close a position: SELL the outcome tokens we hold
-  // We hold YES or NO tokens depending on original bet side
-  // SELL amount = number of shares (bet_amount / buy_price)
   const buyAmount = parseFloat(bet.amount || 0);
   const buyPrice  = parseFloat(bet.price || 0.5);
   const shares    = buyAmount / buyPrice;
@@ -144,8 +113,8 @@ async function closePosition({ betId, isDemo }) {
 
   const order = await client.createMarketOrder({
     tokenID: tokenId,
-    side:    Side.SELL,      // SELL to close position
-    amount:  shares,         // number of outcome tokens to sell
+    side:    Side.SELL,
+    amount:  shares,
   });
 
   console.log('   Submitting via relay...');
@@ -156,18 +125,16 @@ async function closePosition({ betId, isDemo }) {
     throw new Error('CLOB rejected sell: ' + (response.error || response.errorMsg || JSON.stringify(response)));
   }
 
-  // Calculate return amount from the sell
-  // shares * fill_price approximation: use market order so we assume near current price
   const returnEstimate = +(shares * (response?.avgPrice || buyPrice)).toFixed(4);
 
-  // Mark bet as closed on polyclawster.com with real return amount
-  await apiCall('POST', '/api/agents', {
+  // Mark bet as closed on polyclawster.com
+  await api('POST', '/api/agents', {
     action:  'close_bet',
     betId:   parseInt(betId),
     orderID,
     returnAmount: returnEstimate,
   }, config.apiKey).catch(e => {
-    console.warn('   ⚠️ Failed to update bet status on polyclawster.com:', e.message);
+    console.warn('   ⚠️ Failed to update bet status:', e.message);
   });
 
   console.log('');

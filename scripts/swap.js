@@ -9,7 +9,7 @@
  *   node swap.js --check            # Check balances only
  */
 'use strict';
-const { loadConfig } = require('./setup');
+const { loadConfig, getSigningKey } = require('./setup');
 
 const POLYGON_RPC = 'https://polygon-bor-rpc.publicnode.com';
 const USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
@@ -25,11 +25,11 @@ const ERC20_ABI = [
 
 async function run() {
   const config = loadConfig();
-  if (!(config?.agentKey || config?.privateKey)) throw new Error('No config. Run: node scripts/setup.js --auto');
+  if (!(getSigningKey(config))) throw new Error('No config. Run: node scripts/setup.js --auto');
 
   const { ethers } = await import('ethers');
   const provider = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const wallet = new ethers.Wallet(config?.agentKey || config?.privateKey, provider);
+  const wallet = new ethers.Wallet(getSigningKey(config), provider);
 
   const polBal = await provider.getBalance(wallet.address);
   const usdcNative = new ethers.Contract(USDC_NATIVE, ERC20_ABI, wallet);

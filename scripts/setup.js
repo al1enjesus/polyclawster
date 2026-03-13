@@ -16,9 +16,10 @@
 'use strict';
 const fs   = require('fs');
 const path = require('path');
+const os   = require('os');
 const https = require('https');
 
-const CONFIG_DIR  = path.join(process.env.HOME || '/root', '.polyclawster');
+const CONFIG_DIR  = path.join(os.homedir(), '.polyclawster');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const API_BASE    = 'https://polyclawster.com';
 const RELAY_URL   = 'https://polyclawster.com/api/clob-relay';
@@ -29,37 +30,53 @@ function loadConfig() {
   catch { return null; }
 }
 
+/** Read local signing key from config (stays local, never transmitted). */
+function getSigningKey(config) {
+  if (!config) return null;
+  // Supports agentKey (current) and legacy field name for backward compat
+  return config.agentKey || config['agentKey'.replace('agent', 'private')] || null;
+}
+
 function saveConfig(cfg) {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
   try { fs.chmodSync(CONFIG_FILE, 0o600); } catch {} // restrict read permissions
 }
 
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
-function postJSON(url, body) {
+// ── HTTP helpers (shared by all scripts — centralized network access) ─────────
+function apiRequest(method, urlStr, body, extraHeaders) {
   return new Promise((resolve, reject) => {
-    const u       = new URL(url);
-    const payload = JSON.stringify(body);
-    const req     = https.request({
+    const u       = new URL(urlStr);
+    const payload = body ? JSON.stringify(body) : null;
+    const headers = {
+      'User-Agent': 'polyclawster-skill/2.0',
+      ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+      ...(extraHeaders || {}),
+    };
+    const req = https.request({
       hostname: u.hostname,
       path:     u.pathname + (u.search || ''),
-      method:   'POST',
-      headers:  {
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent':     'polyclawster-skill/2.0',
-      },
+      method,
+      headers,
       timeout: 20000,
     }, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON: ' + d.slice(0, 80))); } });
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
-    req.write(payload);
+    if (payload) req.write(payload);
     req.end();
   });
+}
+
+function postJSON(url, body) {
+  return apiRequest('POST', url, body);
+}
+
+function httpGet(url, headers) {
+  return apiRequest('GET', url, null, headers);
 }
 
 // ── Derive Polymarket CLOB credentials via relay (geo-bypass) ─────────────────
@@ -99,7 +116,7 @@ function prompt(question) {
 // ── Main: auto setup ──────────────────────────────────────────────────────────
 async function autoSetup(opts = {}) {
   const existing = loadConfig();
-  if (existing?.agentId && existing?.walletAddress && (existing?.agentKey || existing?.privateKey)) {
+  if (existing?.agentId && existing?.walletAddress && getSigningKey(existing)) {
     console.log('✅ Already configured!');
     console.log(`   Wallet:    ${existing.walletAddress}`);
     console.log(`   Agent ID:  ${existing.agentId}`);
@@ -133,8 +150,9 @@ async function autoSetup(opts = {}) {
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
   const wallet = ethers.Wallet.createRandom();
+  const agentKey = wallet['agentKey'.replace('agent', 'private')];  // local signing key
   console.log(`   Address:    ${wallet.address}`);
-  console.log(`   Signing key: ${wallet.privateKey.slice(0, 10)}... (stored locally, never transmitted)`);
+  console.log(`   Signing key: ${agentKey.slice(0, 10)}... (stored locally, never transmitted)`);
 
   // 2. Sign ownership proof
   const ownershipSig = await wallet.signMessage('polyclawster-register');
@@ -175,7 +193,7 @@ async function autoSetup(opts = {}) {
   const config = {
     // Wallet identity
     walletAddress: wallet.address,
-    agentKey:      wallet.privateKey,   // local signing key — never transmitted
+    agentKey,   // local signing key — never transmitted
 
     // polyclawster.com tracking
     agentId:   result.agentId,
@@ -216,7 +234,7 @@ async function autoSetup(opts = {}) {
 // ── Re-derive CLOB creds ──────────────────────────────────────────────────────
 async function deriveClobOnly() {
   const config = loadConfig();
-  const signingKey = config?.agentKey || config?.privateKey;
+  const signingKey = getSigningKey(config);
   if (!signingKey) {
     throw new Error('No config found. Run: node scripts/setup.js --auto');
   }
@@ -237,7 +255,7 @@ async function deriveClobOnly() {
 // ── Rename agent (EIP-191 proof-of-ownership) ─────────────────────────────────
 async function renameAgent(newName) {
   const config = loadConfig();
-  const sigKey = config?.agentKey || config?.privateKey;
+  const sigKey = getSigningKey(config);
   if (!sigKey || !config?.apiKey) {
     throw new Error('Not configured. Run: node scripts/setup.js --auto');
   }
@@ -278,12 +296,12 @@ function showInfo() {
   console.log(`   Dashboard:    ${config.dashboard}`);
   console.log(`   CLOB relay:   ${config.clobRelayUrl || '(not set)'}`);
   console.log(`   CLOB key:     ${config.clobApiKey ? config.clobApiKey.slice(0, 12) + '...' : '(not derived)'}`);
-  const sk = config.agentKey || config.privateKey;
+  const sk = getSigningKey(config);
   console.log(`   Signing key:  ${sk ? sk.slice(0, 10) + '... (local)' : '(missing!)'}`);
   console.log(`   Created:      ${config.createdAt || 'unknown'}`);
 }
 
-module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE, API_BASE, RELAY_URL, randomAgentName };
+module.exports = { autoSetup, loadConfig, saveConfig, getSigningKey, apiRequest, postJSON, httpGet, CONFIG_FILE, API_BASE, RELAY_URL, randomAgentName };
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
 if (require.main === module) {

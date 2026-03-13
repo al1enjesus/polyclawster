@@ -10,29 +10,7 @@
  *   node browse.js --limit 20
  */
 'use strict';
-const https = require('https');
-
-const API_BASE = 'https://polyclawster.com';
-
-function getJSON(url) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const req = https.request({
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: { 'User-Agent': 'polyclawster-skill/1.2' },
-      timeout: 12000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
-  });
-}
+const { httpGet, API_BASE } = require('./setup');
 
 // ── Keyword aliases — each key maps to array of single search terms ───────────
 // search-markets only handles one word at a time, so we send parallel requests
@@ -69,7 +47,7 @@ async function browseMarkets(query, opts = {}) {
   const results = await Promise.all(terms.map(term => {
     const qs = new URLSearchParams({ limit: '30' });
     if (term) qs.set('q', term);
-    return getJSON(`${API_BASE}/api/search-markets?${qs}`).catch(() => null);
+    return httpGet(`${API_BASE}/api/search-markets?${qs}`).catch(() => null);
   }));
 
   // Merge + deduplicate by conditionId/slug
@@ -86,11 +64,7 @@ async function browseMarkets(query, opts = {}) {
     }
   }
 
-  // Wrap in result-like object for downstream filters
-  const result = { ok: true, markets: allMarkets };
-  if (!result.ok) throw new Error('Failed to fetch markets');
-
-  let markets = result.markets || [];
+  let markets = allMarkets;
 
   // Apply filters
   if (minVolume > 0) markets = markets.filter(m => parseFloat(m.volume24hr || 0) >= minVolume);

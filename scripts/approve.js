@@ -11,7 +11,7 @@
  *   node approve.js --check   # Check status only (no transactions)
  */
 'use strict';
-const { loadConfig } = require('./setup');
+const { loadConfig, getSigningKey } = require('./setup');
 
 // Polygon mainnet — Polymarket contract addresses (public, from polymarket.com docs)
 const USDC_CONTRACT     = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
@@ -78,7 +78,7 @@ async function ensureApprovals(wallet, provider, ethers) {
  */
 async function run(checkOnly = false) {
   const config = loadConfig();
-  const signingKey = config?.agentKey || config?.privateKey;
+  const signingKey = getSigningKey(config);
   if (!signingKey) {
     throw new Error('No config. Run: node scripts/setup.js --auto');
   }

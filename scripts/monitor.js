@@ -9,26 +9,11 @@
  * Sells automatically when price hits target (take-profit) or stop (stop-loss)
  */
 'use strict';
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-
-function loadConfig() {
-  const p = path.join(process.env.HOME || '/root', '.polyclawster', 'config.json');
-  return JSON.parse(fs.readFileSync(p, 'utf8'));
-}
-
-function httpsGet(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'polyclawster-monitor/1.0' }, timeout: 10000 }, res => {
-      let d = ''; res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
-    }).on('error', reject).on('timeout', function() { this.destroy(); reject(new Error('timeout')); });
-  });
-}
+const { loadConfig, httpGet } = require('./setup');
+const { closePosition } = require('./sell');
 
 async function getCurrentPrice(conditionId, side) {
-  const mkt = await httpsGet('https://clob.polymarket.com/markets/' + conditionId);
+  const mkt = await httpGet('https://clob.polymarket.com/markets/' + conditionId);
   if (!mkt?.tokens) return null;
   const token = mkt.tokens.find(t => t.outcome.toUpperCase() === side.toUpperCase());
   return token ? parseFloat(token.price) : null;
@@ -51,7 +36,7 @@ async function main() {
   const config = loadConfig();
 
   // Get bet info from API
-  const profile = await httpsGet(`https://polyclawster.com/api/agents?action=profile&id=${config.agentId}`);
+  const profile = await httpGet(`https://polyclawster.com/api/agents?action=profile&id=${config.agentId}`);
   const bet = profile?.agent?.recentBets?.find(b => b.id === betId);
   if (!bet) { console.error('Bet not found:', betId); process.exit(1); }
 
@@ -75,15 +60,13 @@ async function main() {
 
     if (price >= target) {
       console.log(`\n   🎯 TARGET HIT! Selling...`);
-      const { execSync } = require('child_process');
-      execSync(`node ${path.join(__dirname, 'sell.js')} --bet-id ${betId}`, { stdio: 'inherit' });
+      await closePosition({ betId, isDemo: false });
       process.exit(0);
     }
 
     if (price <= stop) {
       console.log(`\n   🛑 STOP LOSS HIT! Selling...`);
-      const { execSync } = require('child_process');
-      execSync(`node ${path.join(__dirname, 'sell.js')} --bet-id ${betId}`, { stdio: 'inherit' });
+      await closePosition({ betId, isDemo: false });
       process.exit(0);
     }
   };

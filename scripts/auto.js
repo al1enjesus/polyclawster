@@ -12,61 +12,8 @@
  *   node auto.js --dry-run                          # Simulate, no trades
  */
 'use strict';
-const https = require('https');
-const { loadConfig } = require('./setup');
+const { loadConfig, httpGet, API_BASE } = require('./setup');
 const { getWalletBalance } = require('./balance');
-
-const API_BASE = 'https://polyclawster.com';
-
-function getJSON(url, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const req = https.request({
-      hostname: u.hostname,
-      path: u.pathname + (u.search || ''),
-      method: 'GET',
-      headers: {
-        'User-Agent': 'polyclawster-skill/1.2',
-        ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 12000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
-  });
-}
-
-function postJSON(url, body, apiKey) {
-  return new Promise((resolve, reject) => {
-    const u = new URL(url);
-    const payload = JSON.stringify(body);
-    const req = https.request({
-      hostname: u.hostname,
-      path: u.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent': 'polyclawster-skill/1.2',
-        ...(apiKey ? { 'X-Api-Key': apiKey } : {}),
-      },
-      timeout: 20000,
-    }, res => {
-      let d = '';
-      res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Invalid JSON')); } });
-    });
-    req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
-    req.write(payload);
-    req.end();
-  });
-}
 
 async function runAutoTrade(opts = {}) {
   const {
@@ -102,7 +49,7 @@ async function runAutoTrade(opts = {}) {
 
   // 2. Fetch signals
   const signalsUrl = `${API_BASE}/api/signals${topic ? '?q=' + encodeURIComponent(topic) : ''}`;
-  const signalsRes = await getJSON(signalsUrl, config.apiKey).catch(() => null);
+  const signalsRes = await httpGet(signalsUrl, { 'X-Api-Key': config.apiKey }).catch(() => null);
   const signals = (signalsRes?.signals || signalsRes?.data || []).filter(Boolean);
 
   if (!signals.length) {
