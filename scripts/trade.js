@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * PolyClawster Trade — Option C (Non-Custodial)
+ * PolyClawster Trade — Non-Custodial Polymarket Trading
  *
- * Demo mode:  calls polyclawster.com API — fast, no gas, uses $10 demo balance
- * Live mode:  signs order LOCALLY with your private key → submits via relay → Polymarket CLOB
+ * Demo mode:  calls polyclawster.com API — fast, no gas, $10 demo balance
+ * Live mode:  signs orders locally → submits via geo-bypass relay → Polymarket CLOB
  *
  * Usage:
  *   node trade.js --market "bitcoin-100k" --side YES --amount 2 --demo
@@ -12,15 +12,15 @@
  *
  * How live trading works:
  *   1. Resolve market → get conditionId + tokenYes/tokenNo
- *   2. Create wallet from local private key (~/.polyclawster/config.json)
+ *   2. Load local wallet (EIP-712 signing, wallet stays on this machine)
  *   3. Sign order locally (EIP-712 + HMAC)
- *   4. Submit via polyclawster.com/api/clob-relay (Tokyo, geo-bypass)
+ *   4. Submit via polyclawster.com relay (Tokyo, geo-bypass)
  *   5. Relay records trade in Supabase (identified by wallet address)
- *   Private key NEVER leaves this machine.
  */
 'use strict';
 const https = require('https');
 const { loadConfig } = require('./setup');
+const { ensureApprovals } = require('./approve');
 
 const API_BASE = 'https://polyclawster.com';
 
@@ -105,8 +105,8 @@ async function demoTrade({ market, side, amount, config }) {
 
 // ── Live trade (local signing → relay → Polymarket CLOB) ─────────────────────
 async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amount, config }) {
-  if (!config.privateKey) {
-    throw new Error('No private key in config. Run: node scripts/setup.js --auto');
+  if (!config.agentKey && !config.privateKey) {
+    throw new Error('Wallet not configured. Run: node scripts/setup.js --auto');
   }
   if (!config.clobApiKey || !config.clobApiSecret) {
     throw new Error('No CLOB credentials. Run: node scripts/setup.js --derive-clob');
@@ -114,80 +114,77 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
 
   const { ethers } = await import('ethers');
 
-  // ── Auto-setup: ensure USDC.e balance + approvals ──────────────────
-  const provider = new ethers.providers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
-  const signerWallet = new ethers.Wallet(config.privateKey, provider);
+  const POLYGON_RPC  = 'https://polygon-bor-rpc.publicnode.com';
+  const USDC_E_ADDR  = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
+  const USDC_N_ADDR  = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
+  const WMATIC_ADDR  = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
+  const SWAP_ROUTER  = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
 
-  var USDC_E = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174';
-  var USDC_NATIVE = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359';
-  var WMATIC = '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270';
-  var SWAP_ROUTER = '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45';
-  var CTF_EXCHANGE = '0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E';
-  var NEG_RISK = '0xC5d563A36AE78145C45a50134d48A1215220f80a';
-  var NEG_RISK_ADAPTER = '0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296';
-  var CTF_CONTRACT = '0x4D97DCd97eC945f40cF65F87097ACe5EA0476045';
-
-  var ERC20_ABI = [
+  const ERC20_ABI = [
     'function balanceOf(address) view returns (uint256)',
     'function allowance(address,address) view returns (uint256)',
     'function approve(address,uint256) returns (bool)',
   ];
 
-  var usdceContract = new ethers.Contract(USDC_E, ERC20_ABI, signerWallet);
-  var usdceBal = await usdceContract.balanceOf(signerWallet.address);
-  var amountNeeded = ethers.utils.parseUnits(amount.toString(), 6);
+  const provider     = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
+  const signerWallet = new ethers.Wallet(config.agentKey || config.privateKey, provider);
+  const usdce        = new ethers.Contract(USDC_E_ADDR, ERC20_ABI, signerWallet);
+  const amountNeeded = ethers.utils.parseUnits(amount.toString(), 6);
 
-  // Auto-swap if not enough USDC.e
+  // ── Swap to USDC.e if balance is low ──────────────────────────────
+  let usdceBal = await usdce.balanceOf(signerWallet.address);
+
   if (usdceBal.lt(amountNeeded)) {
-    var gasPrice = await provider.getGasPrice();
-    var txOpts = { gasLimit: 300000, gasPrice: gasPrice.mul(2), type: 0 };
+    const gasPrice = await provider.getGasPrice();
+    const txOpts   = { gasLimit: 300000, gasPrice: gasPrice.mul(2), type: 0 };
 
-    // Try native USDC first
-    var usdcNative = new ethers.Contract(USDC_NATIVE, ERC20_ABI, signerWallet);
-    var nativeBal = await usdcNative.balanceOf(signerWallet.address);
-
+    // Try native USDC → USDC.e first
+    const usdcNative = new ethers.Contract(USDC_N_ADDR, ERC20_ABI, signerWallet);
+    const nativeBal  = await usdcNative.balanceOf(signerWallet.address);
     if (nativeBal.gt(0)) {
-      console.log('   Auto-swapping USDC -> USDC.e...');
-      var allow = await usdcNative.allowance(signerWallet.address, SWAP_ROUTER);
-      if (allow.lt(nativeBal)) {
-        await (await usdcNative.approve(SWAP_ROUTER, ethers.BigNumber.from(2).pow(256).sub(1), txOpts)).wait();
+      console.log('   Swapping USDC → USDC.e...');
+      const routerAbi = ['function exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) external payable returns (uint256)'];
+      const router = new ethers.Contract(SWAP_ROUTER, routerAbi, signerWallet);
+      const swapCap = ethers.utils.parseUnits('1000000000', 6);
+      const allowed = await usdcNative.allowance(signerWallet.address, SWAP_ROUTER);
+      if (allowed.lt(nativeBal)) {
+        await (await usdcNative.approve(SWAP_ROUTER, swapCap, txOpts)).wait();
       }
-      var router = new ethers.Contract(SWAP_ROUTER, [
-        'function exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) external payable returns (uint256)',
-      ], signerWallet);
       await (await router.exactInputSingle({
-        tokenIn: USDC_NATIVE, tokenOut: USDC_E, fee: 100,
+        tokenIn: USDC_N_ADDR, tokenOut: USDC_E_ADDR, fee: 100,
         recipient: signerWallet.address, amountIn: nativeBal,
         amountOutMinimum: nativeBal.mul(99).div(100), sqrtPriceLimitX96: 0,
       }, txOpts)).wait();
-      usdceBal = await usdceContract.balanceOf(signerWallet.address);
+      usdceBal = await usdce.balanceOf(signerWallet.address);
       console.log('   USDC.e: $' + ethers.utils.formatUnits(usdceBal, 6));
     }
 
-    // If still not enough, try POL
+    // Try POL → USDC.e if still short
     if (usdceBal.lt(amountNeeded)) {
-      var polBal = await provider.getBalance(signerWallet.address);
-      var keepForGas = ethers.utils.parseEther('1');
+      const polBal     = await provider.getBalance(signerWallet.address);
+      const keepForGas = ethers.utils.parseEther('1');
       if (polBal.gt(keepForGas.add(ethers.utils.parseEther('0.5')))) {
-        var swapAmount = polBal.sub(keepForGas);
-        console.log('   Auto-swapping ' + parseFloat(ethers.utils.formatEther(swapAmount)).toFixed(2) + ' POL -> USDC.e...');
-        var router2 = new ethers.Contract(SWAP_ROUTER, [
-          'function multicall(uint256,bytes[]) external payable returns (bytes[])',
-        ], signerWallet);
-        var iface = new ethers.utils.Interface([
+        const swapAmt = polBal.sub(keepForGas);
+        console.log('   Swapping ' + parseFloat(ethers.utils.formatEther(swapAmt)).toFixed(2) + ' POL → USDC.e...');
+        const multicallAbi = ['function multicall(uint256,bytes[]) external payable returns (bytes[])'];
+        const iface = new ethers.utils.Interface([
           'function exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) returns (uint256)',
           'function wrapETH(uint256)',
         ]);
-        var wrapData = iface.encodeFunctionData('wrapETH', [swapAmount]);
-        var swapData = iface.encodeFunctionData('exactInputSingle', [{
-          tokenIn: WMATIC, tokenOut: USDC_E, fee: 500,
-          recipient: signerWallet.address, amountIn: swapAmount,
-          amountOutMinimum: 0, sqrtPriceLimitX96: 0,
-        }]);
-        await (await router2.multicall(Math.floor(Date.now()/1000)+300, [wrapData, swapData], {
-          ...txOpts, value: swapAmount,
-        })).wait();
-        usdceBal = await usdceContract.balanceOf(signerWallet.address);
+        const router2 = new ethers.Contract(SWAP_ROUTER, multicallAbi, signerWallet);
+        await (await router2.multicall(
+          Math.floor(Date.now() / 1000) + 300,
+          [
+            iface.encodeFunctionData('wrapETH', [swapAmt]),
+            iface.encodeFunctionData('exactInputSingle', [{
+              tokenIn: WMATIC_ADDR, tokenOut: USDC_E_ADDR, fee: 500,
+              recipient: signerWallet.address, amountIn: swapAmt,
+              amountOutMinimum: 0, sqrtPriceLimitX96: 0,
+            }]),
+          ],
+          { ...{ gasLimit: 300000, gasPrice: (await provider.getGasPrice()).mul(2), type: 0 }, value: swapAmt }
+        )).wait();
+        usdceBal = await usdce.balanceOf(signerWallet.address);
         console.log('   USDC.e: $' + ethers.utils.formatUnits(usdceBal, 6));
       }
     }
@@ -197,38 +194,13 @@ async function liveTrade({ market, conditionId, tokenIdYes, tokenIdNo, side, amo
     }
   }
 
-  // Auto-approve USDC.e for exchanges (one-time)
-  var exchanges = [CTF_EXCHANGE, NEG_RISK, NEG_RISK_ADAPTER];
-  for (var i = 0; i < exchanges.length; i++) {
-    var ex = exchanges[i];
-    var al = await usdceContract.allowance(signerWallet.address, ex);
-    if (al.lt(amountNeeded)) {
-      console.log('   Approving USDC.e for ' + ex.slice(0,10) + '...');
-      var gp = await provider.getGasPrice();
-      await (await usdceContract.approve(ex, ethers.BigNumber.from(2).pow(256).sub(1), { gasLimit: 100000, gasPrice: gp.mul(2), type: 0 })).wait();
-    }
-  }
-
-  // Auto-approve CTF conditional tokens (one-time)
-  var ctf = new ethers.Contract(CTF_CONTRACT, [
-    'function isApprovedForAll(address,address) view returns (bool)',
-    'function setApprovalForAll(address,bool) external',
-  ], signerWallet);
-  for (var j = 0; j < exchanges.length; j++) {
-    var ex2 = exchanges[j];
-    var approved = await ctf.isApprovedForAll(signerWallet.address, ex2);
-    if (!approved) {
-      console.log('   Approving CTF for ' + ex2.slice(0,10) + '...');
-      var gp2 = await provider.getGasPrice();
-      await (await ctf.setApprovalForAll(ex2, true, { gasLimit: 100000, gasPrice: gp2.mul(2), type: 0 })).wait();
-    }
-  }
-  // ── End auto-setup ─────────────────────────────────────────────────
+  // ── Ensure Polymarket exchange authorizations (delegated to approve.js) ──
+  await ensureApprovals(signerWallet, provider, ethers);
 
   const { ClobClient, SignatureType, OrderType, Side } = await import('@polymarket/clob-client');
 
-  // Reconstruct wallet from local private key (never sent anywhere)
-  const wallet = new ethers.Wallet(config.privateKey);
+  // Reconstruct local wallet for order signing (never transmitted)
+  const wallet = new ethers.Wallet(config.agentKey || config.privateKey);
 
   // CLOB credentials (used for L2 HMAC signing — computed locally by ClobClient)
   const creds = {

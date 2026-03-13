@@ -25,11 +25,11 @@ const ERC20_ABI = [
 
 async function run() {
   const config = loadConfig();
-  if (!config?.privateKey) throw new Error('No config. Run: node scripts/setup.js --auto');
+  if (!(config?.agentKey || config?.privateKey)) throw new Error('No config. Run: node scripts/setup.js --auto');
 
   const { ethers } = await import('ethers');
   const provider = new ethers.providers.JsonRpcProvider(POLYGON_RPC);
-  const wallet = new ethers.Wallet(config.privateKey, provider);
+  const wallet = new ethers.Wallet(config?.agentKey || config?.privateKey, provider);
 
   const polBal = await provider.getBalance(wallet.address);
   const usdcNative = new ethers.Contract(USDC_NATIVE, ERC20_ABI, wallet);
@@ -88,7 +88,7 @@ async function run() {
     const allowance = await usdcNative.allowance(wallet.address, SWAP_ROUTER);
     if (allowance.lt(amountIn)) {
       console.log('⏳ Approving USDC for swap...');
-      const tx = await usdcNative.approve(SWAP_ROUTER, ethers.BigNumber.from(2).pow(256).sub(1), opts);
+      const tx = await usdcNative.approve(SWAP_ROUTER, ethers.utils.parseUnits('1000000000', 6), opts);
       await tx.wait();
     }
 
