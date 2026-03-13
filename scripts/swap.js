@@ -154,4 +154,6 @@ async function run() {
   }
 }
 
-run().catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
+if (require.main === module) {
+  run().catch(e => { console.error('❌ Error:', e.message); process.exit(1); });
+}
