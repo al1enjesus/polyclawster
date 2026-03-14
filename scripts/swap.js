@@ -108,7 +108,7 @@ async function run() {
     console.log('✅ Done! USDC.e balance: $' + ethers.utils.formatUnits(newBal, 6));
   }
 
-  // Swap POL → USDC.e (POL → WMATIC → USDC.e)
+  // Swap POL → USDC.e (payable exactInputSingle; WMATIC auto-wrap)
   if (swapPol > 0) {
     const amountIn = ethers.utils.parseEther(swapPol.toFixed(4));
     if (amountIn.gt(polBal)) {
@@ -118,28 +118,15 @@ async function run() {
 
     console.log('🔄 Swapping ' + swapPol.toFixed(2) + ' POL → USDC.e...');
 
-    // Wrap POL → WMATIC, then swap WMATIC → USDC.e
-    // Use multicall: wrapETH + exactInputSingle
-    const iface = new ethers.utils.Interface([
-      'function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) returns (uint256)',
-    ]);
-
-    const swapData = iface.encodeFunctionData('exactInputSingle', [{
+    const tx = await router.exactInputSingle({
       tokenIn: WMATIC,
       tokenOut: USDC_E,
-      fee: 500, // 0.05% fee tier for WMATIC/USDC.e
+      fee: 3000, // 0.3% fee tier for WMATIC/USDC.e
       recipient: wallet.address,
       amountIn: amountIn,
-      amountOutMinimum: 0, // accept any (POL is volatile)
+      amountOutMinimum: 0,
       sqrtPriceLimitX96: 0,
-    }]);
-
-    // Wrap + swap via multicall
-    const wrapIface = new ethers.utils.Interface(['function wrapETH(uint256 value)']);
-    const wrapData = wrapIface.encodeFunctionData('wrapETH', [amountIn]);
-
-    const deadline = Math.floor(Date.now() / 1000) + 300;
-    const tx = await router.multicall(deadline, [wrapData, swapData], {
+    }, {
       ...opts,
       value: amountIn,
     });
