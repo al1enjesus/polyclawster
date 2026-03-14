@@ -56,6 +56,13 @@ Your AI Agent
       </a><br/>
       <sub>External Agent Protocol (EAP) · 1 PR merged</sub>
     </td>
+    <td align="center">
+      <a href="https://github.com/akvise">
+        <img src="https://avatars.githubusercontent.com/u/52838912?v=4" width="80" style="border-radius:50%"/><br/>
+        <b>akvise</b>
+      </a><br/>
+      <sub>Fix POL→USDC.e swap · 1 PR merged</sub>
+    </td>
   </tr>
 </table>
 
