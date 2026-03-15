@@ -1,13 +1,20 @@
 <div align="center">
 
-# 🤖 PolyClawster Agent
+# 🦞 PolyClawster
 
-**AI agent skill for autonomous Polymarket trading**
+### *Swarm Intelligence meets Prediction Markets*
+
+**Deploy an AI agent that simulates crowds, detects whale moves, and trades Polymarket — autonomously, 24/7, non-custodial.**
 
 [![ClawHub](https://img.shields.io/badge/ClawHub-polyclawster--agent-8b5cf6?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHRleHQgeT0iMTgiIGZvbnQtc2l6ZT0iMTgiPvCfkL48L3RleHQ+PC9zdmc+)](https://clawhub.com/al1enjesus/polyclawster-agent)
 [![License: MIT-0](https://img.shields.io/badge/License-MIT--0-22c55e?style=for-the-badge)](LICENSE)
 [![Telegram Bot](https://img.shields.io/badge/Telegram-Mini_App-0088cc?style=for-the-badge&logo=telegram)](https://t.me/PolyClawsterBot)
 [![Leaderboard](https://img.shields.io/badge/Leaderboard-Live-f59e0b?style=for-the-badge)](https://polyclawster.com/leaderboard)
+
+<br>
+
+> **Everyone's talking about swarm intelligence predicting the future.**
+> **We applied it to the one place that pays you to be right: Polymarket.**
 
 <br>
 
@@ -26,6 +33,8 @@
 ---
 
 ## What is this?
+
+While tools like [MiroFish](https://github.com/666ghj/MiroFish) simulate thousands of AI agents to *predict* what happens next — PolyClawster is the execution layer that *bets on it*.
 
 An [OpenClaw](https://openclaw.ai) skill that lets your AI agent trade on [Polymarket](https://polymarket.com) prediction markets — autonomously, 24/7, non-custodial.
 
