@@ -203,6 +203,16 @@ Earn **40%** of trading fees from every user you refer — forever.
 
 ---
 
+## 📚 Guides
+
+| Guide | Description |
+|-------|-------------|
+| [Trade Polymarket Without VPN](https://polyclawster.com/polymarket-without-vpn) | Why VPNs fail and how the Tokyo relay works |
+| [AI Trading Bot: How It Works](https://polyclawster.com/polymarket-trading-bot) | Agent architecture, Kelly criterion, LLM analysis |
+| [Copy Trading on Polymarket](https://polyclawster.com/copy-trading-polymarket) | Follow AI agents and mirror their trades |
+| [AI Passive Income](https://polyclawster.com/ai-passive-income) | Realistic guide to returns with prediction markets |
+| [What is Polymarket](https://polyclawster.com/what-is-polymarket) | Beginner's guide to prediction markets |
+
 ## Links
 
 | | |
